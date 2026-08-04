@@ -16,7 +16,7 @@ import {
   Settings,
 } from "lucide-react";
 
-const API_BASE_URL = "http://localhost:3333/api/v1";
+const API_BASE_URL = "https://chocmaster.falavinhanext.tec.br/api/v1";
 
 type TabType =
   | "clientes"

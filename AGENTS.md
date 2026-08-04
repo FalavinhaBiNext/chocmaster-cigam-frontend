@@ -44,7 +44,7 @@ src/
 
 ## API Dependency
 
-**Backend must be running on `http://localhost:3333`** — the frontend has no env config, the URL is hardcoded in `App.tsx:17` and `EventsSection.tsx:60`. If you see "Falha ao se conectar com o servidor backend Chocmaster na porta 3333", the backend is down.
+**Backend must be running on `https://chocmaster.falavinhanext.tec.br`** — the frontend has no env config, the URL is hardcoded in `App.tsx:17` and `EventsSection.tsx:60`. If you see "Falha ao se conectar com o servidor backend Chocmaster na porta 3333", the backend is down.
 
 ## Key Conventions
 

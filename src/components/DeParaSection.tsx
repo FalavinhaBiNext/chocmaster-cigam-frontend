@@ -498,7 +498,7 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
   const handleExportExcel = async () => {
     setIsExporting(true);
     try {
-      const response = await fetch(`http://localhost:3333/api/v1/produtos/export-excel`);
+      const response = await fetch(`https://chocmaster.falavinhanext.tec.br/api/v1/produtos/export-excel`);
       
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
@@ -530,7 +530,7 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
     setExportingPaymentSource(source);
     try {
       const response = await fetch(
-        `http://localhost:3333/api/v1/depara/formas-pagamento/export-excel?source=${source}&association=${filter}`,
+        `https://chocmaster.falavinhanext.tec.br/api/v1/depara/formas-pagamento/export-excel?source=${source}&association=${filter}`,
       );
 
       if (!response.ok) {
@@ -574,7 +574,7 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
 
     setIsSyncingCigam(true);
     try {
-      const response = await fetch(`http://localhost:3333/api/v1/cigam/sync/${endpoint}`, {
+      const response = await fetch(`https://chocmaster.falavinhanext.tec.br/api/v1/cigam/sync/${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
