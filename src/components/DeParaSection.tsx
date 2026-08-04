@@ -645,7 +645,7 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
 
   const itemDetails = modalItem as any;
   const hasBlingFilters = entity === 'produtos' ? activeTags.length > 0 : blingFilter !== 'all';
-  const hasSeparateSourceSync = entity === 'formas_pagamento' || entity === 'transportadoras';
+  const hasSeparateSourceSync = entity === 'formas_pagamento' || entity === 'transportadoras' || entity === 'produtos';
 
   if (loading) {
     return (
@@ -1122,18 +1122,7 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
               <h3 className="text-lg font-bold text-slate-200">Tabela CIGAM</h3>
               <p className="text-xs text-slate-400">Total filtrado: {filteredCigamData.length}</p>
             </div>
-            {entity === 'produtos' && (
-              <button
-                type="button"
-                onClick={handleSyncCigam}
-                disabled={isSyncingCigam}
-                className="p-1.5 px-3 h-[38px] bg-indigo-750 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition duration-200 flex items-center space-x-1.5 cursor-pointer shadow-md hover:shadow-indigo-500/10 active:scale-95 border border-indigo-500/30"
-                title="Sincronizar produtos com a plataforma CIGAM"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isSyncingCigam ? 'animate-spin' : ''}`} />
-                <span>{isSyncingCigam ? 'Sincronizando...' : 'Sincronizar CIGAM'}</span>
-              </button>
-            )}
+
           </div>
 
           <div className="flex items-center space-x-2 mb-4">
