@@ -57,7 +57,7 @@ export const EventsSection: React.FC = () => {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
 
-  const API_BASE_URL = 'https://chocmaster.falavinhanext.tec.br/api/v1';
+  const API_BASE_URL = 'https://api-chocmaster.falavinhanext.tec.br/api/v1';
 
   const fetchEventsAndProducts = async () => {
     setLoading(true);
