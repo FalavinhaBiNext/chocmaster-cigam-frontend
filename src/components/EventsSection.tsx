@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { Activity, FileText, ShoppingBag, Truck, User, RefreshCw, ShieldAlert, CheckCircle2, XCircle } from 'lucide-react';
 
 interface EventItem {
@@ -47,6 +48,12 @@ interface ProductDetails {
 }
 
 export const EventsSection: React.FC = () => {
+  const { token } = useAuth();
+  const authHeaders = {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -66,8 +73,8 @@ export const EventsSection: React.FC = () => {
     setError(null);
     try {
       const [eventsRes, productsRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/events`).then(r => r.json()),
-        fetch(`${API_BASE_URL}/produtos`).then(r => r.json())
+        fetch(`${API_BASE_URL}/events`, { headers: authHeaders }).then(r => r.json()),
+        fetch(`${API_BASE_URL}/produtos`, { headers: authHeaders }).then(r => r.json())
       ]);
 
       if (eventsRes.success) {
@@ -108,14 +115,14 @@ export const EventsSection: React.FC = () => {
 
     try {
       // 1. Fetch Order Details by Bling ID
-      const orderRes = await fetch(`${API_BASE_URL}/pedidos/bling/${event.pedido_id}`).then(r => r.json());
-      
+      const orderRes = await fetch(`${API_BASE_URL}/pedidos/bling/${event.pedido_id}`, { headers: authHeaders }).then(r => r.json());
+
       if (orderRes.success && orderRes.data) {
         const order = orderRes.data as OrderDetail;
         setOrderDetails(order);
 
         // 2. Fetch Order Products using the local order UUID
-        const productsRes = await fetch(`${API_BASE_URL}/pedido-produtos/pedido/${order.id}`).then(r => r.json());
+        const productsRes = await fetch(`${API_BASE_URL}/pedido-produtos/pedido/${order.id}`, { headers: authHeaders }).then(r => r.json());
         if (productsRes.success) {
           setOrderProducts(productsRes.data || []);
         }

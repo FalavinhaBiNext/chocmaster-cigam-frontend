@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useAuth } from "../contexts/AuthContext";
 import {
   Trash2,
   Plus,
@@ -30,6 +31,12 @@ export const ConfiguracoesSection: React.FC<ConfiguracoesSectionProps> = ({
   API_BASE_URL,
   onRefreshGlobal,
 }) => {
+  const { token } = useAuth();
+  const authHeaders = {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+
   const [usuarios, setUsuarios] = useState<UsuarioCigam[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +56,7 @@ export const ConfiguracoesSection: React.FC<ConfiguracoesSectionProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/cigam/usuarios/find-all`);
+      const response = await fetch(`${API_BASE_URL}/cigam/usuarios/find-all`, { headers: authHeaders });
       if (!response.ok) {
         throw new Error("Erro ao carregar usuários CIGAM");
       }
@@ -81,7 +88,7 @@ export const ConfiguracoesSection: React.FC<ConfiguracoesSectionProps> = ({
     try {
       const response = await fetch(`${API_BASE_URL}/cigam/usuarios/create`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders,
         body: JSON.stringify({
           ambiente,
           url_ambiente: urlAmbiente,
@@ -120,6 +127,7 @@ export const ConfiguracoesSection: React.FC<ConfiguracoesSectionProps> = ({
         `${API_BASE_URL}/cigam/usuarios/alter-ativo/${id}`,
         {
           method: "PATCH",
+          headers: authHeaders,
         },
       );
 
@@ -150,6 +158,7 @@ export const ConfiguracoesSection: React.FC<ConfiguracoesSectionProps> = ({
     try {
       const response = await fetch(`${API_BASE_URL}/cigam/usuarios/${id}`, {
         method: "DELETE",
+        headers: authHeaders,
       });
 
       if (!response.ok) {

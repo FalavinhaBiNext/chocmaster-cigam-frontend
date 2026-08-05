@@ -79,7 +79,13 @@ interface MappingStatus {
 }
 
 export default function App() {
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
+
+  const authHeaders = useCallback(() => ({
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  }), [token]);
+
   const [activeTab, setActiveTab] = useState<TabType>("clientes");
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -145,19 +151,19 @@ export default function App() {
         resMapTrans,
         resCigamUsers,
       ] = await Promise.all([
-        fetch(`${API_BASE_URL}/clientes`).then((r) => r.json()),
-        fetch(`${API_BASE_URL}/produtos`).then((r) => r.json()),
-        fetch(`${API_BASE_URL}/formas-pagamento`).then((r) => r.json()),
-        fetch(`${API_BASE_URL}/transportadoras`).then((r) => r.json()),
-        fetch(`${API_BASE_URL}/clientes-cigam`).then((r) => r.json()),
-        fetch(`${API_BASE_URL}/produtos-cigam`).then((r) => r.json()),
-        fetch(`${API_BASE_URL}/formas-pagamento-cigam`).then((r) => r.json()),
-        fetch(`${API_BASE_URL}/transportadoras-cigam`).then((r) => r.json()),
-        fetch(`${API_BASE_URL}/depara/clientes`).then((r) => r.json()),
-        fetch(`${API_BASE_URL}/depara/produtos`).then((r) => r.json()),
-        fetch(`${API_BASE_URL}/depara/formas_pagamento`).then((r) => r.json()),
-        fetch(`${API_BASE_URL}/depara/transportadoras`).then((r) => r.json()),
-        fetch(`${API_BASE_URL}/cigam/usuarios/find-all`).then((r) => r.json()),
+        fetch(`${API_BASE_URL}/clientes`, { headers: authHeaders() }).then((r) => r.json()),
+        fetch(`${API_BASE_URL}/produtos`, { headers: authHeaders() }).then((r) => r.json()),
+        fetch(`${API_BASE_URL}/formas-pagamento`, { headers: authHeaders() }).then((r) => r.json()),
+        fetch(`${API_BASE_URL}/transportadoras`, { headers: authHeaders() }).then((r) => r.json()),
+        fetch(`${API_BASE_URL}/clientes-cigam`, { headers: authHeaders() }).then((r) => r.json()),
+        fetch(`${API_BASE_URL}/produtos-cigam`, { headers: authHeaders() }).then((r) => r.json()),
+        fetch(`${API_BASE_URL}/formas-pagamento-cigam`, { headers: authHeaders() }).then((r) => r.json()),
+        fetch(`${API_BASE_URL}/transportadoras-cigam`, { headers: authHeaders() }).then((r) => r.json()),
+        fetch(`${API_BASE_URL}/depara/clientes`, { headers: authHeaders() }).then((r) => r.json()),
+        fetch(`${API_BASE_URL}/depara/produtos`, { headers: authHeaders() }).then((r) => r.json()),
+        fetch(`${API_BASE_URL}/depara/formas_pagamento`, { headers: authHeaders() }).then((r) => r.json()),
+        fetch(`${API_BASE_URL}/depara/transportadoras`, { headers: authHeaders() }).then((r) => r.json()),
+        fetch(`${API_BASE_URL}/cigam/usuarios/find-all`, { headers: authHeaders() }).then((r) => r.json()),
       ]);
 
       setBlingClientes(
@@ -293,6 +299,7 @@ export default function App() {
         `${API_BASE_URL}/cigam/usuarios/alter-ativo/${user.id}`,
         {
           method: "PATCH",
+          headers: authHeaders(),
         }
       );
 
@@ -318,7 +325,7 @@ export default function App() {
   ) => {
     const response = await fetch(`${API_BASE_URL}/depara/manual`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: authHeaders(),
       body: JSON.stringify({
         entity: activeTab,
         id_bling: idBling,
@@ -338,6 +345,7 @@ export default function App() {
   const handleDeleteMapping = async (idBling: string) => {
     const response = await fetch(`${API_BASE_URL}/depara/${activeTab}/${idBling}`, {
       method: "DELETE",
+      headers: authHeaders(),
     });
 
     if (!response.ok) {
@@ -355,6 +363,7 @@ export default function App() {
     try {
       const response = await fetch(`${API_BASE_URL}/bling/sync/${endpoint}`, {
         method: "POST",
+        headers: authHeaders(),
       });
 
       if (!response.body) {
@@ -431,6 +440,7 @@ export default function App() {
         `${API_BASE_URL}/bling/produto-sync/sincronizar-fila`,
         {
           method: "POST",
+          headers: authHeaders(),
         },
       );
       if (!response.body) {
