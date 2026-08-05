@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { calculateSimilarity, calculateCodeSimilarity } from '../utils/similarity';
 import { CheckCircle, AlertCircle, ArrowRight, Search, Link2, Sparkles, ChevronDown, RefreshCw, SlidersHorizontal, Download } from 'lucide-react';
 
@@ -71,6 +72,7 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
   logs,
   onRefresh,
 }) => {
+  const { token } = useAuth();
   const [searchBling, setSearchBling] = useState('');
   const [searchCigam, setSearchCigam] = useState('');
   const [selectedBlingId, setSelectedBlingId] = useState<string | null>(null);
@@ -578,6 +580,7 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({}),
       });
