@@ -646,1011 +646,2631 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
     });
   };
 
-  const itemDetails = modalItem as any;
-  const hasBlingFilters = entity === 'produtos' ? activeTags.length > 0 : blingFilter !== 'all';
-  const hasSeparateSourceSync = entity === 'formas_pagamento' || entity === 'transportadoras' || entity === 'produtos';
+    const itemDetails = modalItem as any;
+
+  const hasBlingFilters =
+    entity === "produtos"
+      ? activeTags.length > 0
+      : blingFilter !== "all";
+
+  const hasSeparateSourceSync =
+    entity === "formas_pagamento" ||
+    entity === "transportadoras" ||
+    entity === "produtos";
+
+  const panelClassName = `
+    relative
+    overflow-hidden
+    rounded-[24px]
+    border border-slate-200/80
+    bg-white/[0.96]
+    shadow-[0_20px_50px_-34px_rgba(2,6,23,0.70),inset_0_1px_1px_rgba(255,255,255,0.95),inset_0_-2px_5px_rgba(15,23,42,0.05)]
+  `;
+
+  const inputClassName = `
+    h-11
+    w-full
+    rounded-xl
+    border border-slate-300
+    bg-white/90
+    py-2.5 pl-10 pr-4
+    text-sm text-slate-900
+    shadow-[inset_0_1px_2px_rgba(15,23,42,0.06)]
+    outline-none
+    transition-all duration-200
+    placeholder:text-slate-400
+    hover:border-slate-400
+    focus:border-[#00B0F1]
+    focus:bg-white
+    focus:ring-4
+    focus:ring-[#00B0F1]/15
+  `;
+
+  const secondaryButtonClassName = `
+    inline-flex h-10
+    items-center justify-center gap-2
+    rounded-xl
+    border border-slate-300
+    bg-white
+    px-3.5
+    text-xs font-semibold
+    text-slate-700
+    shadow-sm
+    transition-all duration-200
+    hover:-translate-y-0.5
+    hover:border-[#00B0F1]/40
+    hover:bg-[#00B0F1]/10
+    hover:text-[#008FC7]
+    focus:outline-none
+    focus:ring-4
+    focus:ring-[#00B0F1]/15
+    disabled:cursor-not-allowed
+    disabled:opacity-50
+    disabled:hover:translate-y-0
+  `;
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 space-y-4">
-        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-slate-400 font-medium animate-pulse">Carregando dados e mapeamentos...</p>
+      <div
+        className="
+          flex min-h-80
+          flex-col items-center justify-center
+          rounded-[24px]
+          border border-slate-200/80
+          bg-white/95
+          px-6 py-12
+          shadow-[0_20px_50px_-34px_rgba(2,6,23,0.70),inset_0_1px_1px_rgba(255,255,255,0.95)]
+        "
+      >
+        <div
+          className="
+            h-10 w-10
+            animate-spin
+            rounded-full
+            border-[3px]
+            border-[#00B0F1]/20
+            border-t-[#00B0F1]
+          "
+        />
+
+        <p className="mt-4 text-sm font-semibold text-slate-700">
+          Carregando dados e mapeamentos
+        </p>
+
+        <p className="mt-1 text-xs text-slate-400">
+          Aguarde enquanto consultamos Bling e CIGAM.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 animate-fadeIn">
-      {/* Header with Title and Sync Button */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-800 pb-4">
-        <div className="text-left">
-          <h2 className="text-xl font-bold text-white">{title}</h2>
-          <p className="text-xs text-slate-400">Associe cadastros da Bling com códigos equivalentes no CIGAM</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {onSync && (
-            <button
-              type="button"
-              onClick={onSync}
-              disabled={syncing || isSyncingCigam || loading}
-              className={`px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition duration-200 flex items-center space-x-2 cursor-pointer shadow-lg hover:shadow-indigo-500/10 ${
-                syncing ? 'cursor-not-allowed opacity-55' : ''
-              }`}
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
-              <span>
-                {syncing
-                  ? hasSeparateSourceSync ? 'Sincronizando Bling...' : 'Sincronizando...'
-                  : hasSeparateSourceSync ? 'Sincronizar Bling' : `Sincronizar ${title}`}
-              </span>
-            </button>
-          )}
-          {hasSeparateSourceSync && (
-            <button
-              type="button"
-              onClick={handleSyncCigam}
-              disabled={isSyncingCigam || syncing || loading}
-              className={`px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl transition duration-200 flex items-center space-x-2 cursor-pointer shadow-lg hover:shadow-emerald-500/10 ${
-                isSyncingCigam ? 'cursor-not-allowed opacity-55' : ''
-              }`}
-              title={`Sincronizar ${title.toLowerCase()} do CIGAM`}
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isSyncingCigam ? 'animate-spin' : ''}`} />
-              <span>{isSyncingCigam ? 'Sincronizando CIGAM...' : 'Sincronizar CIGAM'}</span>
-            </button>
-          )}
-          {smartMatches.length > 0 && (
-            <button
-              type="button"
-              onClick={() => setShowSmartMatches(true)}
-              className="px-4 py-2 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/80 hover:border-slate-650 text-indigo-400 hover:text-indigo-300 font-semibold rounded-xl text-xs flex items-center space-x-1.5 transition active:scale-[0.98] shadow-md cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>{`Sugestões Inteligentes (${smartMatches.length})`}</span>
-            </button>
-          )}
-        </div>
-      </div>
+    <div className="space-y-6">
+      {/* Cabeçalho */}
+      <header
+        className="
+          relative
+          overflow-hidden
+          rounded-2xl
+          border border-slate-200/80
+          bg-gradient-to-br
+          from-white
+          to-slate-50
+          px-5 py-5
+          shadow-[0_14px_35px_-28px_rgba(2,6,23,0.70),inset_0_1px_1px_rgba(255,255,255,0.95)]
+          sm:px-6
+        "
+      >
+        <div
+          aria-hidden="true"
+          className="
+            absolute -right-16 -top-16
+            h-40 w-40
+            rounded-full
+            bg-[#00B0F1]/10
+            blur-3xl
+          "
+        />
 
-      {/* Terminal Log Console */}
-      {((logs && logs.length > 0) || syncing) && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-inner flex flex-col space-y-2 h-64 overflow-hidden">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
-              <div className="w-3 h-3 rounded-full bg-yellow-500/80"></div>
-              <div className="w-3 h-3 rounded-full bg-green-500/80"></div>
-              <span className="text-[11px] font-mono text-slate-500 ml-2">bling-sync-console.sh</span>
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-4">
+            <div
+              className="
+                flex h-12 w-12 shrink-0
+                items-center justify-center
+                rounded-2xl
+                border border-[#00B0F1]/20
+                bg-[#00B0F1]/10
+                text-[#008FC7]
+                shadow-[inset_0_1px_1px_rgba(255,255,255,0.85)]
+              "
+            >
+              <Link2 className="h-5 w-5" />
             </div>
+
+            <div>
+              <h2 className="text-xl font-bold tracking-tight text-slate-900">
+                Mapeamento de {title}
+              </h2>
+
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+                Associe registros do Bling aos códigos equivalentes
+                cadastrados no ERP CIGAM.
+              </p>
+
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span
+                  className="
+                    inline-flex items-center gap-1.5
+                    rounded-full
+                    border border-amber-200
+                    bg-amber-50
+                    px-2.5 py-1
+                    text-[0.65rem] font-bold
+                    uppercase tracking-[0.08em]
+                    text-amber-700
+                  "
+                >
+                  Bling: {blingData.length}
+                </span>
+
+                <span
+                  className="
+                    inline-flex items-center gap-1.5
+                    rounded-full
+                    border border-[#00B0F1]/20
+                    bg-[#00B0F1]/10
+                    px-2.5 py-1
+                    text-[0.65rem] font-bold
+                    uppercase tracking-[0.08em]
+                    text-[#008FC7]
+                  "
+                >
+                  CIGAM: {cigamData.length}
+                </span>
+
+                <span
+                  className="
+                    inline-flex items-center gap-1.5
+                    rounded-full
+                    border border-emerald-200
+                    bg-emerald-50
+                    px-2.5 py-1
+                    text-[0.65rem] font-bold
+                    uppercase tracking-[0.08em]
+                    text-emerald-700
+                  "
+                >
+                  Associações: {mappings.length}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {onSync && (
+              <button
+                type="button"
+                onClick={onSync}
+                disabled={syncing || isSyncingCigam || loading}
+                className="
+                  inline-flex h-10
+                  items-center justify-center gap-2
+                  rounded-xl
+                  border border-slate-950/20
+                  bg-gradient-to-b
+                  from-slate-700
+                  to-slate-950
+                  px-4
+                  text-xs font-semibold
+                  text-white
+                  shadow-[0_8px_18px_-10px_rgba(15,23,42,0.90),inset_0_1px_1px_rgba(255,255,255,0.20)]
+                  transition-all duration-200
+                  hover:-translate-y-0.5
+                  hover:from-slate-600
+                  hover:to-slate-900
+                  focus:outline-none
+                  focus:ring-4
+                  focus:ring-slate-500/20
+                  disabled:cursor-not-allowed
+                  disabled:opacity-55
+                  disabled:hover:translate-y-0
+                "
+              >
+                <RefreshCw
+                  className={`h-3.5 w-3.5 ${
+                    syncing ? "animate-spin" : ""
+                  }`}
+                />
+
+                <span>
+                  {syncing
+                    ? hasSeparateSourceSync
+                      ? "Sincronizando Bling..."
+                      : "Sincronizando..."
+                    : hasSeparateSourceSync
+                      ? "Sincronizar Bling"
+                      : `Sincronizar ${title}`}
+                </span>
+              </button>
+            )}
+
+            {hasSeparateSourceSync && (
+              <button
+                type="button"
+                onClick={handleSyncCigam}
+                disabled={isSyncingCigam || syncing || loading}
+                title={`Sincronizar ${title.toLowerCase()} do CIGAM`}
+                className="
+                  inline-flex h-10
+                  items-center justify-center gap-2
+                  rounded-xl
+                  border border-emerald-600/20
+                  bg-gradient-to-b
+                  from-emerald-500
+                  to-emerald-600
+                  px-4
+                  text-xs font-semibold
+                  text-white
+                  shadow-[0_8px_18px_-10px_rgba(5,150,105,0.75),inset_0_1px_1px_rgba(255,255,255,0.25)]
+                  transition-all duration-200
+                  hover:-translate-y-0.5
+                  hover:from-emerald-400
+                  hover:to-emerald-600
+                  focus:outline-none
+                  focus:ring-4
+                  focus:ring-emerald-500/15
+                  disabled:cursor-not-allowed
+                  disabled:opacity-55
+                  disabled:hover:translate-y-0
+                "
+              >
+                <RefreshCw
+                  className={`h-3.5 w-3.5 ${
+                    isSyncingCigam ? "animate-spin" : ""
+                  }`}
+                />
+
+                <span>
+                  {isSyncingCigam
+                    ? "Sincronizando CIGAM..."
+                    : "Sincronizar CIGAM"}
+                </span>
+              </button>
+            )}
+
+            {smartMatches.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowSmartMatches(true)}
+                className="
+                  inline-flex h-10
+                  items-center justify-center gap-2
+                  rounded-xl
+                  border border-[#00B0F1]/25
+                  bg-[#00B0F1]/10
+                  px-4
+                  text-xs font-semibold
+                  text-[#008FC7]
+                  shadow-sm
+                  transition-all duration-200
+                  hover:-translate-y-0.5
+                  hover:border-[#00B0F1]/40
+                  hover:bg-[#00B0F1]/15
+                  focus:outline-none
+                  focus:ring-4
+                  focus:ring-[#00B0F1]/15
+                "
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+
+                <span>
+                  Sugestões inteligentes ({smartMatches.length})
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Console de sincronização */}
+      {((logs && logs.length > 0) || syncing) && (
+        <section
+          className="
+            overflow-hidden
+            rounded-2xl
+            border border-slate-800
+            bg-slate-950
+            shadow-[0_18px_45px_-28px_rgba(2,6,23,0.85),inset_0_2px_10px_rgba(0,0,0,0.40)]
+          "
+        >
+          <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <div className="h-2.5 w-2.5 rounded-full bg-red-500" />
+              <div className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+              <div className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+
+              <span className="ml-2 font-mono text-[0.68rem] text-slate-500">
+                bling-sync-console.sh
+              </span>
+            </div>
+
             {syncing && (
-              <span className="flex items-center space-x-1.5 text-indigo-400 text-[10px] font-semibold tracking-wider uppercase animate-pulse">
-                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full"></span>
-                <span>Sincronizando em tempo real...</span>
+              <span
+                className="
+                  inline-flex items-center gap-2
+                  text-[0.65rem] font-semibold
+                  uppercase tracking-[0.1em]
+                  text-cyan-400
+                "
+              >
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-400" />
+                Sincronizando
               </span>
             )}
           </div>
-          <div className="flex-1 overflow-y-auto font-mono text-xs text-left text-slate-300 space-y-1.5 pr-2 scrollbar-thin scrollbar-thumb-slate-850">
-            {logs && logs.map((log, idx) => {
-              let color = 'text-slate-300';
-              if (log.startsWith('Erro') || log.includes('Erro') || log.startsWith('[ERRO]')) color = 'text-red-400';
-              else if (log.includes('sucesso') || log.includes('finalizada') || log.includes('finalizado') || log.includes('completa finalizada')) color = 'text-emerald-400';
-              else if (log.startsWith('[PRODUTO]') || log.startsWith('[CLIENTE]') || log.startsWith('[FORMA PAGAMENTO]') || log.startsWith('[TRANSPORTADORA]')) color = 'text-indigo-300';
 
-              return (
-                <div key={idx} className={`${color} leading-relaxed`}>
-                  <span className="text-slate-600 mr-2">&gt;</span>
-                  {log}
+          <div className="h-52 overflow-y-auto p-4 font-mono text-xs">
+            <div className="space-y-1.5">
+              {logs?.map((log, index) => {
+                let colorClass = "text-slate-300";
+
+                if (
+                  log.startsWith("Erro") ||
+                  log.includes("Erro") ||
+                  log.startsWith("[ERRO]")
+                ) {
+                  colorClass = "text-red-400";
+                } else if (
+                  log.includes("sucesso") ||
+                  log.includes("finalizada") ||
+                  log.includes("finalizado") ||
+                  log.includes("completa finalizada")
+                ) {
+                  colorClass = "text-emerald-400";
+                } else if (
+                  log.startsWith("[PRODUTO]") ||
+                  log.startsWith("[CLIENTE]") ||
+                  log.startsWith("[FORMA PAGAMENTO]") ||
+                  log.startsWith("[TRANSPORTADORA]")
+                ) {
+                  colorClass = "text-cyan-300";
+                }
+
+                return (
+                  <div
+                    key={`${index}-${log}`}
+                    className={`flex items-start gap-3 leading-relaxed ${colorClass}`}
+                  >
+                    <span className="shrink-0 select-none text-slate-600">
+                      {String(index + 1).padStart(3, "0")}
+                    </span>
+
+                    <span className="break-all">{log}</span>
+                  </div>
+                );
+              })}
+
+              {syncing && (
+                <div className="flex items-center gap-3 text-cyan-400">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-cyan-400" />
+                  Aguardando próximo evento...
                 </div>
-              );
-            })}
-            <div id="console-bottom"></div>
+              )}
+
+              <div id="console-bottom" />
+            </div>
           </div>
-        </div>
+        </section>
       )}
+
+      {/* Modal de sugestões inteligentes */}
       {showSmartMatches && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl max-h-[85vh] shadow-2xl flex flex-col overflow-hidden animate-scaleIn">
-            
-            {/* Modal Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-6 border-b border-slate-800">
-              <div className="flex items-center space-x-2.5">
-                <Sparkles className="w-5 h-5 text-indigo-400 animate-bounce" />
-                <div className="text-left">
-                  <h3 className="text-lg font-bold text-slate-100">Sugestões de Associação Inteligente (Smart Match)</h3>
-                  <p className="text-xs text-slate-400">Associe múltiplos produtos de forma compacta e ágil</p>
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+          <div
+            className="
+              flex max-h-[88vh] w-full max-w-5xl
+              flex-col overflow-hidden
+              rounded-[28px]
+              border border-white/70
+              bg-white
+              shadow-[0_35px_100px_-30px_rgba(2,6,23,0.85)]
+            "
+          >
+            <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-start gap-3">
+                <div
+                  className="
+                    flex h-11 w-11 shrink-0
+                    items-center justify-center
+                    rounded-2xl
+                    border border-[#00B0F1]/20
+                    bg-[#00B0F1]/10
+                    text-[#008FC7]
+                  "
+                >
+                  <Sparkles className="h-5 w-5" />
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">
+                    Sugestões de associação inteligente
+                  </h3>
+
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    Avalie a similaridade encontrada e associe os
+                    registros individualmente ou em massa.
+                  </p>
                 </div>
               </div>
-              
-              <div className="flex items-center space-x-3">
+
+              <div className="flex flex-wrap items-center gap-2">
                 {smartMatches.length > 0 && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handleSelectAllSuggestions}
-                      disabled={isBulkSaving}
-                      className="px-3 py-1.5 bg-slate-800/85 hover:bg-slate-800 border border-slate-750 hover:border-slate-700 text-slate-300 font-semibold rounded-lg text-xs transition cursor-pointer active:scale-95 flex items-center space-x-1"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedSuggestions.size === smartMatches.length && smartMatches.length > 0}
-                        onChange={() => {}} // handled by button click
-                        className="mr-1.5 rounded border-slate-700 bg-slate-950 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-slate-900"
-                      />
-                      <span>
-                        {selectedSuggestions.size === smartMatches.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
-                      </span>
-                    </button>
-                    {selectedSuggestions.size > 0 && (
-                      <button
-                        type="button"
-                        onClick={handleBulkAssociate}
-                        disabled={isBulkSaving}
-                        className="px-4 py-1.5 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-semibold rounded-lg text-xs shadow-lg hover:shadow-indigo-500/20 transition active:scale-[0.98] cursor-pointer flex items-center space-x-1"
-                      >
-                        <Link2 className="w-3.5 h-3.5" />
-                        <span>{isBulkSaving ? 'Associando...' : `Associar Selecionados (${selectedSuggestions.size})`}</span>
-                      </button>
-                    )}
-                  </>
+                  <button
+                    type="button"
+                    onClick={handleSelectAllSuggestions}
+                    disabled={isBulkSaving}
+                    className={secondaryButtonClassName}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={
+                        selectedSuggestions.size ===
+                          smartMatches.length &&
+                        smartMatches.length > 0
+                      }
+                      onChange={() => undefined}
+                      tabIndex={-1}
+                      className="
+                        h-4 w-4
+                        rounded
+                        border-slate-300
+                        text-[#00B0F1]
+                        focus:ring-[#00B0F1]
+                      "
+                    />
+
+                    <span>
+                      {selectedSuggestions.size === smartMatches.length
+                        ? "Desmarcar todos"
+                        : "Selecionar todos"}
+                    </span>
+                  </button>
                 )}
-                
-                {/* Close Button */}
+
+                {selectedSuggestions.size > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleBulkAssociate}
+                    disabled={isBulkSaving}
+                    className="
+                      inline-flex h-10
+                      items-center justify-center gap-2
+                      rounded-xl
+                      border border-[#008FC7]/20
+                      bg-gradient-to-b
+                      from-[#00B0F1]
+                      to-[#008FC7]
+                      px-4
+                      text-xs font-semibold
+                      text-white
+                      shadow-[0_8px_18px_-10px_rgba(0,143,199,0.75),inset_0_1px_1px_rgba(255,255,255,0.30)]
+                      transition-all duration-200
+                      hover:-translate-y-0.5
+                      focus:outline-none
+                      focus:ring-4
+                      focus:ring-[#00B0F1]/20
+                      disabled:cursor-not-allowed
+                      disabled:opacity-55
+                    "
+                  >
+                    <Link2 className="h-3.5 w-3.5" />
+
+                    <span>
+                      {isBulkSaving
+                        ? "Associando..."
+                        : `Associar selecionados (${selectedSuggestions.size})`}
+                    </span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={() => setShowSmartMatches(false)}
                   disabled={isBulkSaving}
-                  className="p-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-750 text-slate-400 hover:text-slate-200 rounded-lg transition cursor-pointer"
+                  aria-label="Fechar sugestões inteligentes"
+                  className="
+                    inline-flex h-10 w-10
+                    items-center justify-center
+                    rounded-xl
+                    border border-slate-200
+                    bg-white
+                    text-slate-500
+                    shadow-sm
+                    transition
+                    hover:border-red-200
+                    hover:bg-red-50
+                    hover:text-red-500
+                    disabled:cursor-not-allowed
+                    disabled:opacity-50
+                  "
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18 18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
             </div>
-            
-            {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-2 scrollbar-thin scrollbar-thumb-slate-800">
+
+            <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50/60 p-4 sm:p-6">
               {smartMatches.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-slate-500 space-y-2">
-                  <Sparkles className="w-8 h-8 text-slate-600 animate-pulse" />
-                  <p className="text-sm">Nenhuma nova sugestão de similaridade encontrada.</p>
+                <div className="flex min-h-64 flex-col items-center justify-center text-center">
+                  <div
+                    className="
+                      flex h-14 w-14
+                      items-center justify-center
+                      rounded-2xl
+                      border border-slate-200
+                      bg-white
+                      text-slate-400
+                      shadow-sm
+                    "
+                  >
+                    <Sparkles className="h-6 w-6" />
+                  </div>
+
+                  <p className="mt-4 text-sm font-semibold text-slate-700">
+                    Nenhuma sugestão encontrada
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-500">
+                    Não existem novos registros com similaridade
+                    suficiente para associação automática.
+                  </p>
                 </div>
               ) : (
-                smartMatches.map((match, idx) => {
-                  const isChecked = selectedSuggestions.has(match.bling.id);
+                smartMatches.map((match) => {
+                  const isChecked = selectedSuggestions.has(
+                    match.bling.id,
+                  );
+
                   return (
-                    <div 
-                      key={idx} 
-                      className={`flex flex-col sm:flex-row items-center justify-between p-3 border rounded-xl transition duration-200 gap-4 ${
-                        isChecked 
-                          ? 'bg-indigo-950/20 border-indigo-500/40' 
-                          : 'bg-slate-900/40 hover:bg-slate-900/70 border-slate-800/60'
-                      }`}
+                    <article
+                      key={`${match.bling.id}-${match.cigam.id}`}
+                      className={`
+                        rounded-2xl
+                        border
+                        p-4
+                        transition-all duration-200
+                        ${
+                          isChecked
+                            ? `
+                              border-[#00B0F1]/40
+                              bg-[#00B0F1]/[0.06]
+                              shadow-[0_12px_28px_-24px_rgba(0,176,241,0.70)]
+                            `
+                            : `
+                              border-slate-200
+                              bg-white
+                              hover:border-slate-300
+                              hover:shadow-[0_12px_28px_-25px_rgba(2,6,23,0.45)]
+                            `
+                        }
+                      `}
                     >
-                      <div className="flex-1 flex flex-col sm:flex-row items-center justify-start gap-4 w-full">
-                        {/* Checkbox */}
-                        <div className="flex items-center">
+                      <div className="flex flex-col gap-4 xl:flex-row xl:items-center">
+                        <div className="flex min-w-0 flex-1 items-start gap-3">
                           <input
                             type="checkbox"
                             checked={isChecked}
                             disabled={isBulkSaving}
-                            onChange={() => toggleSuggestionSelection(match.bling.id)}
-                            className="w-4 h-4 rounded border-slate-750 bg-slate-950 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-slate-900 cursor-pointer"
+                            onChange={() =>
+                              toggleSuggestionSelection(
+                                match.bling.id,
+                              )
+                            }
+                            aria-label={`Selecionar sugestão ${match.bling.name}`}
+                            className="
+                              mt-1 h-4 w-4 shrink-0
+                              rounded
+                              border-slate-300
+                              text-[#00B0F1]
+                              focus:ring-[#00B0F1]
+                            "
                           />
-                        </div>
-                        <div className="text-left w-full sm:w-auto flex-1">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-[10px] text-amber-400 font-bold px-1.5 py-0.5 bg-amber-950/40 border border-amber-500/20 rounded-md">Bling</span>
-                            <span className="text-slate-200 font-semibold text-xs">{match.bling.name}</span>
-                          </div>
-                          <span className="text-[11px] text-slate-500 mt-0.5 block">
-                            ID Bling: {match.bling.id}{match.bling.codigo && ` • SKU: ${match.bling.codigo}`}
-                          </span>
-                        </div>
-                        <ArrowRight className="hidden sm:block w-3.5 h-3.5 text-slate-700" />
-                        <div className="text-left w-full sm:w-auto flex-1">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-[10px] text-indigo-400 font-bold px-1.5 py-0.5 bg-indigo-950/40 border border-indigo-500/20 rounded-md">CIGAM</span>
-                            <span className="text-slate-200 font-semibold text-xs">{match.cigam.name}</span>
-                          </div>
-                          <span className="text-[11px] text-slate-500 mt-0.5 block">ID CIGAM: {match.cigam.id}</span>
-                        </div>
-                      </div>
 
-                      <div className="flex items-center space-x-4 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 border-slate-800/60 pt-2.5 sm:pt-0">
-                        <div className="text-right">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            match.score >= 80 
-                              ? 'text-emerald-400 bg-emerald-950/30 border border-emerald-500/20' 
-                              : 'text-sky-400 bg-sky-955/30 border border-sky-500/20'
-                          }`}>
-                            {match.score}% match
-                          </span>
+                          <div className="grid min-w-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[1fr_auto_1fr] lg:items-center">
+                            <div className="min-w-0 rounded-xl border border-amber-200 bg-amber-50/70 p-3">
+                              <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-amber-700">
+                                Bling
+                              </span>
+
+                              <p className="mt-1 truncate text-sm font-semibold text-slate-900">
+                                {match.bling.name}
+                              </p>
+
+                              <p className="mt-1 text-xs text-slate-500">
+                                ID: {match.bling.id}
+                                {match.bling.codigo &&
+                                  ` • SKU: ${match.bling.codigo}`}
+                              </p>
+                            </div>
+
+                            <ArrowRight className="hidden h-4 w-4 text-slate-300 lg:block" />
+
+                            <div className="min-w-0 rounded-xl border border-[#00B0F1]/20 bg-[#00B0F1]/[0.06] p-3">
+                              <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-[#008FC7]">
+                                CIGAM
+                              </span>
+
+                              <p className="mt-1 truncate text-sm font-semibold text-slate-900">
+                                {match.cigam.name}
+                              </p>
+
+                              <p className="mt-1 text-xs text-slate-500">
+                                Código: {match.cigam.id}
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                        <button
-                          onClick={() => handleApplySuggestion(match.bling.id, match.cigam.id, match.bling.name)}
-                          disabled={isSaving}
-                          className={`px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg shadow-md hover:shadow-indigo-500/10 transition duration-200 flex items-center space-x-1 ${
-                            isSaving ? 'opacity-55 cursor-not-allowed' : 'cursor-pointer'
-                          }`}
-                        >
-                          <Link2 className="w-3.5 h-3.5" />
-                          <span>{isSaving ? 'Aceitando...' : 'Aceitar'}</span>
-                        </button>
+
+                        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 pt-3 xl:border-l xl:border-t-0 xl:pl-4 xl:pt-0">
+                          <span
+                            className={`
+                              inline-flex
+                              rounded-full
+                              border
+                              px-2.5 py-1
+                              text-[0.65rem] font-bold
+                              ${
+                                match.score >= 80
+                                  ? `
+                                    border-emerald-200
+                                    bg-emerald-50
+                                    text-emerald-700
+                                  `
+                                  : `
+                                    border-sky-200
+                                    bg-sky-50
+                                    text-sky-700
+                                  `
+                              }
+                            `}
+                          >
+                            {match.score}% compatível
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleApplySuggestion(
+                                match.bling.id,
+                                match.cigam.id,
+                                match.bling.name,
+                              )
+                            }
+                            disabled={isSaving}
+                            className="
+                              inline-flex h-9
+                              items-center justify-center gap-2
+                              rounded-xl
+                              bg-slate-900
+                              px-3.5
+                              text-xs font-semibold
+                              text-white
+                              shadow-sm
+                              transition
+                              hover:-translate-y-0.5
+                              hover:bg-slate-800
+                              disabled:cursor-not-allowed
+                              disabled:opacity-50
+                            "
+                          >
+                            <Link2 className="h-3.5 w-3.5" />
+
+                            <span>
+                              {isSaving ? "Salvando..." : "Aceitar"}
+                            </span>
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    </article>
                   );
                 })
               )}
             </div>
-            
-            {/* Modal Footer */}
-            <div className="p-4 bg-slate-900/60 border-t border-slate-800 text-right">
+
+            <div className="flex justify-end border-t border-slate-200 bg-white px-5 py-4">
               <button
                 type="button"
                 onClick={() => setShowSmartMatches(false)}
                 disabled={isBulkSaving}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-750 hover:border-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition duration-200 cursor-pointer shadow-md"
+                className={secondaryButtonClassName}
               >
                 Fechar
               </button>
             </div>
-            
           </div>
         </div>
       )}
 
-      {/* Main Grid mapping side by side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Bling Panel */}
-        <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-6 shadow-lg flex flex-col h-[500px]">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-bold text-slate-200">Tabela Bling</h3>
-              <p className="text-xs text-slate-400">Total filtrado: {filteredBlingData.length}</p>
-            </div>
-          </div>
+      {/* Painéis Bling e CIGAM */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        {/* Bling */}
+        <section className={`${panelClassName} flex h-[620px] flex-col`}>
+          <div
+            aria-hidden="true"
+            className="
+              pointer-events-none
+              absolute inset-[5px]
+              rounded-[18px]
+              border border-white
+            "
+          />
 
-          <div className="flex items-center space-x-2 mb-4">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                placeholder="Buscar no Bling por nome ou ID..."
-                value={searchBling}
-                onChange={(e) => setSearchBling(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
-              />
-              <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
-            </div>
-            {(entity === 'produtos' || entity === 'formas_pagamento') && (
-              <button
-                type="button"
-                onClick={() => setShowFilters(!showFilters)}
-                className={`p-2 px-3 h-[38px] rounded-xl border text-xs font-semibold flex items-center space-x-1.5 transition cursor-pointer active:scale-95 ${
-                  showFilters
-                    ? 'bg-indigo-650/20 border-indigo-500/40 text-indigo-300'
-                    : hasBlingFilters
-                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-300'
-                    : 'bg-slate-900/50 border-slate-700 text-slate-400 hover:border-slate-650 hover:text-slate-300'
-                }`}
-                title={showFilters ? 'Ocultar Filtros' : 'Mostrar Filtros'}
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-                <span>{showFilters ? 'Ocultar' : 'Filtros'}</span>
-                {hasBlingFilters && (
-                  <span className={`text-[9px] px-1.5 py-0.1 rounded-full ${
-                    showFilters 
-                      ? 'bg-indigo-500/20 text-indigo-200' 
-                      : 'bg-amber-500/20 text-amber-200'
-                  }`}>
-                    {entity === 'produtos' ? activeTags.length : 1}
-                  </span>
-                )}
-              </button>
-            )}
-            {entity === 'produtos' && (
-              <button
-                type="button"
-                onClick={handleExportExcel}
-                disabled={isExporting}
-                className="p-2 px-3 h-[38px] bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition duration-200 flex items-center space-x-1.5 cursor-pointer shadow-md hover:shadow-emerald-500/10 active:scale-95 border border-emerald-500/30"
-                title="Exportar produtos sem associação com NCM preenchido para ESMATERI"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>{isExporting ? 'Exportando...' : 'Exportar ESMATERI'}</span>
-              </button>
-            )}
-            {entity === 'formas_pagamento' && (
-              <button
-                type="button"
-                onClick={() => handleExportPaymentMethods('bling', blingFilter)}
-                disabled={exportingPaymentSource !== null}
-                className="p-2 px-3 h-[38px] bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition duration-200 flex items-center space-x-1.5 cursor-pointer shadow-md hover:shadow-emerald-500/10 active:scale-95 border border-emerald-500/30"
-                title="Exportar formas de pagamento da Bling com o filtro selecionado"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>{exportingPaymentSource === 'bling' ? 'Exportando...' : 'Exportar Excel'}</span>
-              </button>
-            )}
-          </div>
+          <div className="relative z-10 flex min-h-0 flex-1 flex-col">
+            <div className="border-b border-slate-200/80 px-5 py-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-amber-500" />
 
-          {entity === 'produtos' && showFilters && (
-            <div className="flex flex-wrap gap-1.5 mb-4 animate-fadeIn">
-              {[
-                { id: 'unmapped', label: 'Não Associados', count: tagCounts.unmapped },
-                { id: 'mapped', label: 'Associados', count: tagCounts.mapped },
-                { id: 'valid_sku', label: 'SKU Padrão', count: tagCounts.validSku },
-                { id: 'has_ncm', label: 'Possui NCM', count: tagCounts.hasNcm },
-                { id: 'no_ncm', label: 'Sem NCM', count: tagCounts.noNcm },
-                { id: 'has_price', label: 'Possui Preço', count: tagCounts.hasPrice },
-                { id: 'no_price', label: 'Sem Preço', count: tagCounts.noPrice },
-                { id: 'has_stock', label: 'Com Estoque', count: tagCounts.hasStock },
-                { id: 'no_stock', label: 'Sem Estoque', count: tagCounts.noStock },
-                { id: 'format_s', label: 'Formato: Simples', count: tagCounts.formatS },
-                { id: 'format_e', label: 'Formato: Estrutura', count: tagCounts.formatE },
-                { id: 'format_v', label: 'Formato: Variações', count: tagCounts.formatV },
-              ].map(tag => {
-                const isActive = activeTags.includes(tag.id);
-                return (
-                  <button
-                    key={tag.id}
-                    type="button"
-                    onClick={() => toggleTag(tag.id)}
-                    className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition cursor-pointer flex items-center space-x-1 active:scale-95 ${
-                      isActive
-                        ? 'bg-indigo-600/35 border-indigo-500 text-indigo-300 shadow-md shadow-indigo-650/10'
-                        : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-350'
-                    }`}
-                  >
-                    <span>{tag.label}</span>
-                    <span className={`text-[9px] px-1.5 py-0.1 rounded-full ${
-                      isActive 
-                        ? 'bg-indigo-500/20 text-indigo-200' 
-                        : 'bg-slate-800 text-slate-500'
-                    }`}>
-                      {tag.count ?? 0}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+                    <h3 className="text-base font-bold text-slate-900">
+                      Tabela Bling
+                    </h3>
+                  </div>
 
-          {entity === 'formas_pagamento' && showFilters && (
-            <div className="flex flex-wrap gap-1.5 mb-4 animate-fadeIn">
-              {[
-                { id: 'all', label: 'Todos', count: blingCounts.all },
-                { id: 'unmapped', label: 'Não Associados', count: blingCounts.unmapped },
-                { id: 'mapped', label: 'Associados', count: blingCounts.mapped },
-              ].map((tag) => {
-                const isActive = blingFilter === tag.id;
-                return (
-                  <button
-                    key={tag.id}
-                    type="button"
-                    onClick={() => setBlingFilter(tag.id as 'all' | 'mapped' | 'unmapped')}
-                    className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition cursor-pointer flex items-center space-x-1 active:scale-95 ${
-                      isActive
-                        ? 'bg-indigo-600/35 border-indigo-500 text-indigo-300 shadow-md shadow-indigo-650/10'
-                        : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-350'
-                    }`}
-                  >
-                    <span>{tag.label}</span>
-                    <span className={`text-[9px] px-1.5 py-0.1 rounded-full ${
-                      isActive ? 'bg-indigo-500/20 text-indigo-200' : 'bg-slate-800 text-slate-500'
-                    }`}>
-                      {tag.count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+                  <p className="mt-1 text-xs text-slate-500">
+                    {filteredBlingData.length} registros encontrados
+                  </p>
+                </div>
 
-          <div className="flex-1 overflow-y-auto space-y-2 pr-2">
-            {displayedBlingData.map((item) => {
-              const isMapped = mappedBlingIds.has(item.id);
-              const isSelected = selectedBlingId === item.id;
-              return (
-                <div
-                  key={item.id}
-                  onClick={() => !isMapped && setSelectedBlingId(item.id)}
-                  className={`p-3 rounded-xl border text-left cursor-pointer transition ${
-                    isMapped
-                      ? 'bg-slate-900/30 border-slate-800 opacity-60 cursor-not-allowed'
-                      : isSelected
-                        ? 'bg-indigo-600/20 border-indigo-500'
-                        : 'bg-slate-900/50 border-slate-800 hover:border-slate-700'
-                  }`}
+                <span
+                  className="
+                    rounded-full
+                    border border-amber-200
+                    bg-amber-50
+                    px-2.5 py-1
+                    text-[0.65rem] font-bold
+                    uppercase tracking-wider
+                    text-amber-700
+                  "
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-slate-200 truncate">{item.name}</p>
-                      <p className="text-xs text-slate-500">
-                        ID: {item.id} {item.codigo && `• Cód: ${item.codigo}`} {item.ncm && `• NCM: ${item.ncm}`} {item.temVariacoes && `• Possui Variações`}
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-2 ml-2">
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setModalItem(item);
-                          setModalSource('bling');
-                        }}
-                        className="p-1.5 bg-slate-700/50 hover:bg-slate-600/50 rounded-lg text-slate-400 hover:text-slate-200 transition"
-                        title="Ver detalhes"
+                  Origem
+                </span>
+              </div>
+            </div>
+
+            <div className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
+              <div className="mb-4 flex flex-col gap-2 sm:flex-row">
+                <div className="relative min-w-0 flex-1">
+                  <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
+                  <input
+                    type="search"
+                    placeholder="Buscar no Bling por nome, ID ou código"
+                    value={searchBling}
+                    onChange={(event) =>
+                      setSearchBling(event.target.value)
+                    }
+                    className={inputClassName}
+                  />
+                </div>
+
+                {(entity === "produtos" ||
+                  entity === "formas_pagamento") && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowFilters((current) => !current)
+                    }
+                    title={
+                      showFilters
+                        ? "Ocultar filtros"
+                        : "Mostrar filtros"
+                    }
+                    className={`
+                      ${secondaryButtonClassName}
+                      shrink-0
+                      ${
+                        showFilters
+                          ? `
+                            border-[#00B0F1]/35
+                            bg-[#00B0F1]/10
+                            text-[#008FC7]
+                          `
+                          : hasBlingFilters
+                            ? `
+                              border-amber-300
+                              bg-amber-50
+                              text-amber-700
+                            `
+                            : ""
+                      }
+                    `}
+                  >
+                    <SlidersHorizontal className="h-3.5 w-3.5" />
+
+                    <span>
+                      {showFilters ? "Ocultar" : "Filtros"}
+                    </span>
+
+                    {hasBlingFilters && (
+                      <span
+                        className="
+                          rounded-full
+                          bg-white/80
+                          px-1.5 py-0.5
+                          text-[0.6rem]
+                        "
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                      </button>
-                      {isMapped ? (
-                        <span className="flex items-center space-x-1 text-xs text-emerald-400 bg-emerald-950/30 px-2 py-0.5 rounded border border-emerald-500/20">
-                          <CheckCircle className="w-3 h-3" />
-                          <span>CIGAM: {blingToCigamMap.get(item.id)}</span>
-                        </span>
-                      ) : (
-                        <span className="flex items-center space-x-1 text-xs text-amber-400 bg-amber-950/30 px-2 py-0.5 rounded border border-amber-500/20">
-                          <AlertCircle className="w-3 h-3" />
-                          <span>Sem Associação</span>
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-            {filteredBlingData.length > visibleBlingCount && (
-              <button
-                type="button"
-                onClick={() => setVisibleBlingCount(prev => prev + 25)}
-                className="w-full py-2.5 mt-2 bg-slate-900/40 hover:bg-slate-900/60 border border-slate-800 hover:border-slate-750 text-slate-400 hover:text-slate-300 rounded-xl text-xs font-semibold flex items-center justify-center space-x-1.5 transition active:scale-[0.98]"
-              >
-                <ChevronDown className="w-3.5 h-3.5" />
-                <span>Ver mais ({filteredBlingData.length - visibleBlingCount} itens restantes)</span>
-              </button>
-            )}
-            {filteredBlingData.length === 0 && (
-              <p className="text-slate-500 text-sm py-8">Nenhum item do Bling encontrado.</p>
-            )}
-          </div>
-        </div>
+                        {entity === "produtos"
+                          ? activeTags.length
+                          : 1}
+                      </span>
+                    )}
+                  </button>
+                )}
 
-        {/* CIGAM Panel */}
-        <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-6 shadow-lg flex flex-col h-[500px]">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-bold text-slate-200">Tabela CIGAM</h3>
-              <p className="text-xs text-slate-400">Total filtrado: {filteredCigamData.length}</p>
-            </div>
-
-          </div>
-
-          <div className="flex items-center space-x-2 mb-4">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                placeholder="Buscar no CIGAM por nome ou código..."
-                value={searchCigam}
-                onChange={(e) => setSearchCigam(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-slate-900/50 border border-slate-700 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
-              />
-              <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
-            </div>
-            {entity === 'formas_pagamento' && (
-              <button
-                type="button"
-                onClick={() => handleExportPaymentMethods('cigam', cigamFilter)}
-                disabled={exportingPaymentSource !== null}
-                className="p-2 px-3 h-[38px] bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition duration-200 flex items-center space-x-1.5 cursor-pointer shadow-md hover:shadow-emerald-500/10 active:scale-95 border border-emerald-500/30"
-                title="Exportar formas de pagamento do CIGAM com o filtro selecionado"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>{exportingPaymentSource === 'cigam' ? 'Exportando...' : 'Exportar Excel'}</span>
-              </button>
-            )}
-          </div>
-
-          {(entity === 'produtos' || entity === 'formas_pagamento') && (
-            <div className="flex flex-wrap gap-1.5 mb-4 animate-fadeIn">
-              {[
-                { id: 'all', label: 'Todos', count: cigamCounts.all },
-                { id: 'unmapped', label: 'Não Associados', count: cigamCounts.unmapped },
-                { id: 'mapped', label: 'Associados', count: cigamCounts.mapped },
-              ].map(tag => {
-                const isActive = cigamFilter === tag.id;
-                return (
+                {entity === "produtos" && (
                   <button
-                    key={tag.id}
                     type="button"
-                    onClick={() => setCigamFilter(tag.id as any)}
-                    className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition cursor-pointer flex items-center space-x-1 active:scale-95 ${
-                      isActive
-                        ? 'bg-indigo-600/35 border-indigo-500 text-indigo-300 shadow-md shadow-indigo-650/10'
-                        : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-350'
-                    }`}
+                    onClick={handleExportExcel}
+                    disabled={isExporting}
+                    title="Exportar produtos para ESMATERI"
+                    className="
+                      inline-flex h-10 shrink-0
+                      items-center justify-center gap-2
+                      rounded-xl
+                      border border-emerald-600/20
+                      bg-emerald-600
+                      px-3.5
+                      text-xs font-semibold
+                      text-white
+                      shadow-sm
+                      transition
+                      hover:-translate-y-0.5
+                      hover:bg-emerald-500
+                      disabled:cursor-not-allowed
+                      disabled:opacity-50
+                    "
                   >
-                    <span>{tag.label}</span>
-                    <span className={`text-[9px] px-1.5 py-0.1 rounded-full ${
-                      isActive 
-                        ? 'bg-indigo-500/20 text-indigo-200' 
-                        : 'bg-slate-800 text-slate-500'
-                    }`}>
-                      {tag.count ?? 0}
+                    <Download className="h-3.5 w-3.5" />
+
+                    <span>
+                      {isExporting
+                        ? "Exportando..."
+                        : "ESMATERI"}
                     </span>
                   </button>
-                );
-              })}
-            </div>
-          )}
+                )}
 
-          <div className="flex-1 overflow-y-auto space-y-2 pr-2">
-            {displayedCigamData.map((item) => {
-              const isSelected = selectedCigamId === item.id;
-              const associatedBlingItems = cigamToBlingMap.get(item.id);
-              const isMapped = associatedBlingItems && associatedBlingItems.length > 0;
-              return (
-                <div
-                  key={item.id}
-                  onClick={() => setSelectedCigamId(item.id)}
-                  className={`p-3 rounded-xl border text-left cursor-pointer transition ${
-                    isSelected
-                      ? 'bg-indigo-600/20 border-indigo-500'
-                      : 'bg-slate-900/50 border-slate-800 hover:border-slate-700'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-slate-200 truncate flex-1">{item.name}</p>
-                        {isMapped && (
-                          <span 
-                            className="flex items-center space-x-1 text-[10px] text-emerald-400 bg-emerald-950/30 px-1.5 py-0.5 rounded border border-emerald-500/20 shrink-0"
-                            title={`Associado a: ${associatedBlingItems.map(b => `${b.name} (ID: ${b.id})`).join(', ')}`}
-                          >
-                            <CheckCircle className="w-2.5 h-2.5" />
-                            <span>Associado</span>
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-slate-500">
-                        Código CIGAM: {item.id} {item.extra && `• Doc: ${item.extra}`}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setModalItem(item);
-                        setModalSource('cigam');
-                      }}
-                      className="p-1.5 bg-slate-700/50 hover:bg-slate-600/50 rounded-lg text-slate-400 hover:text-slate-200 transition ml-2"
-                      title="Ver detalhes"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                    </button>
-                  </div>
+                {entity === "formas_pagamento" && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleExportPaymentMethods(
+                        "bling",
+                        blingFilter,
+                      )
+                    }
+                    disabled={exportingPaymentSource !== null}
+                    title="Exportar formas de pagamento do Bling"
+                    className="
+                      inline-flex h-10 shrink-0
+                      items-center justify-center gap-2
+                      rounded-xl
+                      border border-emerald-600/20
+                      bg-emerald-600
+                      px-3.5
+                      text-xs font-semibold
+                      text-white
+                      shadow-sm
+                      transition
+                      hover:-translate-y-0.5
+                      hover:bg-emerald-500
+                      disabled:cursor-not-allowed
+                      disabled:opacity-50
+                    "
+                  >
+                    <Download className="h-3.5 w-3.5" />
+
+                    <span>
+                      {exportingPaymentSource === "bling"
+                        ? "Exportando..."
+                        : "Excel"}
+                    </span>
+                  </button>
+                )}
+              </div>
+
+              {entity === "produtos" && showFilters && (
+                <div className="mb-4 flex max-h-28 flex-wrap gap-1.5 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/80 p-2.5">
+                  {[
+                    {
+                      id: "unmapped",
+                      label: "Não associados",
+                      count: tagCounts.unmapped,
+                    },
+                    {
+                      id: "mapped",
+                      label: "Associados",
+                      count: tagCounts.mapped,
+                    },
+                    {
+                      id: "valid_sku",
+                      label: "SKU padrão",
+                      count: tagCounts.validSku,
+                    },
+                    {
+                      id: "has_ncm",
+                      label: "Possui NCM",
+                      count: tagCounts.hasNcm,
+                    },
+                    {
+                      id: "no_ncm",
+                      label: "Sem NCM",
+                      count: tagCounts.noNcm,
+                    },
+                    {
+                      id: "has_price",
+                      label: "Possui preço",
+                      count: tagCounts.hasPrice,
+                    },
+                    {
+                      id: "no_price",
+                      label: "Sem preço",
+                      count: tagCounts.noPrice,
+                    },
+                    {
+                      id: "has_stock",
+                      label: "Com estoque",
+                      count: tagCounts.hasStock,
+                    },
+                    {
+                      id: "no_stock",
+                      label: "Sem estoque",
+                      count: tagCounts.noStock,
+                    },
+                    {
+                      id: "format_s",
+                      label: "Simples",
+                      count: tagCounts.formatS,
+                    },
+                    {
+                      id: "format_e",
+                      label: "Estrutura",
+                      count: tagCounts.formatE,
+                    },
+                    {
+                      id: "format_v",
+                      label: "Variações",
+                      count: tagCounts.formatV,
+                    },
+                  ].map((tag) => {
+                    const isActive = activeTags.includes(tag.id);
+
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => toggleTag(tag.id)}
+                        className={`
+                          inline-flex items-center gap-1.5
+                          rounded-full
+                          border
+                          px-2.5 py-1
+                          text-[0.68rem] font-semibold
+                          transition
+                          ${
+                            isActive
+                              ? `
+                                border-[#00B0F1]/40
+                                bg-[#00B0F1]/10
+                                text-[#008FC7]
+                              `
+                              : `
+                                border-slate-200
+                                bg-white
+                                text-slate-500
+                                hover:border-slate-300
+                                hover:text-slate-800
+                              `
+                          }
+                        `}
+                      >
+                        <span>{tag.label}</span>
+
+                        <span
+                          className={`
+                            rounded-full
+                            px-1.5 py-0.5
+                            text-[0.58rem]
+                            ${
+                              isActive
+                                ? "bg-[#00B0F1]/10"
+                                : "bg-slate-100"
+                            }
+                          `}
+                        >
+                          {tag.count ?? 0}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
-              );
-            })}
-            {filteredCigamData.length > visibleCigamCount && (
-              <button
-                type="button"
-                onClick={() => setVisibleCigamCount(prev => prev + 25)}
-                className="w-full py-2.5 mt-2 bg-slate-900/40 hover:bg-slate-900/60 border border-slate-800 hover:border-slate-750 text-slate-400 hover:text-slate-300 rounded-xl text-xs font-semibold flex items-center justify-center space-x-1.5 transition active:scale-[0.98]"
-              >
-                <ChevronDown className="w-3.5 h-3.5" />
-                <span>Ver mais ({filteredCigamData.length - visibleCigamCount} itens restantes)</span>
-              </button>
-            )}
-            {filteredCigamData.length === 0 && (
-              <p className="text-slate-500 text-sm py-8">Nenhum item do CIGAM encontrado.</p>
-            )}
-          </div>
-        </div>
-      </div>
+              )}
 
-      {/* Linking Confirmation area */}
-      <div 
-        id="linking-panel"
-        className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row items-center justify-between"
-      >
-        <div className="flex flex-col md:flex-row items-center md:space-x-6 space-y-4 md:space-y-0 w-full md:w-auto">
-          {/* Selected Bling */}
-          <div className="bg-slate-900/60 px-4 py-3 rounded-xl border border-slate-700 w-full md:w-64 text-left">
-            <span className="text-[10px] uppercase font-bold text-amber-500 tracking-wider">Selecionado Bling</span>
-            <p className="text-sm font-semibold text-slate-200 truncate">
-              {selectedBlingItem ? selectedBlingItem.name : 'Nenhum item selecionado'}
-            </p>
-            <p className="text-xs text-slate-500">
-              {selectedBlingItem ? `ID: ${selectedBlingItem.id}` : 'Selecione na lista esquerda'}
-            </p>
-          </div>
+              {entity === "formas_pagamento" &&
+                showFilters && (
+                  <div className="mb-4 flex flex-wrap gap-1.5 rounded-xl border border-slate-200 bg-slate-50/80 p-2.5">
+                    {[
+                      {
+                        id: "all",
+                        label: "Todos",
+                        count: blingCounts.all,
+                      },
+                      {
+                        id: "unmapped",
+                        label: "Não associados",
+                        count: blingCounts.unmapped,
+                      },
+                      {
+                        id: "mapped",
+                        label: "Associados",
+                        count: blingCounts.mapped,
+                      },
+                    ].map((tag) => {
+                      const isActive =
+                        blingFilter === tag.id;
 
-          <ArrowRight className="w-5 h-5 text-slate-500 rotate-90 md:rotate-0" />
+                      return (
+                        <button
+                          key={tag.id}
+                          type="button"
+                          onClick={() =>
+                            setBlingFilter(
+                              tag.id as
+                                | "all"
+                                | "mapped"
+                                | "unmapped",
+                            )
+                          }
+                          className={`
+                            inline-flex items-center gap-1.5
+                            rounded-full
+                            border
+                            px-2.5 py-1
+                            text-[0.68rem] font-semibold
+                            transition
+                            ${
+                              isActive
+                                ? `
+                                  border-[#00B0F1]/40
+                                  bg-[#00B0F1]/10
+                                  text-[#008FC7]
+                                `
+                                : `
+                                  border-slate-200
+                                  bg-white
+                                  text-slate-500
+                                  hover:border-slate-300
+                                  hover:text-slate-800
+                                `
+                            }
+                          `}
+                        >
+                          <span>{tag.label}</span>
 
-          {/* Selected CIGAM */}
-          <div className="bg-slate-900/60 px-4 py-3 rounded-xl border border-slate-700 w-full md:w-64 text-left">
-            <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">Selecionado CIGAM</span>
-            <p className="text-sm font-semibold text-slate-200 truncate">
-              {selectedCigamItem ? selectedCigamItem.name : 'Nenhum item selecionado'}
-            </p>
-            <p className="text-xs text-slate-500">
-              {selectedCigamItem ? `Código: ${selectedCigamItem.id}` : 'Selecione na lista direita'}
-            </p>
-          </div>
-        </div>
+                          <span className="rounded-full bg-white/80 px-1.5 py-0.5 text-[0.58rem]">
+                            {tag.count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
 
-        <button
-          onClick={handleLink}
-          disabled={!selectedBlingId || !selectedCigamId || isSaving}
-          className={`mt-6 md:mt-0 px-8 py-3.5 rounded-xl font-semibold shadow-lg transition duration-200 w-full md:w-auto ${
-            selectedBlingId && selectedCigamId
-              ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white hover:shadow-indigo-500/20 cursor-pointer'
-              : 'bg-slate-700 text-slate-400 cursor-not-allowed'
-          }`}
-        >
-          {isSaving ? 'Salvando...' : 'Salvar Associação (De-Para)'}
-        </button>
-      </div>
+              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+                {displayedBlingData.map((item) => {
+                  const isMapped = mappedBlingIds.has(item.id);
+                  const isSelected =
+                    selectedBlingId === item.id;
 
-      {/* Existing Mappings Listing */}
-      <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-6 shadow-lg">
-        <h3 className="text-lg font-bold text-slate-200 mb-4 text-left">Associações Ativas ({mappings.length})</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-300">
-            <thead>
-              <tr className="border-b border-slate-700 text-slate-400">
-                <th className="py-3 px-4">Plataforma Bling</th>
-                <th className="py-3 px-4">Plataforma CIGAM</th>
-                {onDeleteMapping && <th className="py-3 px-4 text-right">Ações</th>}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800">
-              {displayedMappings.map((mapping, index) => {
-                const blingItem = blingData.find(b => b.id === mapping.id_bling);
-                const blingItemName = blingItem?.name || mapping.nome;
-                const cigamItemName = cigamData.find(c => c.id === mapping.id_cigam)?.name || 'Cadastro não localizado';
-                return (
-                  <tr key={index} className="hover:bg-slate-900/30 transition">
-                    <td className="py-3 px-4 text-slate-200">
-                      <div className="font-medium">{blingItemName}</div>
-                      <div className="text-xs text-amber-500 font-mono mt-0.5">
-                        ID: {mapping.id_bling} {blingItem?.codigo && `• Cód: ${blingItem.codigo}`} {blingItem?.temVariacoes && `• Possui Variações`}
+                  return (
+                    <article
+                      key={item.id}
+                      onClick={() => {
+                        if (!isMapped) {
+                          setSelectedBlingId(item.id);
+                        }
+                      }}
+                      className={`
+                        rounded-xl
+                        border
+                        p-3
+                        text-left
+                        transition-all duration-200
+                        ${
+                          isMapped
+                            ? `
+                              cursor-not-allowed
+                              border-slate-200
+                              bg-slate-50
+                              opacity-70
+                            `
+                            : isSelected
+                              ? `
+                                cursor-pointer
+                                border-[#00B0F1]/50
+                                bg-[#00B0F1]/[0.07]
+                                shadow-[0_10px_22px_-20px_rgba(0,176,241,0.75)]
+                              `
+                              : `
+                                cursor-pointer
+                                border-slate-200
+                                bg-white
+                                hover:-translate-y-0.5
+                                hover:border-slate-300
+                                hover:shadow-[0_10px_22px_-20px_rgba(2,6,23,0.50)]
+                              `
+                        }
+                      `}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-slate-900">
+                            {item.name}
+                          </p>
+
+                          <p className="mt-1 truncate text-xs text-slate-500">
+                            ID: {item.id}
+                            {item.codigo &&
+                              ` • Cód: ${item.codigo}`}
+                            {item.ncm && ` • NCM: ${item.ncm}`}
+                            {item.temVariacoes &&
+                              " • Possui variações"}
+                          </p>
+                        </div>
+
+                        <div className="flex shrink-0 items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setModalItem(item);
+                              setModalSource("bling");
+                            }}
+                            aria-label={`Ver detalhes de ${item.name}`}
+                            className="
+                              inline-flex h-8 w-8
+                              items-center justify-center
+                              rounded-lg
+                              border border-slate-200
+                              bg-white
+                              text-slate-400
+                              shadow-sm
+                              transition
+                              hover:border-[#00B0F1]/30
+                              hover:bg-[#00B0F1]/10
+                              hover:text-[#008FC7]
+                            "
+                          >
+                            <svg
+                              className="h-4 w-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                              aria-hidden="true"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                              />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7Z"
+                              />
+                            </svg>
+                          </button>
+
+                          {isMapped ? (
+                            <span
+                              className="
+                                inline-flex items-center gap-1
+                                rounded-full
+                                border border-emerald-200
+                                bg-emerald-50
+                                px-2 py-1
+                                text-[0.62rem] font-semibold
+                                text-emerald-700
+                              "
+                            >
+                              <CheckCircle className="h-3 w-3" />
+
+                              <span className="max-w-24 truncate">
+                                {blingToCigamMap.get(item.id)}
+                              </span>
+                            </span>
+                          ) : (
+                            <span
+                              className="
+                                inline-flex items-center gap-1
+                                rounded-full
+                                border border-amber-200
+                                bg-amber-50
+                                px-2 py-1
+                                text-[0.62rem] font-semibold
+                                text-amber-700
+                              "
+                            >
+                              <AlertCircle className="h-3 w-3" />
+                              Não associado
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </td>
-                    <td className="py-3 px-4 text-slate-200">
-                      <div className="font-medium">{cigamItemName}</div>
-                      <div className="text-xs text-indigo-400 font-mono mt-0.5">Código CIGAM: {mapping.id_cigam}</div>
-                    </td>
-                    {onDeleteMapping && (
-                      <td className="py-3 px-4 text-right animate-fadeIn">
+                    </article>
+                  );
+                })}
+
+                {filteredBlingData.length >
+                  visibleBlingCount && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setVisibleBlingCount(
+                        (current) => current + 25,
+                      )
+                    }
+                    className="
+                      flex w-full
+                      items-center justify-center gap-2
+                      rounded-xl
+                      border border-slate-200
+                      bg-slate-50
+                      py-2.5
+                      text-xs font-semibold
+                      text-slate-600
+                      transition
+                      hover:border-[#00B0F1]/30
+                      hover:bg-[#00B0F1]/10
+                      hover:text-[#008FC7]
+                    "
+                  >
+                    <ChevronDown className="h-3.5 w-3.5" />
+
+                    <span>
+                      Ver mais (
+                      {filteredBlingData.length -
+                        visibleBlingCount}{" "}
+                      restantes)
+                    </span>
+                  </button>
+                )}
+
+                {filteredBlingData.length === 0 && (
+                  <div className="flex min-h-48 flex-col items-center justify-center text-center">
+                    <Search className="h-7 w-7 text-slate-300" />
+
+                    <p className="mt-3 text-sm font-semibold text-slate-600">
+                      Nenhum registro encontrado
+                    </p>
+
+                    <p className="mt-1 text-xs text-slate-400">
+                      Ajuste a pesquisa ou os filtros selecionados.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CIGAM */}
+        <section className={`${panelClassName} flex h-[620px] flex-col`}>
+          <div
+            aria-hidden="true"
+            className="
+              pointer-events-none
+              absolute inset-[5px]
+              rounded-[18px]
+              border border-white
+            "
+          />
+
+          <div className="relative z-10 flex min-h-0 flex-1 flex-col">
+            <div className="border-b border-slate-200/80 px-5 py-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="h-2.5 w-2.5 rounded-full bg-[#00B0F1]" />
+
+                    <h3 className="text-base font-bold text-slate-900">
+                      Tabela CIGAM
+                    </h3>
+                  </div>
+
+                  <p className="mt-1 text-xs text-slate-500">
+                    {filteredCigamData.length} registros encontrados
+                  </p>
+                </div>
+
+                <span
+                  className="
+                    rounded-full
+                    border border-[#00B0F1]/20
+                    bg-[#00B0F1]/10
+                    px-2.5 py-1
+                    text-[0.65rem] font-bold
+                    uppercase tracking-wider
+                    text-[#008FC7]
+                  "
+                >
+                  Destino
+                </span>
+              </div>
+            </div>
+
+            <div className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
+              <div className="mb-4 flex flex-col gap-2 sm:flex-row">
+                <div className="relative min-w-0 flex-1">
+                  <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
+                  <input
+                    type="search"
+                    placeholder="Buscar no CIGAM por nome ou código"
+                    value={searchCigam}
+                    onChange={(event) =>
+                      setSearchCigam(event.target.value)
+                    }
+                    className={inputClassName}
+                  />
+                </div>
+
+                {entity === "formas_pagamento" && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleExportPaymentMethods(
+                        "cigam",
+                        cigamFilter,
+                      )
+                    }
+                    disabled={exportingPaymentSource !== null}
+                    title="Exportar formas de pagamento do CIGAM"
+                    className="
+                      inline-flex h-10 shrink-0
+                      items-center justify-center gap-2
+                      rounded-xl
+                      border border-emerald-600/20
+                      bg-emerald-600
+                      px-3.5
+                      text-xs font-semibold
+                      text-white
+                      shadow-sm
+                      transition
+                      hover:-translate-y-0.5
+                      hover:bg-emerald-500
+                      disabled:cursor-not-allowed
+                      disabled:opacity-50
+                    "
+                  >
+                    <Download className="h-3.5 w-3.5" />
+
+                    <span>
+                      {exportingPaymentSource === "cigam"
+                        ? "Exportando..."
+                        : "Excel"}
+                    </span>
+                  </button>
+                )}
+              </div>
+
+              {(entity === "produtos" ||
+                entity === "formas_pagamento") && (
+                <div className="mb-4 flex flex-wrap gap-1.5 rounded-xl border border-slate-200 bg-slate-50/80 p-2.5">
+                  {[
+                    {
+                      id: "all",
+                      label: "Todos",
+                      count: cigamCounts.all,
+                    },
+                    {
+                      id: "unmapped",
+                      label: "Não associados",
+                      count: cigamCounts.unmapped,
+                    },
+                    {
+                      id: "mapped",
+                      label: "Associados",
+                      count: cigamCounts.mapped,
+                    },
+                  ].map((tag) => {
+                    const isActive =
+                      cigamFilter === tag.id;
+
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() =>
+                          setCigamFilter(
+                            tag.id as
+                              | "all"
+                              | "mapped"
+                              | "unmapped",
+                          )
+                        }
+                        className={`
+                          inline-flex items-center gap-1.5
+                          rounded-full
+                          border
+                          px-2.5 py-1
+                          text-[0.68rem] font-semibold
+                          transition
+                          ${
+                            isActive
+                              ? `
+                                border-[#00B0F1]/40
+                                bg-[#00B0F1]/10
+                                text-[#008FC7]
+                              `
+                              : `
+                                border-slate-200
+                                bg-white
+                                text-slate-500
+                                hover:border-slate-300
+                                hover:text-slate-800
+                              `
+                          }
+                        `}
+                      >
+                        <span>{tag.label}</span>
+
+                        <span className="rounded-full bg-white/80 px-1.5 py-0.5 text-[0.58rem]">
+                          {tag.count ?? 0}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+                {displayedCigamData.map((item) => {
+                  const isSelected =
+                    selectedCigamId === item.id;
+
+                  const associatedBlingItems =
+                    cigamToBlingMap.get(item.id);
+
+                  const isMapped =
+                    associatedBlingItems &&
+                    associatedBlingItems.length > 0;
+
+                  return (
+                    <article
+                      key={item.id}
+                      onClick={() =>
+                        setSelectedCigamId(item.id)
+                      }
+                      className={`
+                        cursor-pointer
+                        rounded-xl
+                        border
+                        p-3
+                        text-left
+                        transition-all duration-200
+                        ${
+                          isSelected
+                            ? `
+                              border-[#00B0F1]/50
+                              bg-[#00B0F1]/[0.07]
+                              shadow-[0_10px_22px_-20px_rgba(0,176,241,0.75)]
+                            `
+                            : `
+                              border-slate-200
+                              bg-white
+                              hover:-translate-y-0.5
+                              hover:border-slate-300
+                              hover:shadow-[0_10px_22px_-20px_rgba(2,6,23,0.50)]
+                            `
+                        }
+                      `}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <p className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-900">
+                              {item.name}
+                            </p>
+
+                            {isMapped && (
+                              <span
+                                title={`Associado a: ${associatedBlingItems
+                                  .map(
+                                    (blingItem) =>
+                                      `${blingItem.name} (ID: ${blingItem.id})`,
+                                  )
+                                  .join(", ")}`}
+                                className="
+                                  inline-flex shrink-0
+                                  items-center gap-1
+                                  rounded-full
+                                  border border-emerald-200
+                                  bg-emerald-50
+                                  px-2 py-1
+                                  text-[0.62rem] font-semibold
+                                  text-emerald-700
+                                "
+                              >
+                                <CheckCircle className="h-3 w-3" />
+                                Associado
+                              </span>
+                            )}
+                          </div>
+
+                          <p className="mt-1 truncate text-xs text-slate-500">
+                            Código CIGAM: {item.id}
+                            {item.extra &&
+                              ` • Documento: ${item.extra}`}
+                          </p>
+                        </div>
+
                         <button
                           type="button"
-                          onClick={() => handleDelete(mapping.id_bling)}
-                          disabled={isSaving}
-                          className="px-3 py-1.5 bg-red-950/45 border border-red-500/20 hover:bg-red-900/40 hover:border-red-400/40 text-red-400 hover:text-red-300 rounded-lg text-xs font-semibold transition active:scale-95 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setModalItem(item);
+                            setModalSource("cigam");
+                          }}
+                          aria-label={`Ver detalhes de ${item.name}`}
+                          className="
+                            inline-flex h-8 w-8 shrink-0
+                            items-center justify-center
+                            rounded-lg
+                            border border-slate-200
+                            bg-white
+                            text-slate-400
+                            shadow-sm
+                            transition
+                            hover:border-[#00B0F1]/30
+                            hover:bg-[#00B0F1]/10
+                            hover:text-[#008FC7]
+                          "
                         >
-                          Excluir
+                          <svg
+                            className="h-4 w-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                            aria-hidden="true"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7Z"
+                            />
+                          </svg>
                         </button>
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
-              {mappings.length === 0 && (
-                <tr>
-                  <td colSpan={onDeleteMapping ? 3 : 2} className="text-center py-6 text-slate-500">
-                    Nenhuma associação ativa para esta entidade.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-        {totalMappingsPages > 1 && (
-          <div className="flex flex-col sm:flex-row items-center justify-between border-t border-slate-800 pt-4 mt-4 gap-4">
-            <div className="text-xs text-slate-400">
-              Mostrando <span className="font-semibold text-slate-300">{Math.min(mappings.length, (mappingsPage - 1) * itemsPerPage + 1)}</span> a{' '}
-              <span className="font-semibold text-slate-300">{Math.min(mappings.length, mappingsPage * itemsPerPage)}</span> de{' '}
-              <span className="font-semibold text-slate-300">{mappings.length}</span> associações
+                      </div>
+                    </article>
+                  );
+                })}
+
+                {filteredCigamData.length >
+                  visibleCigamCount && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setVisibleCigamCount(
+                        (current) => current + 25,
+                      )
+                    }
+                    className="
+                      flex w-full
+                      items-center justify-center gap-2
+                      rounded-xl
+                      border border-slate-200
+                      bg-slate-50
+                      py-2.5
+                      text-xs font-semibold
+                      text-slate-600
+                      transition
+                      hover:border-[#00B0F1]/30
+                      hover:bg-[#00B0F1]/10
+                      hover:text-[#008FC7]
+                    "
+                  >
+                    <ChevronDown className="h-3.5 w-3.5" />
+
+                    <span>
+                      Ver mais (
+                      {filteredCigamData.length -
+                        visibleCigamCount}{" "}
+                      restantes)
+                    </span>
+                  </button>
+                )}
+
+                {filteredCigamData.length === 0 && (
+                  <div className="flex min-h-48 flex-col items-center justify-center text-center">
+                    <Search className="h-7 w-7 text-slate-300" />
+
+                    <p className="mt-3 text-sm font-semibold text-slate-600">
+                      Nenhum registro encontrado
+                    </p>
+
+                    <p className="mt-1 text-xs text-slate-400">
+                      Ajuste a pesquisa ou os filtros selecionados.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <button
-                type="button"
-                onClick={() => setMappingsPage(p => Math.max(1, p - 1))}
-                disabled={mappingsPage === 1}
-                className="px-3 py-1.5 bg-slate-900 border border-slate-700 hover:border-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-300 font-semibold rounded-lg text-xs transition cursor-pointer active:scale-95"
-              >
-                Anterior
-              </button>
-              
-              <div className="flex items-center space-x-1">
-                {Array.from({ length: totalMappingsPages }, (_, i) => i + 1).map((pNum) => {
+          </div>
+        </section>
+      </div>
+
+      {/* Confirmação De-Para */}
+      <section
+        id="linking-panel"
+        className="
+          relative
+          overflow-hidden
+          rounded-[24px]
+          border border-slate-200/80
+          bg-gradient-to-br
+          from-white
+          to-slate-50
+          p-5
+          shadow-[0_20px_50px_-34px_rgba(2,6,23,0.70),inset_0_1px_1px_rgba(255,255,255,0.95)]
+          sm:p-6
+        "
+      >
+        <div
+          aria-hidden="true"
+          className="
+            absolute -bottom-16 -right-16
+            h-40 w-40
+            rounded-full
+            bg-[#00B0F1]/10
+            blur-3xl
+          "
+        />
+
+        <div className="relative flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+          <div className="grid min-w-0 flex-1 grid-cols-1 gap-3 md:grid-cols-[1fr_auto_1fr] md:items-center">
+            <div
+              className={`
+                min-w-0
+                rounded-2xl
+                border
+                p-4
+                ${
+                  selectedBlingItem
+                    ? `
+                      border-amber-200
+                      bg-amber-50/70
+                    `
+                    : `
+                      border-slate-200
+                      bg-white/80
+                    `
+                }
+              `}
+            >
+              <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-amber-700">
+                Selecionado no Bling
+              </span>
+
+              <p className="mt-1 truncate text-sm font-semibold text-slate-900">
+                {selectedBlingItem
+                  ? selectedBlingItem.name
+                  : "Nenhum item selecionado"}
+              </p>
+
+              <p className="mt-1 truncate text-xs text-slate-500">
+                {selectedBlingItem
+                  ? `ID: ${selectedBlingItem.id}`
+                  : "Selecione um registro na tabela Bling"}
+              </p>
+            </div>
+
+            <div
+              className="
+                mx-auto flex h-9 w-9
+                items-center justify-center
+                rounded-full
+                border border-slate-200
+                bg-white
+                text-slate-400
+                shadow-sm
+              "
+            >
+              <ArrowRight className="h-4 w-4 rotate-90 md:rotate-0" />
+            </div>
+
+            <div
+              className={`
+                min-w-0
+                rounded-2xl
+                border
+                p-4
+                ${
+                  selectedCigamItem
+                    ? `
+                      border-[#00B0F1]/25
+                      bg-[#00B0F1]/[0.06]
+                    `
+                    : `
+                      border-slate-200
+                      bg-white/80
+                    `
+                }
+              `}
+            >
+              <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-[#008FC7]">
+                Selecionado no CIGAM
+              </span>
+
+              <p className="mt-1 truncate text-sm font-semibold text-slate-900">
+                {selectedCigamItem
+                  ? selectedCigamItem.name
+                  : "Nenhum item selecionado"}
+              </p>
+
+              <p className="mt-1 truncate text-xs text-slate-500">
+                {selectedCigamItem
+                  ? `Código: ${selectedCigamItem.id}`
+                  : "Selecione um registro na tabela CIGAM"}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleLink}
+            disabled={
+              !selectedBlingId ||
+              !selectedCigamId ||
+              isSaving
+            }
+            className="
+              inline-flex min-h-12
+              w-full shrink-0
+              items-center justify-center gap-2
+              rounded-xl
+              border border-slate-950/20
+              bg-gradient-to-b
+              from-slate-700
+              to-slate-950
+              px-6
+              text-sm font-semibold
+              text-white
+              shadow-[0_10px_22px_-12px_rgba(15,23,42,0.85),inset_0_1px_1px_rgba(255,255,255,0.22)]
+              transition-all duration-200
+              hover:-translate-y-0.5
+              hover:from-slate-600
+              hover:to-slate-900
+              focus:outline-none
+              focus:ring-4
+              focus:ring-[#00B0F1]/20
+              disabled:cursor-not-allowed
+              disabled:opacity-45
+              disabled:hover:translate-y-0
+              xl:w-auto
+            "
+          >
+            {isSaving ? (
+              <>
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/35 border-t-white" />
+                Salvando...
+              </>
+            ) : (
+              <>
+                <Link2 className="h-4 w-4" />
+                Salvar associação
+              </>
+            )}
+          </button>
+        </div>
+      </section>
+
+      {/* Associações existentes */}
+      <section className={panelClassName}>
+        <div
+          aria-hidden="true"
+          className="
+            pointer-events-none
+            absolute inset-[5px]
+            rounded-[18px]
+            border border-white
+          "
+        />
+
+        <div className="relative z-10">
+          <div className="flex flex-col gap-3 border-b border-slate-200/80 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div>
+              <h3 className="text-base font-bold text-slate-900">
+                Associações ativas
+              </h3>
+
+              <p className="mt-1 text-xs text-slate-500">
+                Consulte ou remova os mapeamentos já cadastrados.
+              </p>
+            </div>
+
+            <span
+              className="
+                inline-flex w-fit
+                items-center gap-1.5
+                rounded-full
+                border border-emerald-200
+                bg-emerald-50
+                px-3 py-1.5
+                text-xs font-semibold
+                text-emerald-700
+              "
+            >
+              <CheckCircle className="h-3.5 w-3.5" />
+              {mappings.length} associações
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] text-left">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/80">
+                  <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 sm:px-6">
+                    Registro Bling
+                  </th>
+
+                  <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+                    Registro CIGAM
+                  </th>
+
+                  {onDeleteMapping && (
+                    <th className="px-5 py-3.5 text-right text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 sm:px-6">
+                      Ações
+                    </th>
+                  )}
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-slate-200">
+                {displayedMappings.map((mapping) => {
+                  const blingItem = blingData.find(
+                    (item) =>
+                      item.id === mapping.id_bling,
+                  );
+
+                  const blingItemName =
+                    blingItem?.name || mapping.nome;
+
+                  const cigamItemName =
+                    cigamData.find(
+                      (item) =>
+                        item.id === mapping.id_cigam,
+                    )?.name || "Cadastro não localizado";
+
+                  return (
+                    <tr
+                      key={`${mapping.id_bling}-${mapping.id_cigam}`}
+                      className="transition-colors hover:bg-slate-50/80"
+                    >
+                      <td className="px-5 py-4 sm:px-6">
+                        <p className="text-sm font-semibold text-slate-900">
+                          {blingItemName}
+                        </p>
+
+                        <p className="mt-1 font-mono text-xs text-amber-700">
+                          ID: {mapping.id_bling}
+                          {blingItem?.codigo &&
+                            ` • Cód: ${blingItem.codigo}`}
+                          {blingItem?.temVariacoes &&
+                            " • Possui variações"}
+                        </p>
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <p className="text-sm font-semibold text-slate-900">
+                          {cigamItemName}
+                        </p>
+
+                        <p className="mt-1 font-mono text-xs text-[#008FC7]">
+                          Código CIGAM: {mapping.id_cigam}
+                        </p>
+                      </td>
+
+                      {onDeleteMapping && (
+                        <td className="px-5 py-4 text-right sm:px-6">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleDelete(mapping.id_bling)
+                            }
+                            disabled={isSaving}
+                            className="
+                              inline-flex h-9
+                              items-center justify-center
+                              rounded-xl
+                              border border-red-200
+                              bg-red-50
+                              px-3.5
+                              text-xs font-semibold
+                              text-red-600
+                              transition
+                              hover:-translate-y-0.5
+                              hover:border-red-300
+                              hover:bg-red-100
+                              disabled:cursor-not-allowed
+                              disabled:opacity-45
+                            "
+                          >
+                            Excluir
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+
+                {mappings.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={onDeleteMapping ? 3 : 2}
+                      className="px-6 py-12 text-center"
+                    >
+                      <CheckCircle className="mx-auto h-7 w-7 text-slate-300" />
+
+                      <p className="mt-3 text-sm font-semibold text-slate-600">
+                        Nenhuma associação ativa
+                      </p>
+
+                      <p className="mt-1 text-xs text-slate-400">
+                        Selecione um registro do Bling e um registro
+                        do CIGAM para criar o primeiro mapeamento.
+                      </p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {totalMappingsPages > 1 && (
+            <div className="flex flex-col gap-4 border-t border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              <p className="text-xs text-slate-500">
+                Mostrando{" "}
+                <span className="font-semibold text-slate-700">
+                  {Math.min(
+                    mappings.length,
+                    (mappingsPage - 1) *
+                      itemsPerPage +
+                      1,
+                  )}
+                </span>{" "}
+                a{" "}
+                <span className="font-semibold text-slate-700">
+                  {Math.min(
+                    mappings.length,
+                    mappingsPage * itemsPerPage,
+                  )}
+                </span>{" "}
+                de{" "}
+                <span className="font-semibold text-slate-700">
+                  {mappings.length}
+                </span>
+              </p>
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setMappingsPage((current) =>
+                      Math.max(1, current - 1),
+                    )
+                  }
+                  disabled={mappingsPage === 1}
+                  className={secondaryButtonClassName}
+                >
+                  Anterior
+                </button>
+
+                {Array.from(
+                  { length: totalMappingsPages },
+                  (_, index) => index + 1,
+                ).map((pageNumber) => {
                   if (
-                    pNum === 1 || 
-                    pNum === totalMappingsPages || 
-                    (pNum >= mappingsPage - 1 && pNum <= mappingsPage + 1)
+                    pageNumber === 1 ||
+                    pageNumber === totalMappingsPages ||
+                    (pageNumber >= mappingsPage - 1 &&
+                      pageNumber <= mappingsPage + 1)
                   ) {
                     return (
                       <button
-                        key={pNum}
+                        key={pageNumber}
                         type="button"
-                        onClick={() => setMappingsPage(pNum)}
-                        className={`w-7 h-7 flex items-center justify-center rounded-lg text-xs font-semibold transition cursor-pointer active:scale-95 ${
-                          mappingsPage === pNum
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-slate-900 border border-slate-700 hover:border-slate-600 text-slate-300'
-                        }`}
+                        onClick={() =>
+                          setMappingsPage(pageNumber)
+                        }
+                        className={`
+                          flex h-9 w-9
+                          items-center justify-center
+                          rounded-xl
+                          border
+                          text-xs font-semibold
+                          transition
+                          ${
+                            mappingsPage === pageNumber
+                              ? `
+                                border-[#00B0F1]
+                                bg-[#00B0F1]
+                                text-white
+                                shadow-sm
+                              `
+                              : `
+                                border-slate-200
+                                bg-white
+                                text-slate-600
+                                hover:border-slate-300
+                                hover:bg-slate-50
+                              `
+                          }
+                        `}
                       >
-                        {pNum}
+                        {pageNumber}
                       </button>
                     );
                   }
+
                   if (
-                    pNum === 2 || 
-                    pNum === totalMappingsPages - 1
+                    pageNumber === 2 ||
+                    pageNumber ===
+                      totalMappingsPages - 1
                   ) {
-                    return <span key={pNum} className="text-slate-600 text-xs px-1">...</span>;
+                    return (
+                      <span
+                        key={pageNumber}
+                        className="px-1 text-xs text-slate-400"
+                      >
+                        …
+                      </span>
+                    );
                   }
+
                   return null;
                 })}
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setMappingsPage((current) =>
+                      Math.min(
+                        totalMappingsPages,
+                        current + 1,
+                      ),
+                    )
+                  }
+                  disabled={
+                    mappingsPage === totalMappingsPages
+                  }
+                  className={secondaryButtonClassName}
+                >
+                  Próxima
+                </button>
               </div>
-
-              <button
-                type="button"
-                onClick={() => setMappingsPage(p => Math.min(totalMappingsPages, p + 1))}
-                disabled={mappingsPage === totalMappingsPages}
-                className="px-3 py-1.5 bg-slate-900 border border-slate-700 hover:border-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-300 font-semibold rounded-lg text-xs transition cursor-pointer active:scale-95"
-              >
-                Próxima
-              </button>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </section>
 
-      {/* Product Details Modal */}
+      {/* Modal de detalhes */}
       {modalItem && modalSource && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
           <div
-            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            role="button"
+            tabIndex={0}
+            aria-label="Fechar detalhes"
+            className="absolute inset-0"
             onClick={() => {
               setModalItem(null);
               setModalSource(null);
             }}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                setModalItem(null);
+                setModalSource(null);
+              }
+            }}
           />
-          <div className="relative bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-slate-800">
-              <div>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  modalSource === 'bling'
-                    ? 'bg-amber-950/40 border border-amber-500/20 text-amber-400'
-                    : 'bg-indigo-950/40 border border-indigo-500/20 text-indigo-400'
-                }`}>
-                  {modalSource === 'bling' ? 'Bling' : 'CIGAM'}
+
+          <div
+            className="
+              relative
+              flex max-h-[85vh] w-full max-w-2xl
+              flex-col overflow-hidden
+              rounded-[28px]
+              border border-white/70
+              bg-white
+              shadow-[0_35px_100px_-30px_rgba(2,6,23,0.85)]
+            "
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-5 py-5 sm:px-6">
+              <div className="min-w-0">
+                <span
+                  className={`
+                    inline-flex
+                    rounded-full
+                    border
+                    px-2.5 py-1
+                    text-[0.62rem] font-bold
+                    uppercase tracking-[0.1em]
+                    ${
+                      modalSource === "bling"
+                        ? `
+                          border-amber-200
+                          bg-amber-50
+                          text-amber-700
+                        `
+                        : `
+                          border-[#00B0F1]/20
+                          bg-[#00B0F1]/10
+                          text-[#008FC7]
+                        `
+                    }
+                  `}
+                >
+                  {modalSource === "bling"
+                    ? "Bling"
+                    : "CIGAM"}
                 </span>
-                <h3 className="text-xl font-bold text-white mt-2">{itemDetails.name}</h3>
+
+                <h3 className="mt-3 truncate text-xl font-bold tracking-tight text-slate-900">
+                  {itemDetails.name}
+                </h3>
               </div>
+
               <button
                 type="button"
                 onClick={() => {
                   setModalItem(null);
                   setModalSource(null);
                 }}
-                className="p-2 hover:bg-slate-800 rounded-xl text-slate-400 hover:text-white transition"
+                aria-label="Fechar detalhes"
+                className="
+                  inline-flex h-10 w-10 shrink-0
+                  items-center justify-center
+                  rounded-xl
+                  border border-slate-200
+                  bg-white
+                  text-slate-500
+                  shadow-sm
+                  transition
+                  hover:border-red-200
+                  hover:bg-red-50
+                  hover:text-red-500
+                "
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18 18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
 
-            {/* Modal Content */}
-            <div className="p-6 overflow-y-auto flex-1">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* ID */}
-                <div className="bg-slate-800/50 p-3 rounded-xl">
-                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">ID</span>
-                  <p className="text-sm font-mono text-slate-200 mt-1">{itemDetails.id}</p>
+            <div className="flex-1 overflow-y-auto bg-slate-50/60 p-5 sm:p-6">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <div className="rounded-xl border border-slate-200 bg-white p-3.5">
+                  <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                    ID
+                  </span>
+
+                  <p className="mt-1 break-all font-mono text-sm text-slate-800">
+                    {itemDetails.id}
+                  </p>
                 </div>
 
-                {/* Codigo */}
                 {itemDetails.codigo && (
-                  <div className="bg-slate-800/50 p-3 rounded-xl">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Código</span>
-                    <p className="text-sm font-mono text-slate-200 mt-1">{itemDetails.codigo}</p>
-                  </div>
-                )}
+                  <div className="rounded-xl border border-slate-200 bg-white p-3.5">
+                    <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                      Código
+                    </span>
 
-                {/* Preco */}
-                {itemDetails.preco !== undefined && itemDetails.preco !== null && (
-                  <div className="bg-slate-800/50 p-3 rounded-xl">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Preço</span>
-                    <p className="text-sm text-emerald-400 font-semibold mt-1">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(itemDetails.preco))}
+                    <p className="mt-1 break-all font-mono text-sm text-slate-800">
+                      {itemDetails.codigo}
                     </p>
                   </div>
                 )}
 
-                {/* Tipo */}
+                {itemDetails.preco !== undefined &&
+                  itemDetails.preco !== null && (
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-3.5">
+                      <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-emerald-600">
+                        Preço
+                      </span>
+
+                      <p className="mt-1 text-sm font-semibold text-emerald-700">
+                        {new Intl.NumberFormat("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        }).format(
+                          Number(itemDetails.preco),
+                        )}
+                      </p>
+                    </div>
+                  )}
+
                 {itemDetails.tipo && (
-                  <div className="bg-slate-800/50 p-3 rounded-xl">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Tipo</span>
-                    <p className="text-sm text-slate-200 mt-1">{itemDetails.tipo}</p>
-                  </div>
-                )}
+                  <div className="rounded-xl border border-slate-200 bg-white p-3.5">
+                    <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                      Tipo
+                    </span>
 
-                {/* Situacao */}
-                {itemDetails.situacao && (
-                  <div className="bg-slate-800/50 p-3 rounded-xl">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Situação</span>
-                    <p className="text-sm text-slate-200 mt-1">{itemDetails.situacao}</p>
-                  </div>
-                )}
-
-                {/* Formato */}
-                {itemDetails.formato && (
-                  <div className="bg-slate-800/50 p-3 rounded-xl">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Formato</span>
-                    <p className="text-sm text-slate-200 mt-1">{itemDetails.formato}</p>
-                  </div>
-                )}
-
-                {/* Unidade */}
-                {itemDetails.unidade && (
-                  <div className="bg-slate-800/50 p-3 rounded-xl">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Unidade</span>
-                    <p className="text-sm text-slate-200 mt-1">{itemDetails.unidade}</p>
-                  </div>
-                )}
-
-                {/* Tipo Produto */}
-                {itemDetails.tipoProduto && (
-                  <div className="bg-slate-800/50 p-3 rounded-xl">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Tipo Produto</span>
-                    <p className="text-sm text-slate-200 mt-1">{itemDetails.tipoProduto}</p>
-                  </div>
-                )}
-
-                {/* Condicao */}
-                {itemDetails.condicao !== undefined && itemDetails.condicao !== null && (
-                  <div className="bg-slate-800/50 p-3 rounded-xl">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Condição</span>
-                    <p className="text-sm text-slate-200 mt-1">{itemDetails.condicao === 0 ? 'Novo' : itemDetails.condicao === 1 ? 'Usado' : `Código ${itemDetails.condicao}`}</p>
-                  </div>
-                )}
-
-                {/* Marca */}
-                {itemDetails.marca && (
-                  <div className="bg-slate-800/50 p-3 rounded-xl">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Marca</span>
-                    <p className="text-sm text-slate-200 mt-1">{itemDetails.marca}</p>
-                  </div>
-                )}
-
-                {/* NCM */}
-                {itemDetails.ncm && (
-                  <div className="bg-slate-800/50 p-3 rounded-xl">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">NCM</span>
-                    <p className="text-sm font-mono text-slate-200 mt-1">{itemDetails.ncm}</p>
-                  </div>
-                )}
-
-                {/* Quantidade Estoque */}
-                {itemDetails.quantidade_estoque !== undefined && itemDetails.quantidade_estoque !== null && (
-                  <div className="bg-slate-800/50 p-3 rounded-xl">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Estoque</span>
-                    <p className="text-sm text-slate-200 mt-1">{itemDetails.quantidade_estoque} unidades</p>
-                  </div>
-                )}
-
-                {/* Tem Variacoes */}
-                {itemDetails.temVariacoes !== undefined && itemDetails.temVariacoes !== null && (
-                  <div className="bg-slate-800/50 p-3 rounded-xl">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Variações</span>
-                    <p className="text-sm text-slate-200 mt-1">{itemDetails.temVariacoes ? 'Sim' : 'Não'}</p>
-                  </div>
-                )}
-
-                {/* Ativo */}
-                {itemDetails.ativo !== undefined && itemDetails.ativo !== null && (
-                  <div className="bg-slate-800/50 p-3 rounded-xl">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Status</span>
-                    <p className={`text-sm font-semibold mt-1 ${itemDetails.ativo ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {itemDetails.ativo ? 'Ativo' : 'Inativo'}
+                    <p className="mt-1 text-sm text-slate-800">
+                      {itemDetails.tipo}
                     </p>
                   </div>
                 )}
 
-                {/* Fornecedor */}
+                {itemDetails.situacao && (
+                  <div className="rounded-xl border border-slate-200 bg-white p-3.5">
+                    <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                      Situação
+                    </span>
+
+                    <p className="mt-1 text-sm text-slate-800">
+                      {itemDetails.situacao}
+                    </p>
+                  </div>
+                )}
+
+                {itemDetails.formato && (
+                  <div className="rounded-xl border border-slate-200 bg-white p-3.5">
+                    <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                      Formato
+                    </span>
+
+                    <p className="mt-1 text-sm text-slate-800">
+                      {itemDetails.formato}
+                    </p>
+                  </div>
+                )}
+
+                {itemDetails.unidade && (
+                  <div className="rounded-xl border border-slate-200 bg-white p-3.5">
+                    <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                      Unidade
+                    </span>
+
+                    <p className="mt-1 text-sm text-slate-800">
+                      {itemDetails.unidade}
+                    </p>
+                  </div>
+                )}
+
+                {itemDetails.tipoProduto && (
+                  <div className="rounded-xl border border-slate-200 bg-white p-3.5">
+                    <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                      Tipo do produto
+                    </span>
+
+                    <p className="mt-1 text-sm text-slate-800">
+                      {itemDetails.tipoProduto}
+                    </p>
+                  </div>
+                )}
+
+                {itemDetails.condicao !== undefined &&
+                  itemDetails.condicao !== null && (
+                    <div className="rounded-xl border border-slate-200 bg-white p-3.5">
+                      <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                        Condição
+                      </span>
+
+                      <p className="mt-1 text-sm text-slate-800">
+                        {itemDetails.condicao === 0
+                          ? "Novo"
+                          : itemDetails.condicao === 1
+                            ? "Usado"
+                            : `Código ${itemDetails.condicao}`}
+                      </p>
+                    </div>
+                  )}
+
+                {itemDetails.marca && (
+                  <div className="rounded-xl border border-slate-200 bg-white p-3.5">
+                    <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                      Marca
+                    </span>
+
+                    <p className="mt-1 text-sm text-slate-800">
+                      {itemDetails.marca}
+                    </p>
+                  </div>
+                )}
+
+                {itemDetails.ncm && (
+                  <div className="rounded-xl border border-slate-200 bg-white p-3.5">
+                    <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                      NCM
+                    </span>
+
+                    <p className="mt-1 font-mono text-sm text-slate-800">
+                      {itemDetails.ncm}
+                    </p>
+                  </div>
+                )}
+
+                {itemDetails.quantidade_estoque !==
+                  undefined &&
+                  itemDetails.quantidade_estoque !== null && (
+                    <div className="rounded-xl border border-slate-200 bg-white p-3.5">
+                      <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                        Estoque
+                      </span>
+
+                      <p className="mt-1 text-sm text-slate-800">
+                        {itemDetails.quantidade_estoque} unidades
+                      </p>
+                    </div>
+                  )}
+
+                {itemDetails.temVariacoes !== undefined &&
+                  itemDetails.temVariacoes !== null && (
+                    <div className="rounded-xl border border-slate-200 bg-white p-3.5">
+                      <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                        Variações
+                      </span>
+
+                      <p className="mt-1 text-sm text-slate-800">
+                        {itemDetails.temVariacoes
+                          ? "Sim"
+                          : "Não"}
+                      </p>
+                    </div>
+                  )}
+
+                {itemDetails.ativo !== undefined &&
+                  itemDetails.ativo !== null && (
+                    <div
+                      className={`
+                        rounded-xl
+                        border
+                        p-3.5
+                        ${
+                          itemDetails.ativo
+                            ? `
+                              border-emerald-200
+                              bg-emerald-50/70
+                            `
+                            : `
+                              border-red-200
+                              bg-red-50/70
+                            `
+                        }
+                      `}
+                    >
+                      <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                        Status
+                      </span>
+
+                      <p
+                        className={`mt-1 text-sm font-semibold ${
+                          itemDetails.ativo
+                            ? "text-emerald-700"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {itemDetails.ativo
+                          ? "Ativo"
+                          : "Inativo"}
+                      </p>
+                    </div>
+                  )}
+
                 {itemDetails.fornecedor_nome && (
-                  <div className="bg-slate-800/50 p-3 rounded-xl">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Fornecedor</span>
-                    <p className="text-sm text-slate-200 mt-1">{itemDetails.fornecedor_nome}</p>
+                  <div className="rounded-xl border border-slate-200 bg-white p-3.5">
+                    <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                      Fornecedor
+                    </span>
+
+                    <p className="mt-1 text-sm text-slate-800">
+                      {itemDetails.fornecedor_nome}
+                    </p>
+
                     {itemDetails.fornecedor_codigo && (
-                      <p className="text-xs text-slate-500 mt-0.5">Cód: {itemDetails.fornecedor_codigo}</p>
-                    )}
-                    {itemDetails.fornecedor_precoCusto !== undefined && itemDetails.fornecedor_precoCusto !== null && (
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        Custo: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(itemDetails.fornecedor_precoCusto))}
+                      <p className="mt-1 text-xs text-slate-500">
+                        Código:{" "}
+                        {itemDetails.fornecedor_codigo}
                       </p>
                     )}
+
+                    {itemDetails.fornecedor_precoCusto !==
+                      undefined &&
+                      itemDetails.fornecedor_precoCusto !==
+                        null && (
+                        <p className="mt-1 text-xs text-slate-500">
+                          Custo:{" "}
+                          {new Intl.NumberFormat("pt-BR", {
+                            style: "currency",
+                            currency: "BRL",
+                          }).format(
+                            Number(
+                              itemDetails.fornecedor_precoCusto,
+                            ),
+                          )}
+                        </p>
+                      )}
                   </div>
                 )}
 
-                {/* Extra (documento) */}
                 {itemDetails.extra && (
-                  <div className="bg-slate-800/50 p-3 rounded-xl">
-                    <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Documento</span>
-                    <p className="text-sm font-mono text-slate-200 mt-1">{itemDetails.extra}</p>
+                  <div className="rounded-xl border border-slate-200 bg-white p-3.5">
+                    <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                      Documento
+                    </span>
+
+                    <p className="mt-1 break-all font-mono text-sm text-slate-800">
+                      {itemDetails.extra}
+                    </p>
                   </div>
                 )}
               </div>
 
-              {/* Descricao Curta */}
               {itemDetails.descricaoCurta && (
-                <div className="mt-4 bg-slate-800/50 p-4 rounded-xl">
-                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Descrição</span>
-                  <p className="text-sm text-slate-200 mt-2 whitespace-pre-wrap">{itemDetails.descricaoCurta}</p>
+                <div className="mt-3 rounded-xl border border-slate-200 bg-white p-4">
+                  <span className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                    Descrição
+                  </span>
+
+                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                    {itemDetails.descricaoCurta}
+                  </p>
                 </div>
               )}
             </div>
 
-            {/* Modal Footer */}
-            <div className="p-4 border-t border-slate-800 bg-slate-900/50">
-              <p className="text-xs text-slate-500 text-center">
-                {modalSource === 'bling' ? 'Dados do Bling' : 'Dados do CIGAM'} • Última atualização via API
+            <div className="border-t border-slate-200 bg-white px-5 py-4">
+              <p className="text-center text-xs text-slate-400">
+                {modalSource === "bling"
+                  ? "Dados recebidos do Bling"
+                  : "Dados recebidos do CIGAM"}{" "}
+                • Última atualização via API
               </p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Custom Alert Modal */}
-      {alertConfig && alertConfig.show && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fadeIn">
+      {/* Modal de alerta */}
+      {alertConfig?.show && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-sm">
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            className="absolute inset-0"
             onClick={() => setAlertConfig(null)}
           />
-          <div className="relative bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col p-6 animate-scaleIn">
-            <div className="flex items-start space-x-4">
-              <div className={`p-3 rounded-xl ${
-                alertConfig.type === 'success'
-                  ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
-                  : alertConfig.type === 'error'
-                  ? 'bg-rose-500/10 border border-rose-500/20 text-rose-400'
-                  : 'bg-indigo-500/10 border border-indigo-500/20 text-indigo-400'
-              }`}>
-                {alertConfig.type === 'success' && <CheckCircle className="w-6 h-6" />}
-                {alertConfig.type === 'error' && <AlertCircle className="w-6 h-6" />}
-                {alertConfig.type === 'info' && <Sparkles className="w-6 h-6" />}
+
+          <div
+            className="
+              relative
+              w-full max-w-md
+              overflow-hidden
+              rounded-[24px]
+              border border-white/70
+              bg-white
+              p-6
+              shadow-[0_35px_100px_-30px_rgba(2,6,23,0.85)]
+            "
+          >
+            <div className="flex items-start gap-4">
+              <div
+                className={`
+                  flex h-12 w-12 shrink-0
+                  items-center justify-center
+                  rounded-2xl
+                  border
+                  ${
+                    alertConfig.type === "success"
+                      ? `
+                        border-emerald-200
+                        bg-emerald-50
+                        text-emerald-600
+                      `
+                      : alertConfig.type === "error"
+                        ? `
+                          border-red-200
+                          bg-red-50
+                          text-red-500
+                        `
+                        : `
+                          border-[#00B0F1]/20
+                          bg-[#00B0F1]/10
+                          text-[#008FC7]
+                        `
+                  }
+                `}
+              >
+                {alertConfig.type === "success" && (
+                  <CheckCircle className="h-6 w-6" />
+                )}
+
+                {alertConfig.type === "error" && (
+                  <AlertCircle className="h-6 w-6" />
+                )}
+
+                {alertConfig.type === "info" && (
+                  <Sparkles className="h-6 w-6" />
+                )}
               </div>
-              
-              <div className="flex-1 text-left min-w-0">
-                <h3 className="text-base font-bold text-slate-200 truncate">{alertConfig.title}</h3>
-                <p className="text-sm text-slate-400 mt-2 whitespace-pre-line leading-relaxed">{alertConfig.message}</p>
+
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base font-bold text-slate-900">
+                  {alertConfig.title}
+                </h3>
+
+                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-500">
+                  {alertConfig.message}
+                </p>
               </div>
             </div>
 
-            <div className="flex justify-end mt-6">
+            <div className="mt-6 flex justify-end">
               <button
                 type="button"
                 onClick={() => setAlertConfig(null)}
-                className={`px-5 py-2.5 rounded-xl text-xs font-semibold shadow-md transition duration-200 cursor-pointer active:scale-95 ${
-                  alertConfig.type === 'success'
-                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white hover:shadow-emerald-500/10'
-                    : alertConfig.type === 'error'
-                    ? 'bg-rose-600 hover:bg-rose-500 text-white hover:shadow-rose-500/10'
-                    : 'bg-indigo-650 hover:bg-indigo-600 text-white hover:shadow-indigo-500/10'
-                }`}
+                className={`
+                  inline-flex h-10
+                  items-center justify-center
+                  rounded-xl
+                  px-5
+                  text-xs font-semibold
+                  text-white
+                  shadow-sm
+                  transition
+                  hover:-translate-y-0.5
+                  ${
+                    alertConfig.type === "success"
+                      ? "bg-emerald-600 hover:bg-emerald-500"
+                      : alertConfig.type === "error"
+                        ? "bg-red-600 hover:bg-red-500"
+                        : "bg-[#008FC7] hover:bg-[#00B0F1]"
+                  }
+                `}
               >
                 Entendido
               </button>

@@ -1,17 +1,27 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { useAuth } from "../contexts/AuthContext";
 import {
-  Trash2,
-  Plus,
-  Key,
-  Check,
-  Globe,
-  User,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+} from "react";
+
+import {
   AlertCircle,
+  Check,
+  CheckCircle2,
   Eye,
   EyeOff,
+  Globe,
+  Key,
+  Plus,
+  Server,
   Settings,
+  Trash2,
+  User,
 } from "lucide-react";
+
+import { useAuth } from "../contexts/AuthContext";
 
 interface UsuarioCigam {
   id: string;
@@ -27,25 +37,86 @@ interface ConfiguracoesSectionProps {
   onRefreshGlobal: () => void;
 }
 
-export const ConfiguracoesSection: React.FC<ConfiguracoesSectionProps> = ({
+const inputClassName = `
+  h-11
+  w-full
+  rounded-xl
+  border border-slate-300
+  bg-white/90
+  px-3
+  text-sm text-slate-900
+  shadow-[inset_0_1px_2px_rgba(15,23,42,0.06)]
+  outline-none
+  transition-all duration-200
+  placeholder:text-slate-400
+  hover:border-slate-400
+  focus:border-[#00B0F1]
+  focus:bg-white
+  focus:ring-4
+  focus:ring-[#00B0F1]/15
+  disabled:cursor-not-allowed
+  disabled:bg-slate-100
+  disabled:text-slate-500
+`;
+
+const labelClassName = `
+  mb-2
+  block
+  text-xs font-semibold
+  uppercase tracking-[0.08em]
+  text-slate-600
+`;
+
+const getErrorMessage = (
+  error: unknown,
+  fallbackMessage: string,
+): string => {
+  return error instanceof Error ? error.message : fallbackMessage;
+};
+
+const isProductionEnvironment = (ambiente: string): boolean => {
+  const normalizedEnvironment = ambiente
+    .trim()
+    .toLocaleLowerCase("pt-BR");
+
+  return (
+    normalizedEnvironment === "producao" ||
+    normalizedEnvironment === "produção"
+  );
+};
+
+export const ConfiguracoesSection = ({
   API_BASE_URL,
   onRefreshGlobal,
-}) => {
+}: ConfiguracoesSectionProps) => {
   const { token } = useAuth();
-  const authHeaders = {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
+
+  const authHeaders = useMemo<HeadersInit>(
+    () => ({
+      "Content-Type": "application/json",
+      ...(token
+        ? {
+            Authorization: `Bearer ${token}`,
+          }
+        : {}),
+    }),
+    [token],
+  );
 
   const [usuarios, setUsuarios] = useState<UsuarioCigam[]>([]);
   const [loading, setLoading] = useState(true);
+
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [activatingId, setActivatingId] = useState<string | null>(null);
 
-  // Form State
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(
+    null,
+  );
+  const [activatingId, setActivatingId] = useState<
+    string | null
+  >(null);
+
   const [ambiente, setAmbiente] = useState("homologacao");
   const [urlAmbiente, setUrlAmbiente] = useState("");
   const [login, setLogin] = useState("");
@@ -55,28 +126,46 @@ export const ConfiguracoesSection: React.FC<ConfiguracoesSectionProps> = ({
   const fetchUsuarios = useCallback(async () => {
     setLoading(true);
     setError(null);
+
     try {
-      const response = await fetch(`${API_BASE_URL}/cigam/usuarios/find-all`, { headers: authHeaders });
+      const response = await fetch(
+        `${API_BASE_URL}/cigam/usuarios/find-all`,
+        {
+          headers: authHeaders,
+        },
+      );
+
       if (!response.ok) {
-        throw new Error("Erro ao carregar usuários CIGAM");
+        throw new Error(
+          "Erro ao carregar os usuários CIGAM.",
+        );
       }
+
       const data = await response.json();
+
       setUsuarios(data.data || []);
-    } catch (err: any) {
-      console.error(err);
-      setError("Não foi possível carregar os usuários CIGAM configurados.");
+    } catch (error: unknown) {
+      console.error(error);
+
+      setError(
+        "Não foi possível carregar os usuários CIGAM configurados.",
+      );
     } finally {
       setLoading(false);
     }
-  }, [API_BASE_URL]);
+  }, [API_BASE_URL, authHeaders]);
 
   useEffect(() => {
     fetchUsuarios();
   }, [fetchUsuarios]);
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!urlAmbiente || !login || !senha) {
+  const handleCreate = async (
+    event: FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+
+    if (!urlAmbiente.trim() || !login.trim() || !senha) {
+      setSuccess(null);
       setError("Por favor, preencha todos os campos.");
       return;
     }
@@ -86,32 +175,52 @@ export const ConfiguracoesSection: React.FC<ConfiguracoesSectionProps> = ({
     setSuccess(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/cigam/usuarios/create`, {
-        method: "POST",
-        headers: authHeaders,
-        body: JSON.stringify({
-          ambiente,
-          url_ambiente: urlAmbiente,
-          login,
-          senha,
-        }),
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/cigam/usuarios/create`,
+        {
+          method: "POST",
+          headers: authHeaders,
+          body: JSON.stringify({
+            ambiente,
+            url_ambiente: urlAmbiente.trim(),
+            login: login.trim(),
+            senha,
+          }),
+        },
+      );
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Erro ao salvar usuário");
+        const errorData = (await response
+          .json()
+          .catch(() => null)) as {
+          message?: string;
+        } | null;
+
+        throw new Error(
+          errorData?.message || "Erro ao salvar usuário.",
+        );
       }
 
-      setSuccess("Credenciais CIGAM salvas com sucesso!");
+      setSuccess(
+        "Credenciais CIGAM cadastradas com sucesso.",
+      );
+
       setUrlAmbiente("");
       setLogin("");
       setSenha("");
       setShowPassword(false);
+
       await fetchUsuarios();
       onRefreshGlobal();
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || "Ocorreu um erro ao criar o usuário CIGAM.");
+    } catch (error: unknown) {
+      console.error(error);
+
+      setError(
+        getErrorMessage(
+          error,
+          "Ocorreu um erro ao criar o usuário CIGAM.",
+        ),
+      );
     } finally {
       setSaving(false);
     }
@@ -132,22 +241,37 @@ export const ConfiguracoesSection: React.FC<ConfiguracoesSectionProps> = ({
       );
 
       if (!response.ok) {
-        throw new Error("Erro ao alterar o status do usuário");
+        throw new Error(
+          "Erro ao alterar o status do usuário.",
+        );
       }
 
-      setSuccess("Status do ambiente atualizado com sucesso!");
+      setSuccess(
+        "Ambiente ativo atualizado com sucesso.",
+      );
+
       await fetchUsuarios();
       onRefreshGlobal();
-    } catch (err: any) {
-      console.error(err);
-      setError("Erro ao tentar ativar o usuário.");
+    } catch (error: unknown) {
+      console.error(error);
+
+      setError(
+        getErrorMessage(
+          error,
+          "Erro ao tentar ativar o usuário.",
+        ),
+      );
     } finally {
       setActivatingId(null);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm("Deseja realmente remover esta credencial CIGAM?")) {
+    const shouldDelete = window.confirm(
+      "Deseja realmente remover esta credencial CIGAM?",
+    );
+
+    if (!shouldDelete) {
       return;
     }
 
@@ -156,255 +280,860 @@ export const ConfiguracoesSection: React.FC<ConfiguracoesSectionProps> = ({
     setSuccess(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/cigam/usuarios/${id}`, {
-        method: "DELETE",
-        headers: authHeaders,
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/cigam/usuarios/${id}`,
+        {
+          method: "DELETE",
+          headers: authHeaders,
+        },
+      );
 
       if (!response.ok) {
-        throw new Error("Erro ao remover o usuário");
+        throw new Error(
+          "Erro ao remover o usuário.",
+        );
       }
 
-      setSuccess("Credencial removida com sucesso!");
+      setSuccess("Credencial removida com sucesso.");
+
       await fetchUsuarios();
       onRefreshGlobal();
-    } catch (err: any) {
-      console.error(err);
-      setError("Erro ao excluir usuário.");
+    } catch (error: unknown) {
+      console.error(error);
+
+      setError(
+        getErrorMessage(
+          error,
+          "Erro ao excluir usuário.",
+        ),
+      );
     } finally {
       setDeletingId(null);
     }
   };
 
+  const isProcessing =
+    saving ||
+    deletingId !== null ||
+    activatingId !== null;
+
   return (
     <div className="space-y-6">
-      {/* Alert Banners */}
+      {/* Cabeçalho da seção */}
+      <header
+        className="
+          relative
+          overflow-hidden
+          rounded-2xl
+          border border-slate-200/80
+          bg-gradient-to-br
+          from-white
+          to-slate-50
+          px-5 py-5
+          shadow-[0_14px_35px_-28px_rgba(2,6,23,0.75),inset_0_1px_1px_rgba(255,255,255,0.95)]
+          sm:px-6
+        "
+      >
+        <div
+          aria-hidden="true"
+          className="
+            absolute -right-16 -top-16
+            h-40 w-40
+            rounded-full
+            bg-[#00B0F1]/10
+            blur-3xl
+          "
+        />
+
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-4">
+            <div
+              className="
+                flex h-12 w-12 shrink-0
+                items-center justify-center
+                rounded-2xl
+                border border-[#00B0F1]/20
+                bg-[#00B0F1]/10
+                text-[#008FC7]
+                shadow-[inset_0_1px_1px_rgba(255,255,255,0.85)]
+              "
+            >
+              <Settings className="h-5 w-5" />
+            </div>
+
+            <div>
+              <h2 className="text-xl font-bold tracking-tight text-slate-900">
+                Configurações CIGAM
+              </h2>
+
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+                Gerencie os servidores e as credenciais
+                utilizados pela integração com o ERP CIGAM.
+              </p>
+            </div>
+          </div>
+
+          <div
+            className="
+              inline-flex w-fit
+              items-center gap-2
+              rounded-full
+              border border-slate-200
+              bg-white/80
+              px-3 py-1.5
+              text-xs font-semibold
+              text-slate-600
+              shadow-sm
+            "
+          >
+            <Server className="h-3.5 w-3.5 text-[#008FC7]" />
+
+            <span>
+              {usuarios.length}{" "}
+              {usuarios.length === 1
+                ? "ambiente configurado"
+                : "ambientes configurados"}
+            </span>
+          </div>
+        </div>
+      </header>
+
+      {/* Alertas */}
       {error && (
-        <div className="bg-red-950/30 border border-red-500/30 rounded-2xl p-4 flex items-center space-x-3 text-red-200">
-          <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
-          <p className="text-sm font-medium">{error}</p>
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="
+            flex items-start gap-3
+            rounded-2xl
+            border border-red-200
+            bg-red-50/95
+            p-4
+            text-red-800
+            shadow-[0_12px_28px_-24px_rgba(127,29,29,0.60),inset_0_1px_1px_rgba(255,255,255,0.85)]
+          "
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-100">
+            <AlertCircle className="h-4 w-4 text-red-500" />
+          </div>
+
+          <div>
+            <p className="text-sm font-semibold">
+              Não foi possível concluir a operação
+            </p>
+
+            <p className="mt-0.5 text-sm leading-5 text-red-700">
+              {error}
+            </p>
+          </div>
         </div>
       )}
 
       {success && (
-        <div className="bg-emerald-950/30 border border-emerald-500/30 rounded-2xl p-4 flex items-center space-x-3 text-emerald-200">
-          <Check className="w-5 h-5 text-emerald-400 shrink-0" />
-          <p className="text-sm font-medium">{success}</p>
+        <div
+          role="status"
+          aria-live="polite"
+          className="
+            flex items-start gap-3
+            rounded-2xl
+            border border-emerald-200
+            bg-emerald-50/95
+            p-4
+            text-emerald-800
+            shadow-[0_12px_28px_-24px_rgba(6,95,70,0.55),inset_0_1px_1px_rgba(255,255,255,0.85)]
+          "
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100">
+            <Check className="h-4 w-4 text-emerald-600" />
+          </div>
+
+          <div>
+            <p className="text-sm font-semibold">
+              Operação concluída
+            </p>
+
+            <p className="mt-0.5 text-sm leading-5 text-emerald-700">
+              {success}
+            </p>
+          </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Users List Column */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6">
-            <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
-              <Settings className="w-5 h-5 text-indigo-400" />
-              Ambientes CIGAM Configurados
-            </h3>
-            <p className="text-xs text-slate-400 mb-6">
-              Estes são os servidores e credenciais cadastrados para a integração. O ambiente marcado como Ativo será usado para realizar consultas e sincronizações no CIGAM.
-            </p>
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+        {/* Ambientes configurados */}
+        <section
+          className="
+            relative
+            overflow-hidden
+            rounded-[24px]
+            border border-slate-200/80
+            bg-white/95
+            shadow-[0_20px_50px_-34px_rgba(2,6,23,0.75),inset_0_1px_1px_rgba(255,255,255,0.95),inset_0_-2px_5px_rgba(15,23,42,0.05)]
+            lg:col-span-2
+          "
+        >
+          <div
+            aria-hidden="true"
+            className="
+              pointer-events-none
+              absolute inset-[5px]
+              rounded-[18px]
+              border border-white
+            "
+          />
 
-            {loading ? (
-              <div className="flex flex-col items-center justify-center py-12 space-y-3">
-                <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                <span className="text-xs text-slate-500">
-                  Carregando configurações...
-                </span>
-              </div>
-            ) : usuarios.length === 0 ? (
-              <div className="text-center py-12 border border-dashed border-slate-800 rounded-xl">
-                <Globe className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-                <p className="text-sm font-medium text-slate-400">
-                  Nenhum usuário CIGAM configurado
-                </p>
-                <p className="text-xs text-slate-500 mt-1">
-                  Use o formulário ao lado para adicionar o primeiro ambiente.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {usuarios.map((user) => (
-                  <div
-                    key={user.id}
-                    className={`relative p-5 border rounded-2xl transition duration-200 flex flex-col md:flex-row md:items-center justify-between gap-4 ${
-                      user.ativo
-                        ? "bg-slate-900/85 border-indigo-500/50 shadow-md shadow-indigo-500/5"
-                        : "bg-slate-900/30 border-slate-850 hover:bg-slate-900/50"
-                    }`}
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
-                            user.ambiente.toLowerCase() === "producao" || user.ambiente.toLowerCase() === "produção"
-                              ? "bg-emerald-950/40 border-emerald-500/30 text-emerald-400"
-                              : "bg-amber-950/40 border-amber-500/30 text-amber-400"
-                          }`}
-                        >
-                          {user.ambiente.toLowerCase() === "producao" || user.ambiente.toLowerCase() === "produção"
-                            ? "Produção"
-                            : "Homologação"}
-                        </span>
-                        {user.ativo && (
-                          <span className="flex items-center gap-1 text-[10px] font-semibold text-indigo-400 bg-indigo-950/50 border border-indigo-500/30 px-2 py-0.5 rounded-full">
-                            <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-pulse"></span>
-                            Ativo para Requisições
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="space-y-1">
-                        <div className="text-sm font-semibold text-slate-200 flex items-center gap-1.5">
-                          <Globe className="w-3.5 h-3.5 text-slate-500" />
-                          <span className="truncate max-w-xs md:max-w-md">
-                            {user.url_ambiente}
-                          </span>
-                        </div>
-                        <div className="text-xs text-slate-400 flex items-center gap-1.5">
-                          <User className="w-3.5 h-3.5 text-slate-500" />
-                          <span>Login: {user.login}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 mt-2 md:mt-0">
-                      {!user.ativo ? (
-                        <button
-                          onClick={() => handleToggleAtivo(user.id)}
-                          disabled={activatingId !== null}
-                          className="px-3.5 py-1.5 bg-slate-850 hover:bg-slate-800 text-slate-300 text-xs font-semibold rounded-xl border border-slate-750 transition cursor-pointer"
-                        >
-                          {activatingId === user.id
-                            ? "Ativando..."
-                            : "Ativar Base"}
-                        </button>
-                      ) : (
-                        <span className="text-xs text-slate-500 px-3 py-1.5 border border-transparent">
-                          Ambiente Selecionado
-                        </span>
-                      )}
-                      <button
-                        onClick={() => handleDelete(user.id)}
-                        disabled={deletingId !== null}
-                        className="p-2 bg-slate-900 hover:bg-red-950/30 hover:border-red-500/30 hover:text-red-400 border border-slate-800 text-slate-400 rounded-xl transition cursor-pointer"
-                        title="Remover credencial"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Add User Column */}
-        <div>
-          <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6 sticky top-24">
-            <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
-              <Plus className="w-5 h-5 text-[#FF8301]" />
-              Nova Credencial CIGAM
-            </h3>
-            <p className="text-xs text-slate-400 mb-6">
-              Adicione credenciais para um novo servidor ou ambiente CIGAM.
-            </p>
-
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-2">
-                  Ambiente
-                </label>
-                <select
-                  value={ambiente}
-                  onChange={(e) => setAmbiente(e.target.value)}
-                  className="w-full bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500 transition"
+          <div className="relative z-10">
+            <div className="border-b border-slate-200/80 px-5 py-5 sm:px-6">
+              <div className="flex items-start gap-3">
+                <div
+                  className="
+                    flex h-10 w-10 shrink-0
+                    items-center justify-center
+                    rounded-xl
+                    border border-[#00B0F1]/20
+                    bg-[#00B0F1]/10
+                    text-[#008FC7]
+                  "
                 >
-                  <option value="homologacao">Homologação</option>
-                  <option value="Producao">Produção</option>
-                </select>
-              </div>
+                  <Server className="h-4 w-4" />
+                </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-2">
-                  URL do Ambiente
-                </label>
-                <div className="relative">
-                  <Globe className="absolute left-3 top-3 w-4 h-4 text-slate-500" />
-                  <input
-                    type="url"
-                    placeholder="https://servidor-cigam.suaempresa.com"
-                    value={urlAmbiente}
-                    onChange={(e) => setUrlAmbiente(e.target.value)}
-                    className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-sm text-slate-200 placeholder:text-slate-650 focus:outline-none focus:border-indigo-500 transition"
-                    required
-                  />
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Ambientes configurados
+                  </h3>
+
+                  <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500">
+                    O ambiente marcado como ativo será utilizado
+                    nas consultas e sincronizações realizadas pelo
+                    integrador.
+                  </p>
                 </div>
               </div>
+            </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-2">
-                  Login CIGAM
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 w-4 h-4 text-slate-500" />
-                  <input
-                    type="text"
-                    placeholder="UsuarioWS"
-                    value={login}
-                    onChange={(e) => setLogin(e.target.value)}
-                    className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-sm text-slate-200 placeholder:text-slate-650 focus:outline-none focus:border-indigo-500 transition"
-                    required
+            <div className="p-4 sm:p-6">
+              {loading ? (
+                <div className="flex min-h-64 flex-col items-center justify-center">
+                  <div
+                    className="
+                      h-9 w-9
+                      animate-spin
+                      rounded-full
+                      border-[3px]
+                      border-[#00B0F1]/20
+                      border-t-[#00B0F1]
+                    "
                   />
+
+                  <p className="mt-4 text-sm font-medium text-slate-600">
+                    Carregando configurações
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-400">
+                    Aguarde enquanto consultamos os ambientes.
+                  </p>
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-2">
-                  Senha CIGAM
-                </label>
-                <div className="relative">
-                  <Key className="absolute left-3 top-3 w-4 h-4 text-slate-500" />
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={senha}
-                    onChange={(e) => setSenha(e.target.value)}
-                    className="w-full bg-slate-950/80 border border-slate-800 rounded-xl pl-9 pr-10 py-2 text-sm text-slate-200 placeholder:text-slate-650 focus:outline-none focus:border-indigo-500 transition"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-2.5 p-0.5 text-slate-500 hover:text-slate-300 transition"
+              ) : usuarios.length === 0 ? (
+                <div
+                  className="
+                    flex min-h-64
+                    flex-col items-center justify-center
+                    rounded-2xl
+                    border border-dashed border-slate-300
+                    bg-slate-50/70
+                    px-5 py-12
+                    text-center
+                  "
+                >
+                  <div
+                    className="
+                      flex h-14 w-14
+                      items-center justify-center
+                      rounded-2xl
+                      border border-slate-200
+                      bg-white
+                      text-slate-400
+                      shadow-sm
+                    "
                   >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
+                    <Globe className="h-6 w-6" />
+                  </div>
+
+                  <p className="mt-4 text-sm font-semibold text-slate-700">
+                    Nenhum ambiente configurado
+                  </p>
+
+                  <p className="mt-1 max-w-sm text-xs leading-5 text-slate-500">
+                    Utilize o formulário ao lado para cadastrar as
+                    credenciais do primeiro ambiente CIGAM.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {usuarios.map((usuario) => {
+                    const production =
+                      isProductionEnvironment(
+                        usuario.ambiente,
+                      );
+
+                    const isActivating =
+                      activatingId === usuario.id;
+
+                    const isDeleting =
+                      deletingId === usuario.id;
+
+                    return (
+                      <article
+                        key={usuario.id}
+                        className={`
+                          relative
+                          overflow-hidden
+                          rounded-2xl
+                          border
+                          p-4
+                          transition-all duration-200
+                          sm:p-5
+                          ${
+                            usuario.ativo
+                              ? `
+                                border-[#00B0F1]/35
+                                bg-gradient-to-br
+                                from-[#00B0F1]/[0.08]
+                                via-white
+                                to-white
+                                shadow-[0_14px_30px_-24px_rgba(0,176,241,0.65),inset_0_1px_1px_rgba(255,255,255,0.90)]
+                              `
+                              : `
+                                border-slate-200
+                                bg-slate-50/65
+                                hover:-translate-y-0.5
+                                hover:border-slate-300
+                                hover:bg-white
+                                hover:shadow-[0_14px_30px_-26px_rgba(2,6,23,0.55)]
+                              `
+                          }
+                        `}
+                      >
+                        {usuario.ativo && (
+                          <div
+                            aria-hidden="true"
+                            className="
+                              absolute inset-y-0 left-0
+                              w-1
+                              bg-gradient-to-b
+                              from-[#00B0F1]
+                              to-[#008FC7]
+                            "
+                          />
+                        )}
+
+                        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="min-w-0 space-y-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span
+                                className={`
+                                  inline-flex items-center
+                                  rounded-full
+                                  border
+                                  px-2.5 py-1
+                                  text-[0.65rem] font-bold
+                                  uppercase tracking-[0.08em]
+                                  ${
+                                    production
+                                      ? `
+                                        border-emerald-200
+                                        bg-emerald-50
+                                        text-emerald-700
+                                      `
+                                      : `
+                                        border-amber-200
+                                        bg-amber-50
+                                        text-amber-700
+                                      `
+                                  }
+                                `}
+                              >
+                                {production
+                                  ? "Produção"
+                                  : "Homologação"}
+                              </span>
+
+                              {usuario.ativo && (
+                                <span
+                                  className="
+                                    inline-flex items-center gap-1.5
+                                    rounded-full
+                                    border border-[#00B0F1]/20
+                                    bg-[#00B0F1]/10
+                                    px-2.5 py-1
+                                    text-[0.65rem] font-bold
+                                    uppercase tracking-[0.08em]
+                                    text-[#008FC7]
+                                  "
+                                >
+                                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#00B0F1]" />
+
+                                  Ativo
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="space-y-2">
+                              <div className="flex min-w-0 items-start gap-2">
+                                <Globe className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+
+                                <span
+                                  className="
+                                    min-w-0
+                                    break-all
+                                    text-sm font-semibold
+                                    leading-5
+                                    text-slate-800
+                                  "
+                                  title={usuario.url_ambiente}
+                                >
+                                  {usuario.url_ambiente}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <User className="h-4 w-4 shrink-0 text-slate-400" />
+
+                                <span className="text-xs text-slate-500">
+                                  Login:
+                                </span>
+
+                                <span className="truncate text-xs font-semibold text-slate-700">
+                                  {usuario.login}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex shrink-0 items-center gap-2 sm:justify-end">
+                            {!usuario.ativo ? (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleToggleAtivo(
+                                    usuario.id,
+                                  )
+                                }
+                                disabled={
+                                  activatingId !== null ||
+                                  deletingId !== null
+                                }
+                                aria-busy={isActivating}
+                                className="
+                                  inline-flex min-h-10
+                                  flex-1 items-center justify-center gap-2
+                                  rounded-xl
+                                  border border-slate-300
+                                  bg-white
+                                  px-4 py-2
+                                  text-xs font-semibold
+                                  text-slate-700
+                                  shadow-sm
+                                  transition-all duration-200
+                                  hover:-translate-y-0.5
+                                  hover:border-[#00B0F1]/40
+                                  hover:bg-[#00B0F1]/10
+                                  hover:text-[#008FC7]
+                                  focus:outline-none
+                                  focus:ring-4
+                                  focus:ring-[#00B0F1]/15
+                                  disabled:cursor-not-allowed
+                                  disabled:opacity-50
+                                  disabled:hover:translate-y-0
+                                  sm:flex-none
+                                "
+                              >
+                                {isActivating ? (
+                                  <>
+                                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#00B0F1]/30 border-t-[#00B0F1]" />
+                                    Ativando
+                                  </>
+                                ) : (
+                                  <>
+                                    <CheckCircle2 className="h-4 w-4" />
+                                    Ativar ambiente
+                                  </>
+                                )}
+                              </button>
+                            ) : (
+                              <div
+                                className="
+                                  inline-flex min-h-10
+                                  flex-1 items-center justify-center gap-2
+                                  rounded-xl
+                                  border border-emerald-200
+                                  bg-emerald-50
+                                  px-4 py-2
+                                  text-xs font-semibold
+                                  text-emerald-700
+                                  sm:flex-none
+                                "
+                              >
+                                <Check className="h-4 w-4" />
+                                Selecionado
+                              </div>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleDelete(usuario.id)
+                              }
+                              disabled={
+                                deletingId !== null ||
+                                activatingId !== null
+                              }
+                              aria-busy={isDeleting}
+                              title="Remover credencial"
+                              aria-label={`Remover credencial do ambiente ${usuario.ambiente}`}
+                              className="
+                                inline-flex h-10 w-10 shrink-0
+                                items-center justify-center
+                                rounded-xl
+                                border border-slate-200
+                                bg-white
+                                text-slate-500
+                                shadow-sm
+                                transition-all duration-200
+                                hover:-translate-y-0.5
+                                hover:border-red-200
+                                hover:bg-red-50
+                                hover:text-red-500
+                                focus:outline-none
+                                focus:ring-4
+                                focus:ring-red-500/10
+                                disabled:cursor-not-allowed
+                                disabled:opacity-50
+                                disabled:hover:translate-y-0
+                              "
+                            >
+                              {isDeleting ? (
+                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-red-200 border-t-red-500" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Cadastro de credencial */}
+        <aside className="lg:sticky lg:top-28">
+          <div
+            className="
+              relative
+              overflow-hidden
+              rounded-[24px]
+              border border-slate-200/80
+              bg-gradient-to-br
+              from-white
+              to-slate-50
+              shadow-[0_20px_50px_-34px_rgba(2,6,23,0.75),inset_0_1px_1px_rgba(255,255,255,0.95),inset_0_-2px_5px_rgba(15,23,42,0.05)]
+            "
+          >
+            <div
+              aria-hidden="true"
+              className="
+                pointer-events-none
+                absolute inset-[5px]
+                rounded-[18px]
+                border border-white
+              "
+            />
+
+            <div className="relative z-10">
+              <div className="border-b border-slate-200/80 px-5 py-5">
+                <div className="flex items-start gap-3">
+                  <div
+                    className="
+                      flex h-10 w-10 shrink-0
+                      items-center justify-center
+                      rounded-xl
+                      border border-orange-200
+                      bg-orange-50
+                      text-[#E66F00]
+                    "
+                  >
+                    <Plus className="h-4 w-4" />
+                  </div>
+
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">
+                      Nova credencial
+                    </h3>
+
+                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                      Cadastre um servidor ou ambiente CIGAM.
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={saving}
-                className="w-full py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-650 text-white text-sm font-semibold rounded-xl transition cursor-pointer flex items-center justify-center gap-2"
+              <form
+                onSubmit={handleCreate}
+                className="space-y-5 p-5"
               >
-                {saving ? (
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                ) : (
-                  <>
-                    <Plus className="w-4 h-4" />
-                    <span>Cadastrar Ambiente</span>
-                  </>
-                )}
-              </button>
-            </form>
+                <div>
+                  <label
+                    htmlFor="ambiente-cigam"
+                    className={labelClassName}
+                  >
+                    Ambiente
+                  </label>
+
+                  <div className="relative">
+                    <Server className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
+                    <select
+                      id="ambiente-cigam"
+                      value={ambiente}
+                      onChange={(event) =>
+                        setAmbiente(event.target.value)
+                      }
+                      disabled={saving}
+                      className={`
+                        ${inputClassName}
+                        cursor-pointer
+                        appearance-none
+                        pl-10 pr-10
+                      `}
+                    >
+                      <option value="homologacao">
+                        Homologação
+                      </option>
+
+                      <option value="Producao">
+                        Produção
+                      </option>
+                    </select>
+
+                    <span
+                      aria-hidden="true"
+                      className="
+                        pointer-events-none
+                        absolute right-4 top-1/2
+                        -translate-y-1/2
+                        text-xs text-slate-400
+                      "
+                    >
+                      ▼
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="url-ambiente"
+                    className={labelClassName}
+                  >
+                    URL do ambiente
+                  </label>
+
+                  <div className="relative">
+                    <Globe className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
+                    <input
+                      id="url-ambiente"
+                      name="urlAmbiente"
+                      type="url"
+                      inputMode="url"
+                      autoComplete="url"
+                      placeholder="https://servidor-cigam.com"
+                      value={urlAmbiente}
+                      onChange={(event) =>
+                        setUrlAmbiente(
+                          event.target.value,
+                        )
+                      }
+                      disabled={saving}
+                      className={`${inputClassName} pl-10`}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="login-cigam"
+                    className={labelClassName}
+                  >
+                    Login CIGAM
+                  </label>
+
+                  <div className="relative">
+                    <User className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
+                    <input
+                      id="login-cigam"
+                      name="login"
+                      type="text"
+                      autoComplete="username"
+                      placeholder="UsuarioWS"
+                      value={login}
+                      onChange={(event) =>
+                        setLogin(event.target.value)
+                      }
+                      disabled={saving}
+                      className={`${inputClassName} pl-10`}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="senha-cigam"
+                    className={labelClassName}
+                  >
+                    Senha CIGAM
+                  </label>
+
+                  <div className="relative">
+                    <Key className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
+                    <input
+                      id="senha-cigam"
+                      name="senha"
+                      type={
+                        showPassword
+                          ? "text"
+                          : "password"
+                      }
+                      autoComplete="new-password"
+                      placeholder="Digite a senha"
+                      value={senha}
+                      onChange={(event) =>
+                        setSenha(event.target.value)
+                      }
+                      disabled={saving}
+                      className={`${inputClassName} pl-10 pr-11`}
+                      required
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowPassword(
+                          (currentValue) =>
+                            !currentValue,
+                        )
+                      }
+                      disabled={saving}
+                      aria-label={
+                        showPassword
+                          ? "Ocultar senha"
+                          : "Exibir senha"
+                      }
+                      title={
+                        showPassword
+                          ? "Ocultar senha"
+                          : "Exibir senha"
+                      }
+                      className="
+                        absolute right-2 top-1/2
+                        inline-flex h-8 w-8
+                        -translate-y-1/2
+                        items-center justify-center
+                        rounded-lg
+                        text-slate-400
+                        transition-colors
+                        hover:bg-slate-100
+                        hover:text-slate-700
+                        focus:outline-none
+                        focus:ring-2
+                        focus:ring-[#00B0F1]/20
+                        disabled:cursor-not-allowed
+                        disabled:opacity-50
+                      "
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div
+                  className="
+                    rounded-xl
+                    border border-amber-200
+                    bg-amber-50/80
+                    p-3
+                  "
+                >
+                  <div className="flex items-start gap-2">
+                    <Key className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
+
+                    <p className="text-[0.7rem] leading-5 text-amber-800">
+                      As credenciais serão utilizadas pelo
+                      integrador para autenticar as requisições
+                      realizadas no ERP CIGAM.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={saving || isProcessing}
+                  aria-busy={saving}
+                  className="
+                    flex h-11 w-full
+                    items-center justify-center gap-2
+                    rounded-xl
+                    border border-slate-950/20
+                    bg-gradient-to-b
+                    from-slate-700
+                    to-slate-950
+                    px-4
+                    text-sm font-semibold
+                    text-white
+                    shadow-[0_10px_22px_-12px_rgba(15,23,42,0.85),inset_0_1px_1px_rgba(255,255,255,0.22)]
+                    transition-all duration-200
+                    hover:-translate-y-0.5
+                    hover:from-slate-600
+                    hover:to-slate-900
+                    hover:shadow-[0_14px_26px_-14px_rgba(15,23,42,0.95)]
+                    focus:outline-none
+                    focus:ring-4
+                    focus:ring-[#00B0F1]/20
+                    active:translate-y-0
+                    disabled:cursor-not-allowed
+                    disabled:opacity-60
+                    disabled:hover:translate-y-0
+                  "
+                >
+                  {saving ? (
+                    <>
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/35 border-t-white" />
+
+                      <span>Cadastrando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4" />
+                      <span>Cadastrar ambiente</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
           </div>
-        </div>
+        </aside>
       </div>
     </div>
   );

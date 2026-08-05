@@ -1,6 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { Activity, FileText, ShoppingBag, Truck, User, RefreshCw, ShieldAlert, CheckCircle2, XCircle } from 'lucide-react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FC,
+} from "react";
+
+import {
+  Activity,
+  AlertCircle,
+  CheckCircle2,
+  FileText,
+  RefreshCw,
+  ShieldAlert,
+  ShoppingBag,
+  Truck,
+  User,
+  XCircle,
+} from "lucide-react";
+
+import { useAuth } from "../contexts/AuthContext";
 
 interface EventItem {
   id: string;
@@ -47,66 +66,192 @@ interface ProductDetails {
   nome: string;
 }
 
-export const EventsSection: React.FC = () => {
+interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  message?: string;
+}
+
+const API_BASE_URL =
+  "https://api-chocmaster.falavinhanext.tec.br/api/v1";
+
+const parseApiResponse = async <T,>(
+  response: Response,
+): Promise<ApiResponse<T>> => {
+  const payload = (await response
+    .json()
+    .catch(() => null)) as ApiResponse<T> | null;
+
+  if (!response.ok) {
+    throw new Error(
+      payload?.message ||
+        `A requisição falhou com o status ${response.status}.`,
+    );
+  }
+
+  if (!payload) {
+    throw new Error("O servidor retornou uma resposta inválida.");
+  }
+
+  return payload;
+};
+
+export const EventsSection: FC = () => {
   const { token } = useAuth();
-  const authHeaders = {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
+
+  const authHeaders = useMemo<HeadersInit>(
+    () => ({
+      "Content-Type": "application/json",
+      ...(token
+        ? {
+            Authorization: `Bearer ${token}`,
+          }
+        : {}),
+    }),
+    [token],
+  );
 
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // Selected Event & Detail State
-  const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
-  const [orderDetails, setOrderDetails] = useState<OrderDetail | null>(null);
-  const [orderProducts, setOrderProducts] = useState<OrderProduct[]>([]);
-  const [productsMap, setProductsMap] = useState<Record<string, string>>({}); // id -> name
+
+  const [selectedEvent, setSelectedEvent] =
+    useState<EventItem | null>(null);
+
+  const [orderDetails, setOrderDetails] =
+    useState<OrderDetail | null>(null);
+
+  const [orderProducts, setOrderProducts] = useState<
+    OrderProduct[]
+  >([]);
+
+  const [productsMap, setProductsMap] = useState<
+    Record<string, string>
+  >({});
+
   const [loadingDetail, setLoadingDetail] = useState(false);
-  const [detailError, setDetailError] = useState<string | null>(null);
 
-  const API_BASE_URL = 'https://api-chocmaster.falavinhanext.tec.br/api/v1';
+  const [detailError, setDetailError] = useState<
+    string | null
+  >(null);
 
-  const fetchEventsAndProducts = async () => {
+  const synchronizedEvents = useMemo(
+    () =>
+      events.filter((event) => event.cigam_sincronizado)
+        .length,
+    [events],
+  );
+
+  const pendingEvents = useMemo(
+    () => events.length - synchronizedEvents,
+    [events.length, synchronizedEvents],
+  );
+
+  const totalEventsValue = useMemo(
+    () =>
+      events.reduce(
+        (total, event) =>
+          total + Number(event.total_pedido || 0),
+        0,
+      ),
+    [events],
+  );
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format(Number(value || 0));
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+
+    if (Number.isNaN(date.getTime())) {
+      return "Data indisponível";
+    }
+
+    return date.toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const fetchEventsAndProducts = useCallback(async () => {
     setLoading(true);
     setError(null);
+
     try {
-      const [eventsRes, productsRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/events`, { headers: authHeaders }).then(r => r.json()),
-        fetch(`${API_BASE_URL}/produtos`, { headers: authHeaders }).then(r => r.json())
-      ]);
+      const [eventsResponse, productsResponse] =
+        await Promise.all([
+          fetch(`${API_BASE_URL}/events`, {
+            headers: authHeaders,
+          }),
+          fetch(`${API_BASE_URL}/produtos`, {
+            headers: authHeaders,
+          }),
+        ]);
 
-      if (eventsRes.success) {
-        // Sort events by created_at descending
-        const sorted = (eventsRes.data || []).sort(
-          (a: EventItem, b: EventItem) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      const [eventsResult, productsResult] =
+        await Promise.all([
+          parseApiResponse<EventItem[]>(eventsResponse),
+          parseApiResponse<ProductDetails[]>(
+            productsResponse,
+          ),
+        ]);
+
+      if (!eventsResult.success) {
+        throw new Error(
+          eventsResult.message ||
+            "Falha ao obter os eventos.",
         );
-        setEvents(sorted);
-      } else {
-        setError('Falha ao obter eventos.');
       }
 
-      if (productsRes.success && productsRes.data) {
-        const pMap: Record<string, string> = {};
-        productsRes.data.forEach((p: ProductDetails) => {
-          pMap[p.id] = p.nome;
+      const sortedEvents = [
+        ...(eventsResult.data || []),
+      ].sort(
+        (eventA, eventB) =>
+          new Date(eventB.created_at).getTime() -
+          new Date(eventA.created_at).getTime(),
+      );
+
+      setEvents(sortedEvents);
+
+      if (
+        productsResult.success &&
+        productsResult.data
+      ) {
+        const productNames: Record<string, string> = {};
+
+        productsResult.data.forEach((product) => {
+          productNames[product.id] = product.nome;
         });
-        setProductsMap(pMap);
+
+        setProductsMap(productNames);
       }
-    } catch (err) {
-      console.error(err);
-      setError('Falha ao carregar eventos do servidor.');
+    } catch (error: unknown) {
+      console.error(error);
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Falha ao carregar eventos do servidor.",
+      );
     } finally {
       setLoading(false);
     }
-  };
+  }, [authHeaders]);
 
   useEffect(() => {
     fetchEventsAndProducts();
-  }, []);
+  }, [fetchEventsAndProducts]);
 
-  const handleSelectEvent = async (event: EventItem) => {
+  const handleSelectEvent = async (
+    event: EventItem,
+  ) => {
     setSelectedEvent(event);
     setOrderDetails(null);
     setOrderProducts([]);
@@ -114,262 +259,1023 @@ export const EventsSection: React.FC = () => {
     setDetailError(null);
 
     try {
-      // 1. Fetch Order Details by Bling ID
-      const orderRes = await fetch(`${API_BASE_URL}/pedidos/bling/${event.pedido_id}`, { headers: authHeaders }).then(r => r.json());
+      const orderResponse = await fetch(
+        `${API_BASE_URL}/pedidos/bling/${event.pedido_id}`,
+        {
+          headers: authHeaders,
+        },
+      );
 
-      if (orderRes.success && orderRes.data) {
-        const order = orderRes.data as OrderDetail;
-        setOrderDetails(order);
+      const orderResult =
+        await parseApiResponse<OrderDetail>(
+          orderResponse,
+        );
 
-        // 2. Fetch Order Products using the local order UUID
-        const productsRes = await fetch(`${API_BASE_URL}/pedido-produtos/pedido/${order.id}`, { headers: authHeaders }).then(r => r.json());
-        if (productsRes.success) {
-          setOrderProducts(productsRes.data || []);
-        }
-      } else {
-        setDetailError('Pedido não localizado no banco de dados local.');
+      if (!orderResult.success || !orderResult.data) {
+        setDetailError(
+          "Pedido não localizado no banco de dados local.",
+        );
+        return;
       }
-    } catch (err) {
-      console.error(err);
-      setDetailError('Erro ao buscar detalhes do pedido.');
+
+      const order = orderResult.data;
+
+      setOrderDetails(order);
+
+      const productsResponse = await fetch(
+        `${API_BASE_URL}/pedido-produtos/pedido/${order.id}`,
+        {
+          headers: authHeaders,
+        },
+      );
+
+      const productsResult =
+        await parseApiResponse<OrderProduct[]>(
+          productsResponse,
+        );
+
+      if (productsResult.success) {
+        setOrderProducts(productsResult.data || []);
+      }
+    } catch (error: unknown) {
+      console.error(error);
+
+      setDetailError(
+        error instanceof Error
+          ? error.message
+          : "Erro ao buscar os detalhes do pedido.",
+      );
     } finally {
       setLoadingDetail(false);
     }
   };
 
-  const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
-  };
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  const panelClassName = `
+    relative
+    overflow-hidden
+    rounded-[24px]
+    border border-slate-200/80
+    bg-white/[0.96]
+    shadow-[0_20px_50px_-34px_rgba(2,6,23,0.70),inset_0_1px_1px_rgba(255,255,255,0.95),inset_0_-2px_5px_rgba(15,23,42,0.05)]
+  `;
 
   return (
-    <div className="space-y-8 animate-fadeIn">
-      {/* Action Header */}
-      <div className="flex justify-between items-center bg-slate-900/30 p-4 border border-slate-800/80 rounded-2xl">
-        <div className="text-left">
-          <h3 className="text-lg font-bold text-slate-200 flex items-center space-x-2">
-            <Activity className="w-5 h-5 text-indigo-500" />
-            <span>Eventos de Integração</span>
-          </h3>
-          <p className="text-xs text-slate-400">Linha do tempo de webhooks e criações de pedidos em tempo real</p>
-        </div>
-        <button
-          onClick={fetchEventsAndProducts}
-          disabled={loading}
-          className="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-300 transition duration-200 cursor-pointer"
-          title="Recarregar eventos"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-        </button>
-      </div>
+    <div className="space-y-6">
+      {/* Cabeçalho */}
+      <header
+        className="
+          relative
+          overflow-hidden
+          rounded-2xl
+          border border-slate-200/80
+          bg-gradient-to-br
+          from-white
+          to-slate-50
+          px-5 py-5
+          shadow-[0_14px_35px_-28px_rgba(2,6,23,0.70),inset_0_1px_1px_rgba(255,255,255,0.95)]
+          sm:px-6
+        "
+      >
+        <div
+          aria-hidden="true"
+          className="
+            absolute -right-16 -top-16
+            h-40 w-40
+            rounded-full
+            bg-[#00B0F1]/10
+            blur-3xl
+          "
+        />
 
-      {loading ? (
-        <div className="flex flex-col items-center justify-center h-64 space-y-4">
-          <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-slate-400 font-medium animate-pulse">Buscando histórico de eventos...</p>
-        </div>
-      ) : error ? (
-        <div className="bg-red-950/20 border border-red-500/20 rounded-2xl p-6 text-center text-red-400">
-          <p>{error}</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Events List Left Panel */}
-          <div className="lg:col-span-1 bg-slate-850/40 border border-slate-800/80 rounded-2xl p-6 h-[600px] flex flex-col">
-            <h4 className="text-sm font-bold text-slate-400 mb-4 text-left uppercase tracking-wider">Histórico de Eventos</h4>
-            <div className="flex-1 overflow-y-auto space-y-3 pr-2">
-              {events.map((evt) => (
-                <div
-                  key={evt.id}
-                  onClick={() => handleSelectEvent(evt)}
-                  className={`p-4 rounded-xl border text-left cursor-pointer transition duration-200 ${
-                    selectedEvent?.id === evt.id
-                      ? 'bg-indigo-600/20 border-indigo-500 shadow-md shadow-indigo-500/5'
-                      : 'bg-slate-900/40 border-slate-800 hover:border-slate-700/60'
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-800 border border-slate-700 text-slate-300 rounded-md">
-                        {evt.event}
-                      </span>
-                      {evt.cigam_sincronizado ? (
-                        <span className="flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 rounded-md">
-                          <CheckCircle2 className="w-2.5 h-2.5" />
-                          CIGAM
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 bg-red-950/40 border border-red-500/30 text-red-400 rounded-md">
-                          <XCircle className="w-2.5 h-2.5" />
-                          CIGAM
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-[10px] text-slate-500">{formatDate(evt.created_at)}</span>
-                  </div>
-                  <h5 className="font-semibold text-sm text-slate-200">Pedido #{evt.numero_pedido}</h5>
-                  <div className="flex justify-between items-center mt-2 text-xs text-slate-400">
-                    <span>ID Bling: {evt.pedido_id}</span>
-                    <span className="font-bold text-indigo-400">{formatCurrency(evt.total_pedido)}</span>
-                  </div>
-                </div>
-              ))}
-              {events.length === 0 && (
-                <p className="text-slate-500 text-sm py-12 text-center">Nenhum evento registrado no sistema.</p>
-              )}
+        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-4">
+            <div
+              className="
+                flex h-12 w-12 shrink-0
+                items-center justify-center
+                rounded-2xl
+                border border-[#00B0F1]/20
+                bg-[#00B0F1]/10
+                text-[#008FC7]
+                shadow-[inset_0_1px_1px_rgba(255,255,255,0.85)]
+              "
+            >
+              <Activity className="h-5 w-5" />
+            </div>
+
+            <div>
+              <h2 className="text-xl font-bold tracking-tight text-slate-900">
+                Eventos de Integração
+              </h2>
+
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+                Acompanhe os webhooks recebidos, os pedidos
+                criados e o status de sincronização com o ERP
+                CIGAM.
+              </p>
             </div>
           </div>
 
-          {/* Details Right Panel */}
-          <div className="lg:col-span-2 bg-slate-850/40 border border-slate-800/80 rounded-2xl p-6 h-[600px] flex flex-col justify-start overflow-y-auto">
-            {selectedEvent ? (
-              loadingDetail ? (
-                <div className="flex-1 flex flex-col items-center justify-center space-y-4">
-                  <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                  <p className="text-slate-400 text-sm animate-pulse">Obtendo detalhes completos do pedido...</p>
+          <button
+            type="button"
+            onClick={fetchEventsAndProducts}
+            disabled={loading}
+            title="Recarregar eventos"
+            aria-label="Recarregar eventos"
+            className="
+              inline-flex h-10
+              items-center justify-center gap-2
+              rounded-xl
+              border border-slate-300
+              bg-white
+              px-4
+              text-xs font-semibold
+              text-slate-700
+              shadow-sm
+              transition-all duration-200
+              hover:-translate-y-0.5
+              hover:border-[#00B0F1]/40
+              hover:bg-[#00B0F1]/10
+              hover:text-[#008FC7]
+              focus:outline-none
+              focus:ring-4
+              focus:ring-[#00B0F1]/15
+              disabled:cursor-not-allowed
+              disabled:opacity-50
+              disabled:hover:translate-y-0
+            "
+          >
+            <RefreshCw
+              className={`h-3.5 w-3.5 ${
+                loading ? "animate-spin" : ""
+              }`}
+            />
+
+            <span>
+              {loading ? "Atualizando..." : "Atualizar eventos"}
+            </span>
+          </button>
+        </div>
+      </header>
+
+      {/* Indicadores */}
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <article
+          className="
+            rounded-2xl
+            border border-slate-200/80
+            bg-white/95
+            p-4
+            shadow-[0_14px_35px_-28px_rgba(2,6,23,0.70),inset_0_1px_1px_rgba(255,255,255,0.95)]
+          "
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                Total de eventos
+              </p>
+
+              <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
+                {events.length}
+              </p>
+            </div>
+
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#00B0F1]/10 text-[#008FC7]">
+              <Activity className="h-4 w-4" />
+            </div>
+          </div>
+        </article>
+
+        <article
+          className="
+            rounded-2xl
+            border border-slate-200/80
+            bg-white/95
+            p-4
+            shadow-[0_14px_35px_-28px_rgba(2,6,23,0.70),inset_0_1px_1px_rgba(255,255,255,0.95)]
+          "
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                Sincronizados
+              </p>
+
+              <p className="mt-2 text-2xl font-bold tracking-tight text-emerald-700">
+                {synchronizedEvents}
+              </p>
+            </div>
+
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+              <CheckCircle2 className="h-4 w-4" />
+            </div>
+          </div>
+        </article>
+
+        <article
+          className="
+            rounded-2xl
+            border border-slate-200/80
+            bg-white/95
+            p-4
+            shadow-[0_14px_35px_-28px_rgba(2,6,23,0.70),inset_0_1px_1px_rgba(255,255,255,0.95)]
+          "
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                Pendentes
+              </p>
+
+              <p className="mt-2 text-2xl font-bold tracking-tight text-amber-700">
+                {pendingEvents}
+              </p>
+            </div>
+
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+              <XCircle className="h-4 w-4" />
+            </div>
+          </div>
+        </article>
+
+        <article
+          className="
+            rounded-2xl
+            border border-slate-200/80
+            bg-white/95
+            p-4
+            shadow-[0_14px_35px_-28px_rgba(2,6,23,0.70),inset_0_1px_1px_rgba(255,255,255,0.95)]
+          "
+        >
+          <div className="flex items-center justify-between">
+            <div className="min-w-0">
+              <p className="text-[0.65rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                Valor movimentado
+              </p>
+
+              <p className="mt-2 truncate text-xl font-bold tracking-tight text-slate-900">
+                {formatCurrency(totalEventsValue)}
+              </p>
+            </div>
+
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-[#E66F00]">
+              <ShoppingBag className="h-4 w-4" />
+            </div>
+          </div>
+        </article>
+      </section>
+
+      {loading ? (
+        <div
+          className="
+            flex min-h-80
+            flex-col items-center justify-center
+            rounded-[24px]
+            border border-slate-200/80
+            bg-white/95
+            px-6 py-12
+            shadow-[0_20px_50px_-34px_rgba(2,6,23,0.70),inset_0_1px_1px_rgba(255,255,255,0.95)]
+          "
+        >
+          <div
+            className="
+              h-10 w-10
+              animate-spin
+              rounded-full
+              border-[3px]
+              border-[#00B0F1]/20
+              border-t-[#00B0F1]
+            "
+          />
+
+          <p className="mt-4 text-sm font-semibold text-slate-700">
+            Buscando histórico de eventos
+          </p>
+
+          <p className="mt-1 text-xs text-slate-400">
+            Aguarde enquanto consultamos os pedidos e produtos.
+          </p>
+        </div>
+      ) : error ? (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="
+            flex items-start gap-3
+            rounded-2xl
+            border border-red-200
+            bg-red-50/95
+            p-4
+            text-red-800
+            shadow-[0_12px_28px_-24px_rgba(127,29,29,0.60),inset_0_1px_1px_rgba(255,255,255,0.85)]
+          "
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-100">
+            <AlertCircle className="h-4 w-4 text-red-500" />
+          </div>
+
+          <div>
+            <p className="text-sm font-semibold">
+              Não foi possível carregar os eventos
+            </p>
+
+            <p className="mt-0.5 text-sm text-red-700">
+              {error}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
+          {/* Lista de eventos */}
+          <section
+            className={`${panelClassName} flex h-[700px] flex-col xl:col-span-2`}
+          >
+            <div
+              aria-hidden="true"
+              className="
+                pointer-events-none
+                absolute inset-[5px]
+                rounded-[18px]
+                border border-white
+              "
+            />
+
+            <div className="relative z-10 flex min-h-0 flex-1 flex-col">
+              <div className="border-b border-slate-200/80 px-5 py-5">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">
+                      Histórico de eventos
+                    </h3>
+
+                    <p className="mt-1 text-xs text-slate-500">
+                      Ordenado do evento mais recente para o
+                      mais antigo.
+                    </p>
+                  </div>
+
+                  <span
+                    className="
+                      rounded-full
+                      border border-[#00B0F1]/20
+                      bg-[#00B0F1]/10
+                      px-2.5 py-1
+                      text-[0.65rem] font-bold
+                      text-[#008FC7]
+                    "
+                  >
+                    {events.length}
+                  </span>
+                </div>
+              </div>
+
+              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-4 sm:p-5">
+                {events.map((event) => {
+                  const isSelected =
+                    selectedEvent?.id === event.id;
+
+                  return (
+                    <button
+                      key={event.id}
+                      type="button"
+                      onClick={() =>
+                        handleSelectEvent(event)
+                      }
+                      className={`
+                        w-full
+                        rounded-2xl
+                        border
+                        p-4
+                        text-left
+                        transition-all duration-200
+                        ${
+                          isSelected
+                            ? `
+                              border-[#00B0F1]/45
+                              bg-[#00B0F1]/[0.07]
+                              shadow-[0_12px_28px_-24px_rgba(0,176,241,0.75)]
+                            `
+                            : `
+                              border-slate-200
+                              bg-white
+                              hover:-translate-y-0.5
+                              hover:border-slate-300
+                              hover:shadow-[0_12px_28px_-25px_rgba(2,6,23,0.50)]
+                            `
+                        }
+                      `}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                          <span
+                            className="
+                              inline-flex
+                              max-w-48
+                              truncate
+                              rounded-full
+                              border border-slate-200
+                              bg-slate-50
+                              px-2.5 py-1
+                              text-[0.62rem] font-bold
+                              uppercase tracking-[0.06em]
+                              text-slate-600
+                            "
+                          >
+                            {event.event}
+                          </span>
+
+                          {event.cigam_sincronizado ? (
+                            <span
+                              className="
+                                inline-flex items-center gap-1
+                                rounded-full
+                                border border-emerald-200
+                                bg-emerald-50
+                                px-2.5 py-1
+                                text-[0.62rem] font-bold
+                                text-emerald-700
+                              "
+                            >
+                              <CheckCircle2 className="h-3 w-3" />
+                              CIGAM sincronizado
+                            </span>
+                          ) : (
+                            <span
+                              className="
+                                inline-flex items-center gap-1
+                                rounded-full
+                                border border-amber-200
+                                bg-amber-50
+                                px-2.5 py-1
+                                text-[0.62rem] font-bold
+                                text-amber-700
+                              "
+                            >
+                              <XCircle className="h-3 w-3" />
+                              CIGAM pendente
+                            </span>
+                          )}
+                        </div>
+
+                        <span className="shrink-0 text-[0.62rem] text-slate-400">
+                          {formatDate(event.created_at)}
+                        </span>
+                      </div>
+
+                      <div className="mt-4">
+                        <p className="text-sm font-bold text-slate-900">
+                          Pedido #{event.numero_pedido}
+                        </p>
+
+                        <p className="mt-1 text-xs text-slate-500">
+                          ID Bling: {event.pedido_id}
+                          {event.numero_loja &&
+                            ` • Loja: ${event.numero_loja}`}
+                        </p>
+                      </div>
+
+                      <div className="mt-4 flex items-end justify-between gap-3 border-t border-slate-100 pt-3">
+                        <div>
+                          <p className="text-[0.62rem] font-semibold uppercase tracking-wider text-slate-400">
+                            Data do pedido
+                          </p>
+
+                          <p className="mt-1 text-xs font-medium text-slate-600">
+                            {formatDate(event.data_pedido)}
+                          </p>
+                        </div>
+
+                        <div className="text-right">
+                          <p className="text-[0.62rem] font-semibold uppercase tracking-wider text-slate-400">
+                            Valor
+                          </p>
+
+                          <p className="mt-1 text-sm font-bold text-[#008FC7]">
+                            {formatCurrency(
+                              event.total_pedido,
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+
+                {events.length === 0 && (
+                  <div className="flex min-h-64 flex-col items-center justify-center text-center">
+                    <div
+                      className="
+                        flex h-14 w-14
+                        items-center justify-center
+                        rounded-2xl
+                        border border-slate-200
+                        bg-slate-50
+                        text-slate-400
+                      "
+                    >
+                      <Activity className="h-6 w-6" />
+                    </div>
+
+                    <p className="mt-4 text-sm font-semibold text-slate-700">
+                      Nenhum evento registrado
+                    </p>
+
+                    <p className="mt-1 max-w-xs text-xs leading-5 text-slate-500">
+                      Os novos webhooks e pedidos recebidos serão
+                      exibidos neste histórico.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* Detalhes do pedido */}
+          <section
+            className={`${panelClassName} flex min-h-[700px] flex-col xl:col-span-3`}
+          >
+            <div
+              aria-hidden="true"
+              className="
+                pointer-events-none
+                absolute inset-[5px]
+                rounded-[18px]
+                border border-white
+              "
+            />
+
+            <div className="relative z-10 flex min-h-0 flex-1 flex-col">
+              {!selectedEvent ? (
+                <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 text-center">
+                  <div
+                    className="
+                      flex h-16 w-16
+                      items-center justify-center
+                      rounded-2xl
+                      border border-slate-200
+                      bg-slate-50
+                      text-slate-300
+                      shadow-sm
+                    "
+                  >
+                    <FileText className="h-7 w-7" />
+                  </div>
+
+                  <p className="mt-5 text-sm font-semibold text-slate-700">
+                    Nenhum evento selecionado
+                  </p>
+
+                  <p className="mt-1 max-w-sm text-xs leading-5 text-slate-500">
+                    Selecione um evento no histórico para consultar
+                    os dados completos do pedido, cliente,
+                    transportadora e produtos.
+                  </p>
+                </div>
+              ) : loadingDetail ? (
+                <div className="flex flex-1 flex-col items-center justify-center px-6 py-12">
+                  <div
+                    className="
+                      h-10 w-10
+                      animate-spin
+                      rounded-full
+                      border-[3px]
+                      border-[#00B0F1]/20
+                      border-t-[#00B0F1]
+                    "
+                  />
+
+                  <p className="mt-4 text-sm font-semibold text-slate-700">
+                    Obtendo detalhes do pedido
+                  </p>
+
+                  <p className="mt-1 text-xs text-slate-400">
+                    Consultando pedido e produtos associados.
+                  </p>
                 </div>
               ) : detailError ? (
-                <div className="flex-1 flex flex-col items-center justify-center space-y-2 text-slate-400">
-                  <ShieldAlert className="w-12 h-12 text-amber-500/80 mb-2" />
-                  <p className="text-sm font-semibold">{detailError}</p>
-                  <p className="text-xs text-slate-500 max-w-xs text-center">
-                    Este evento possui o ID de pedido Bling {selectedEvent.pedido_id}, mas o registro completo do pedido não foi sincronizado localmente.
+                <div className="flex flex-1 flex-col items-center justify-center px-6 py-12 text-center">
+                  <div
+                    className="
+                      flex h-16 w-16
+                      items-center justify-center
+                      rounded-2xl
+                      border border-amber-200
+                      bg-amber-50
+                      text-amber-600
+                    "
+                  >
+                    <ShieldAlert className="h-7 w-7" />
+                  </div>
+
+                  <p className="mt-5 text-sm font-semibold text-slate-800">
+                    {detailError}
+                  </p>
+
+                  <p className="mt-2 max-w-sm text-xs leading-5 text-slate-500">
+                    O evento possui o ID Bling{" "}
+                    <strong className="text-slate-700">
+                      {selectedEvent.pedido_id}
+                    </strong>
+                    , mas o registro completo do pedido pode ainda
+                    não ter sido sincronizado localmente.
                   </p>
                 </div>
               ) : orderDetails ? (
-                <div className="space-y-6 text-left">
-                  {/* Detail Header */}
-                  <div className="flex justify-between items-start border-b border-slate-800 pb-4">
-                    <div>
-                      <span className="text-[10px] bg-indigo-950 border border-indigo-500/30 text-indigo-400 font-bold px-2.5 py-0.5 rounded-full">
-                        Detalhes do Pedido
-                      </span>
-                      <h4 className="text-xl font-bold text-white mt-2">Pedido #{orderDetails.codigo_curto}</h4>
-                      <p className="text-xs text-slate-400 mt-1">ID Bling: {orderDetails.id_bling} • Loja: {orderDetails.numero_loja}</p>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-xs text-slate-500">Status Bling</span>
-                      <p className="text-sm font-bold text-emerald-400 mt-0.5 bg-emerald-950/20 border border-emerald-500/20 px-2 py-0.5 rounded-md text-center">
-                        {orderDetails.status_venda}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Customer & Carrier Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Customer info */}
-                    <div className="bg-slate-900/30 border border-slate-800 p-4 rounded-xl space-y-3">
-                      <h5 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center space-x-1.5">
-                        <User className="w-3.5 h-3.5 text-indigo-400" />
-                        <span>Cliente</span>
-                      </h5>
+                <div className="min-h-0 flex-1 overflow-y-auto">
+                  {/* Cabeçalho do pedido */}
+                  <div className="border-b border-slate-200/80 px-5 py-5 sm:px-6">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div>
-                        <p className="text-sm font-semibold text-slate-200">{orderDetails.nome_cliente}</p>
-                        <p className="text-xs text-slate-500 mt-1 font-mono">Doc: {orderDetails.documento_cliente}</p>
-                      </div>
-                    </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className="
+                              rounded-full
+                              border border-[#00B0F1]/20
+                              bg-[#00B0F1]/10
+                              px-2.5 py-1
+                              text-[0.62rem] font-bold
+                              uppercase tracking-[0.08em]
+                              text-[#008FC7]
+                            "
+                          >
+                            Detalhes do pedido
+                          </span>
 
-                    {/* Carrier Info */}
-                    <div className="bg-slate-900/30 border border-slate-800 p-4 rounded-xl space-y-3">
-                      <h5 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center space-x-1.5">
-                        <Truck className="w-3.5 h-3.5 text-indigo-400" />
-                        <span>Transportadora</span>
-                      </h5>
-                      <div>
-                        <p className="text-sm font-semibold text-slate-200">
-                          {orderDetails.nome_transportadora || 'Retirada / Sem Transportadora'}
+                          {selectedEvent.cigam_sincronizado ? (
+                            <span
+                              className="
+                                inline-flex items-center gap-1
+                                rounded-full
+                                border border-emerald-200
+                                bg-emerald-50
+                                px-2.5 py-1
+                                text-[0.62rem] font-bold
+                                text-emerald-700
+                              "
+                            >
+                              <CheckCircle2 className="h-3 w-3" />
+                              Sincronizado
+                            </span>
+                          ) : (
+                            <span
+                              className="
+                                inline-flex items-center gap-1
+                                rounded-full
+                                border border-amber-200
+                                bg-amber-50
+                                px-2.5 py-1
+                                text-[0.62rem] font-bold
+                                text-amber-700
+                              "
+                            >
+                              <XCircle className="h-3 w-3" />
+                              Pendente
+                            </span>
+                          )}
+                        </div>
+
+                        <h3 className="mt-3 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+                          Pedido #{orderDetails.codigo_curto}
+                        </h3>
+
+                        <p className="mt-1 text-xs text-slate-500">
+                          ID Bling: {orderDetails.id_bling}
+                          {orderDetails.numero_loja &&
+                            ` • Loja: ${orderDetails.numero_loja}`}
+                          {orderDetails.data_pedido &&
+                            ` • ${formatDate(
+                              orderDetails.data_pedido,
+                            )}`}
                         </p>
-                        <p className="text-xs text-slate-500 mt-1">Código: {orderDetails.codigo_transportadora || 'N/A'}</p>
-                        {orderDetails.codigo_rastreio && (
-                          <p className="text-xs text-slate-400 mt-1 font-mono bg-slate-950/40 px-2 py-0.5 rounded border border-slate-805/30 inline-block">
-                            Rastreio: {orderDetails.codigo_rastreio}
+                      </div>
+
+                      <div className="sm:text-right">
+                        <p className="text-[0.62rem] font-semibold uppercase tracking-wider text-slate-400">
+                          Status Bling
+                        </p>
+
+                        <span
+                          className="
+                            mt-2 inline-flex
+                            rounded-xl
+                            border border-emerald-200
+                            bg-emerald-50
+                            px-3 py-1.5
+                            text-xs font-bold
+                            text-emerald-700
+                          "
+                        >
+                          {orderDetails.status_venda ||
+                            "Não informado"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6 p-4 sm:p-6">
+                    {/* Cliente e transportadora */}
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <article
+                        className="
+                          rounded-2xl
+                          border border-slate-200
+                          bg-slate-50/60
+                          p-4
+                          shadow-[inset_0_1px_1px_rgba(255,255,255,0.90)]
+                        "
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#00B0F1]/10 text-[#008FC7]">
+                            <User className="h-4 w-4" />
+                          </div>
+
+                          <div>
+                            <p className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                              Cliente
+                            </p>
+
+                            <p className="text-sm font-semibold text-slate-900">
+                              Dados do comprador
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-4">
+                          <p className="text-sm font-semibold text-slate-800">
+                            {orderDetails.nome_cliente ||
+                              "Cliente não informado"}
                           </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Order Products List */}
-                  <div className="space-y-3">
-                    <h5 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center space-x-1.5">
-                      <ShoppingBag className="w-3.5 h-3.5 text-indigo-400" />
-                      <span>Produtos do Pedido ({orderProducts.length})</span>
-                    </h5>
-                    <div className="border border-slate-800 rounded-xl overflow-hidden">
-                      <table className="w-full text-left text-xs text-slate-300">
-                        <thead>
-                          <tr className="bg-slate-900/40 border-b border-slate-800 text-slate-400 font-semibold">
-                            <th className="py-2.5 px-4">Produto</th>
-                            <th className="py-2.5 px-4 text-center">Qtd</th>
-                            <th className="py-2.5 px-4 text-right">Unitário</th>
-                            <th className="py-2.5 px-4 text-right">Total</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-800/60 bg-slate-900/10">
-                          {orderProducts.map((p) => {
-                            const pName = productsMap[p.id_produto] || 'Produto não cadastrado';
-                            return (
-                              <tr key={p.id} className="hover:bg-slate-900/20">
-                                <td className="py-3 px-4 text-slate-200">
-                                  <div className="font-medium">{pName}</div>
-                                  <div className="text-[10px] text-slate-500 font-mono mt-0.5">ID: {p.id_produto}</div>
+                          <p className="mt-1 font-mono text-xs text-slate-500">
+                            Documento:{" "}
+                            {orderDetails.documento_cliente ||
+                              "Não informado"}
+                          </p>
+                        </div>
+                      </article>
+
+                      <article
+                        className="
+                          rounded-2xl
+                          border border-slate-200
+                          bg-slate-50/60
+                          p-4
+                          shadow-[inset_0_1px_1px_rgba(255,255,255,0.90)]
+                        "
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-orange-50 text-[#E66F00]">
+                            <Truck className="h-4 w-4" />
+                          </div>
+
+                          <div>
+                            <p className="text-[0.62rem] font-bold uppercase tracking-[0.1em] text-slate-400">
+                              Transportadora
+                            </p>
+
+                            <p className="text-sm font-semibold text-slate-900">
+                              Dados da entrega
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-4">
+                          <p className="text-sm font-semibold text-slate-800">
+                            {orderDetails.nome_transportadora ||
+                              "Retirada ou sem transportadora"}
+                          </p>
+
+                          <p className="mt-1 text-xs text-slate-500">
+                            Código:{" "}
+                            {orderDetails.codigo_transportadora ||
+                              "Não informado"}
+                          </p>
+
+                          {orderDetails.codigo_rastreio && (
+                            <div
+                              className="
+                                mt-3
+                                rounded-xl
+                                border border-slate-200
+                                bg-white
+                                px-3 py-2
+                              "
+                            >
+                              <p className="text-[0.62rem] font-semibold uppercase tracking-wider text-slate-400">
+                                Código de rastreio
+                              </p>
+
+                              <p className="mt-1 break-all font-mono text-xs font-semibold text-slate-700">
+                                {orderDetails.codigo_rastreio}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </article>
+                    </div>
+
+                    {/* Produtos */}
+                    <section>
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <ShoppingBag className="h-4 w-4 text-[#008FC7]" />
+
+                          <h4 className="text-sm font-bold text-slate-900">
+                            Produtos do pedido
+                          </h4>
+                        </div>
+
+                        <span
+                          className="
+                            rounded-full
+                            border border-slate-200
+                            bg-slate-50
+                            px-2.5 py-1
+                            text-[0.65rem] font-semibold
+                            text-slate-600
+                          "
+                        >
+                          {orderProducts.length} itens
+                        </span>
+                      </div>
+
+                      <div className="overflow-x-auto rounded-2xl border border-slate-200">
+                        <table className="w-full min-w-[620px] text-left">
+                          <thead>
+                            <tr className="border-b border-slate-200 bg-slate-50/90">
+                              <th className="px-4 py-3 text-[0.65rem] font-bold uppercase tracking-[0.08em] text-slate-500">
+                                Produto
+                              </th>
+
+                              <th className="px-4 py-3 text-center text-[0.65rem] font-bold uppercase tracking-[0.08em] text-slate-500">
+                                Quantidade
+                              </th>
+
+                              <th className="px-4 py-3 text-right text-[0.65rem] font-bold uppercase tracking-[0.08em] text-slate-500">
+                                Unitário
+                              </th>
+
+                              <th className="px-4 py-3 text-right text-[0.65rem] font-bold uppercase tracking-[0.08em] text-slate-500">
+                                Total
+                              </th>
+                            </tr>
+                          </thead>
+
+                          <tbody className="divide-y divide-slate-200 bg-white">
+                            {orderProducts.map((product) => {
+                              const productName =
+                                productsMap[
+                                  product.id_produto
+                                ] ||
+                                "Produto não cadastrado";
+
+                              return (
+                                <tr
+                                  key={product.id}
+                                  className="transition-colors hover:bg-slate-50/80"
+                                >
+                                  <td className="px-4 py-3.5">
+                                    <p className="text-sm font-semibold text-slate-900">
+                                      {productName}
+                                    </p>
+
+                                    <p className="mt-1 font-mono text-[0.65rem] text-slate-400">
+                                      ID: {product.id_produto}
+                                    </p>
+                                  </td>
+
+                                  <td className="px-4 py-3.5 text-center text-sm font-semibold text-slate-700">
+                                    {product.quantidade}
+                                  </td>
+
+                                  <td className="px-4 py-3.5 text-right text-sm text-slate-600">
+                                    {formatCurrency(
+                                      product.preco,
+                                    )}
+                                  </td>
+
+                                  <td className="px-4 py-3.5 text-right text-sm font-bold text-slate-900">
+                                    {formatCurrency(
+                                      product.total,
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+
+                            {orderProducts.length === 0 && (
+                              <tr>
+                                <td
+                                  colSpan={4}
+                                  className="px-6 py-10 text-center"
+                                >
+                                  <ShoppingBag className="mx-auto h-6 w-6 text-slate-300" />
+
+                                  <p className="mt-3 text-sm font-semibold text-slate-600">
+                                    Nenhum produto localizado
+                                  </p>
+
+                                  <p className="mt-1 text-xs text-slate-400">
+                                    O pedido não possui produtos
+                                    sincronizados no banco local.
+                                  </p>
                                 </td>
-                                <td className="py-3 px-4 text-center text-slate-300 font-medium">{p.quantidade}</td>
-                                <td className="py-3 px-4 text-right text-slate-400">{formatCurrency(p.preco)}</td>
-                                <td className="py-3 px-4 text-right text-slate-200 font-semibold">{formatCurrency(p.total)}</td>
                               </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-
-                  {/* Pricing Summary */}
-                  <div className="bg-slate-900/20 border border-slate-800 p-4 rounded-xl flex flex-col space-y-2 max-w-xs ml-auto">
-                    <div className="flex justify-between text-xs text-slate-400">
-                      <span>Valor de Produtos:</span>
-                      <span>{formatCurrency(Number(orderDetails.total_produtos))}</span>
-                    </div>
-                    {Number(orderDetails.desconto) > 0 && (
-                      <div className="flex justify-between text-xs text-rose-400">
-                        <span>Desconto:</span>
-                        <span>-{formatCurrency(Number(orderDetails.desconto))}</span>
+                            )}
+                          </tbody>
+                        </table>
                       </div>
-                    )}
-                    {Number(orderDetails.valor_frete) > 0 && (
-                      <div className="flex justify-between text-xs text-slate-400">
-                        <span>Frete:</span>
-                        <span>{formatCurrency(Number(orderDetails.valor_frete))}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between text-sm font-bold border-t border-slate-800 pt-2 text-white">
-                      <span>Total Geral:</span>
-                      <span className="text-indigo-400">{formatCurrency(Number(orderDetails.total_venda))}</span>
-                    </div>
-                  </div>
+                    </section>
 
+                    {/* Resumo financeiro */}
+                    <section className="flex justify-end">
+                      <div
+                        className="
+                          w-full
+                          rounded-2xl
+                          border border-slate-200
+                          bg-gradient-to-br
+                          from-slate-50
+                          to-white
+                          p-4
+                          shadow-[inset_0_1px_1px_rgba(255,255,255,0.90)]
+                          sm:max-w-sm
+                        "
+                      >
+                        <p className="mb-4 text-xs font-bold uppercase tracking-[0.1em] text-slate-500">
+                          Resumo financeiro
+                        </p>
+
+                        <div className="space-y-2.5">
+                          <div className="flex items-center justify-between gap-4 text-sm">
+                            <span className="text-slate-500">
+                              Produtos
+                            </span>
+
+                            <span className="font-semibold text-slate-700">
+                              {formatCurrency(
+                                Number(
+                                  orderDetails.total_produtos,
+                                ),
+                              )}
+                            </span>
+                          </div>
+
+                          {Number(orderDetails.desconto) > 0 && (
+                            <div className="flex items-center justify-between gap-4 text-sm">
+                              <span className="text-slate-500">
+                                Desconto
+                              </span>
+
+                              <span className="font-semibold text-red-600">
+                                -
+                                {formatCurrency(
+                                  Number(
+                                    orderDetails.desconto,
+                                  ),
+                                )}
+                              </span>
+                            </div>
+                          )}
+
+                          {Number(orderDetails.valor_frete) >
+                            0 && (
+                            <div className="flex items-center justify-between gap-4 text-sm">
+                              <span className="text-slate-500">
+                                Frete
+                              </span>
+
+                              <span className="font-semibold text-slate-700">
+                                {formatCurrency(
+                                  Number(
+                                    orderDetails.valor_frete,
+                                  ),
+                                )}
+                              </span>
+                            </div>
+                          )}
+
+                          <div className="mt-3 flex items-center justify-between gap-4 border-t border-slate-200 pt-3">
+                            <span className="text-sm font-bold text-slate-900">
+                              Total geral
+                            </span>
+
+                            <span className="text-lg font-bold text-[#008FC7]">
+                              {formatCurrency(
+                                Number(
+                                  orderDetails.total_venda,
+                                ),
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+                  </div>
                 </div>
-              ) : null
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center space-y-2 text-slate-500">
-                <FileText className="w-12 h-12 text-slate-700 mb-2" />
-                <p className="text-sm font-medium">Nenhum evento selecionado</p>
-                <p className="text-xs text-slate-600">Selecione um evento na barra lateral para ver o detalhamento do pedido</p>
-              </div>
-            )}
-          </div>
-
+              ) : null}
+            </div>
+          </section>
         </div>
       )}
     </div>

@@ -20,7 +20,12 @@ import {
   MoonIcon,
   Settings,
   LogOut,
+  AlertCircle,
 } from "lucide-react";
+
+import Logo from './assets/Chocmaster Logo-Sfundo.png'
+import logoCigam from './assets/LogoCigamBlack.png'
+import logoBling from './assets/LogoBlingBlack.png'
 
 const API_BASE_URL = "https://api-chocmaster.falavinhanext.tec.br/api/v1";
 
@@ -287,8 +292,7 @@ export default function App() {
       const user = cigamUsers.find((u) => u.ambiente.toLowerCase() === env.toLowerCase());
       if (!user) {
         setError(
-          `Nenhum usuário CIGAM configurado para o ambiente "${
-            env === "producao" ? "Produção" : "Homologação"
+          `Nenhum usuário CIGAM configurado para o ambiente "${env === "producao" ? "Produção" : "Homologação"
           }". Por favor, configure-o na aba de Configurações.`
         );
         setActiveTab("configuracoes");
@@ -533,394 +537,1214 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+
       <Route path="/cadastro" element={<RegisterPage />} />
-      <Route path="/*" element={
-        <ProtectedRoute>
-          <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-            {/* Header */}
-            <header className="border-b border-slate-800/80 bg-slate-900/30 backdrop-blur-md sticky top-0 z-50">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#00B0F1] to-[#e3f4fa] flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                    <MoonIcon className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h1 className="text-xl font-bold tracking-tight text-[#FF8301] flex items-center space-x-2">
-                      <span>CHOCMASTER | CIGAM</span>
-                      <span className="text-xs text-indigo-400 bg-indigo-950 border border-indigo-500/20 px-2 py-0.5 rounded-full font-medium">
-                        Integrador CIGAM
-                      </span>
-                    </h1>
-                    <p className="text-xs text-white/80 italic">
-                      Gerenciador de Mapeamentos De-Para de Integracao
-                    </p>
-                  </div>
-                </div>
-          <div className="flex items-center space-x-4">
-            {/* Seletor de Ambiente CIGAM */}
-            <div className="flex items-center bg-slate-905 border border-slate-800 rounded-xl p-1 shrink-0">
-              <button
-                onClick={() => handleSelectEnvironment("homologacao")}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition duration-200 cursor-pointer ${
-                  activeEnv === "homologacao"
-                    ? "bg-amber-600/90 text-white shadow-md shadow-amber-600/10"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                Homologação
-              </button>
-              <button
-                onClick={() => handleSelectEnvironment("producao")}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition duration-200 cursor-pointer ${
-                  activeEnv === "producao"
-                    ? "bg-emerald-600/90 text-white shadow-md shadow-emerald-600/10"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                Produção
-              </button>
-            </div>
 
-            <button
-              onClick={handleSyncBling}
-              disabled={syncing || loading}
-              className={`px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold rounded-xl border border-slate-700 transition duration-200 flex items-center space-x-2 ${
-                syncing ? "cursor-not-allowed opacity-55" : "cursor-pointer"
-              }`}
-            >
-              <RefreshCw
-                className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`}
+      <Route
+        path="/*"
+        element={
+          <ProtectedRoute>
+            <div className="relative isolate flex min-h-screen min-h-dvh flex-col overflow-x-hidden bg-slate-100 font-sans text-slate-900">
+              {/* Fundo claro da aplicação */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none fixed inset-0 -z-30 bg-[#f3f6fb]"
               />
-              <span>{syncing ? "Sincronizando..." : "Sincronizar Bling"}</span>
-            </button>
-            <button
-              onClick={() => fetchData()}
-              disabled={loading}
-              className="p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-300 transition duration-200 cursor-pointer"
-              title="Recarregar dados"
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
 
-            <div className="flex items-center gap-2 pl-2 border-l border-slate-800">
-              <span className="text-xs text-slate-400">{user?.nome}</span>
-              <button
-                onClick={logout}
-                className="p-2 bg-slate-800 hover:bg-red-950/30 hover:border-red-500/30 hover:text-red-400 border border-slate-700 rounded-xl text-slate-300 transition duration-200 cursor-pointer"
-                title="Sair"
+              {/* Iluminação decorativa */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none fixed inset-0 -z-20"
+                style={{
+                  background: `
+      radial-gradient(
+        circle at 8% 5%,
+        rgba(0, 176, 241, 0.12) 0%,
+        transparent 30%
+      ),
+      radial-gradient(
+        circle at 92% 10%,
+        rgba(255, 131, 1, 0.08) 0%,
+        transparent 28%
+      ),
+      radial-gradient(
+        circle at 50% 100%,
+        rgba(0, 176, 241, 0.05) 0%,
+        transparent 40%
+      ),
+      linear-gradient(
+        145deg,
+        #f8fafc 0%,
+        #eef3f8 50%,
+        #f8fafc 100%
+      )
+    `,
+                }}
+              />
+
+              {/* Vinheta clara e discreta */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none fixed inset-0 -z-10"
+                style={{
+                  background: `
+      linear-gradient(
+        to bottom,
+        rgba(255,255,255,0.70) 0%,
+        transparent 22%,
+        transparent 78%,
+        rgba(226,232,240,0.35) 100%
+      )
+    `,
+                }}
+              />
+
+              {/* Header */}
+              <header
+                className="
+                sticky top-0 z-50
+                border-b border-white/60
+                bg-white/[0.92]
+                shadow-[0_10px_35px_-20px_rgba(2,6,23,0.45),inset_0_-1px_0_rgba(15,23,42,0.06)]
+                backdrop-blur-xl
+              "
               >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {error && (
-          <div className="bg-red-950/30 border border-red-500/30 rounded-2xl p-4 flex items-center space-x-3 text-red-200">
-            <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-ping"></div>
-            <p className="text-sm font-medium">{error}</p>
-          </div>
-        )}
-
-        {/* Stats Grid Widget */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 text-left">
-            <div className="flex items-center justify-between text-slate-400 mb-1">
-              <span className="text-xs font-semibold">Total Geral</span>
-              <CheckCircle2 className="w-4 h-4 text-indigo-400" />
-            </div>
-            <p className="text-2xl font-bold text-white">{totalMappings}</p>
-            <span className="text-[10px] text-slate-500">
-              Mapeamentos Concluidos
-            </span>
-          </div>
-
-          <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 text-left">
-            <div className="flex items-center justify-between text-slate-400 mb-1">
-              <span className="text-xs font-semibold">Clientes</span>
-              <Users className="w-4 h-4 text-indigo-400" />
-            </div>
-            <p className="text-2xl font-bold text-white">
-              {mappings.clientes.length}
-            </p>
-            <span className="text-[10px] text-slate-500">
-              Mapeados / Total Bling: {blingClientes.length}
-            </span>
-          </div>
-
-          <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 text-left">
-            <div className="flex items-center justify-between text-slate-400 mb-1">
-              <span className="text-xs font-semibold">Produtos</span>
-              <ShoppingBag className="w-4 h-4 text-indigo-400" />
-            </div>
-            <p className="text-2xl font-bold text-white">
-              {mappings.produtos.length}
-            </p>
-            <span className="text-[10px] text-slate-500">
-              Mapeados / Total Bling: {blingProdutos.length}
-            </span>
-          </div>
-
-          <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 text-left">
-            <div className="flex items-center justify-between text-slate-400 mb-1">
-              <span className="text-xs font-semibold">Transportadoras</span>
-              <Truck className="w-4 h-4 text-indigo-400" />
-            </div>
-            <p className="text-2xl font-bold text-white">
-              {mappings.transportadoras.length}
-            </p>
-            <span className="text-[10px] text-slate-500">
-              Mapeadas / Total Bling: {blingTransportadoras.length}
-            </span>
-          </div>
-        </div>
-
-        {/* Navigation Tabs */}
-        <div className="flex space-x-2 border-b border-slate-800/60 pb-px">
-          <button
-            onClick={() => setActiveTab("clientes")}
-            className={`flex items-center space-x-2 px-6 py-3 border-b-2 font-semibold text-sm transition duration-200 cursor-pointer ${
-              activeTab === "clientes"
-                ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
-                : "border-transparent text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>Clientes</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("produtos")}
-            className={`flex items-center space-x-2 px-6 py-3 border-b-2 font-semibold text-sm transition duration-200 cursor-pointer ${
-              activeTab === "produtos"
-                ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
-                : "border-transparent text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            <ShoppingBag className="w-4 h-4" />
-            <span>Produtos</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("formas_pagamento")}
-            className={`flex items-center space-x-2 px-6 py-3 border-b-2 font-semibold text-sm transition duration-200 cursor-pointer ${
-              activeTab === "formas_pagamento"
-                ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
-                : "border-transparent text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            <CreditCard className="w-4 h-4" />
-            <span>Formas de Pagamento</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("transportadoras")}
-            className={`flex items-center space-x-2 px-6 py-3 border-b-2 font-semibold text-sm transition duration-200 cursor-pointer ${
-              activeTab === "transportadoras"
-                ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
-                : "border-transparent text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            <Truck className="w-4 h-4" />
-            <span>Transportadoras</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("eventos")}
-            className={`flex items-center space-x-2 px-6 py-3 border-b-2 font-semibold text-sm transition duration-200 cursor-pointer ${
-              activeTab === "eventos"
-                ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
-                : "border-transparent text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            <Activity className="w-4 h-4" />
-            <span>Eventos</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab("configuracoes")}
-            className={`flex items-center space-x-2 px-6 py-3 border-b-2 font-semibold text-sm transition duration-200 cursor-pointer ${
-              activeTab === "configuracoes"
-                ? "border-indigo-500 text-indigo-400 bg-indigo-500/5"
-                : "border-transparent text-slate-400 hover:text-slate-200"
-            }`}
-          >
-            <Settings className="w-4 h-4" />
-            <span>Configurações</span>
-          </button>
-        </div>
-
-        {/* Tab Content Section */}
-        <div className="min-h-96">
-          {activeTab === "clientes" && (
-            <DeParaSection
-              entity="clientes"
-              title="Clientes"
-              blingData={blingClientes}
-              cigamData={cigamClientes}
-              mappings={mappings.clientes}
-              onSaveMapping={handleSaveMapping}
-              onDeleteMapping={handleDeleteMapping}
-              loading={loading}
-              onRefresh={() => fetchData({ silent: true })}
-            />
-          )}
-
-          {activeTab === "produtos" && (
-            <DeParaSection
-              entity="produtos"
-              title="Produtos"
-              blingData={blingProdutos}
-              cigamData={cigamProdutos}
-              mappings={mappings.produtos}
-              onSaveMapping={handleSaveMapping}
-              onDeleteMapping={handleDeleteMapping}
-              loading={loading}
-              onSync={() => handleSyncEntity("produtos")}
-              syncing={syncing}
-              logs={syncLogs}
-              onRefresh={() => fetchData({ silent: true })}
-            />
-          )}
-
-          {activeTab === "formas_pagamento" && (
-            <DeParaSection
-              entity="formas_pagamento"
-              title="Formas de Pagamento"
-              blingData={blingFormasPagamento}
-              cigamData={cigamFormasPagamento}
-              mappings={mappings.formas_pagamento}
-              onSaveMapping={handleSaveMapping}
-              onDeleteMapping={handleDeleteMapping}
-              loading={loading}
-              onSync={() => handleSyncEntity("formas_pagamento")}
-              syncing={syncing}
-              logs={syncLogs}
-              onRefresh={() => fetchData({ silent: true })}
-            />
-          )}
-
-          {activeTab === "transportadoras" && (
-            <DeParaSection
-              entity="transportadoras"
-              title="Transportadoras"
-              blingData={blingTransportadoras}
-              cigamData={cigamTransportadoras}
-              mappings={mappings.transportadoras}
-              onSaveMapping={handleSaveMapping}
-              onDeleteMapping={handleDeleteMapping}
-              loading={loading}
-              onSync={() => handleSyncEntity("transportadoras")}
-              syncing={syncing}
-              logs={syncLogs}
-              onRefresh={() => fetchData({ silent: true })}
-            />
-          )}
-
-          {activeTab === "eventos" && <EventsSection />}
-
-          {activeTab === "configuracoes" && (
-            <ConfiguracoesSection
-              API_BASE_URL={API_BASE_URL}
-              onRefreshGlobal={fetchData}
-            />
-          )}
-        </div>
-      </main>
-
-      {/* Log Panel - aparece durante sincronizacao */}
-      {showLogs && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900 border-t border-slate-700 shadow-2xl">
-          <div className="max-w-7xl mx-auto px-4 py-3">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-2">
-                <Terminal className="w-4 h-4 text-indigo-400" />
-                <span className="text-sm font-semibold text-slate-200">
-                  Sincronizacao Bling
-                </span>
-                {syncing && (
-                  <span className="text-xs text-indigo-400 bg-indigo-950 border border-indigo-500/20 px-2 py-0.5 rounded-full">
-                    Em andamento...
-                  </span>
-                )}
-              </div>
-              <button
-                onClick={() => setShowLogs(false)}
-                className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-slate-200 transition"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Progress Bar */}
-            {syncProgress.total > 0 && (
-              <div className="mb-3">
-                <div className="flex justify-between text-xs text-slate-400 mb-1">
-                  <span>
-                    {syncProgress.completed} / {syncProgress.total} produtos
-                  </span>
-                  <span>{syncProgress.percent}%</span>
-                </div>
-                <div className="w-full bg-slate-800 rounded-full h-2">
-                  <div
-                    className="bg-indigo-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${syncProgress.percent}%` }}
-                  ></div>
-                </div>
-                <div className="flex justify-between text-xs text-slate-500 mt-1">
-                  <span>Decorrido: {syncProgress.tempoDecorrido || "0s"}</span>
-                  <span>
-                    Estimado: {syncProgress.tempoEstimado || "Calculando..."}
-                  </span>
-                  {syncProgress.erros > 0 && (
-                    <span className="text-red-400">
-                      Erros: {syncProgress.erros}
-                    </span>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Logs */}
-            <div className="bg-slate-950 rounded-xl p-3 max-h-48 overflow-y-auto font-mono text-xs space-y-1">
-              {syncLogs.map((log, i) => (
                 <div
-                  key={i}
-                  className={`flex items-start space-x-2 ${
-                    log.startsWith("[ERRO]")
-                      ? "text-red-400"
-                      : log.startsWith("Progresso:")
-                        ? "text-indigo-400"
-                        : "text-slate-300"
-                  }`}
+                  className="
+                  mx-auto
+                  flex w-full max-w-[1440px]
+                  flex-col gap-5
+                  px-4 py-4
+                  sm:px-6
+                  lg:flex-row lg:items-center lg:justify-between
+                  lg:px-8
+                "
                 >
-                  <span className="text-slate-600 shrink-0">
-                    {String(i + 1).padStart(3, "0")}
-                  </span>
-                  <span>{log}</span>
-                </div>
-              ))}
-              {syncing && (
-                <div className="flex items-center space-x-2 text-indigo-400">
-                  <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>
-                  <span>Aguardando proximo log...</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+                  {/* Identidade */}
+                  <div className="flex min-w-0 items-center gap-3.5">
+                    <img src={Logo} alt="Logo" className="h-8 w-auto" />
 
-      {/* Footer */}
-      <footer className="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
-        <p>&copy; 2026 Chocmaster. Todos os direitos reservados.</p>
-      </footer>
-    </div>
-      </ProtectedRoute>
-      } />
+
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* <h1 className="truncate text-sm font-bold tracking-tight text-slate-900 sm:text-sm">
+                          CHOCMASTER
+                          <span className="mx-2 font-light text-slate-300">
+                            |
+                          </span>
+                          CIGAM
+                        </h1> */}
+
+                        <span
+                          className="
+                          inline-flex items-center
+                          rounded-full
+                          border border-[#00B0F1]/20
+                          bg-[#00B0F1]/10
+                          px-2.5 py-1
+                          text-[0.65rem] font-bold
+                          uppercase tracking-[0.08em]
+                          text-[#008FC7]
+                        "
+                        >
+                          Integrador CIGAM
+                        </span>
+                      </div>
+
+                      <p className="mt-0.5 truncate text-xs text-slate-500">
+                        Gerenciador de mapeamentos De-Para de integração
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Ações do header */}
+                  <div
+                    className="
+                    flex w-full
+                    flex-col gap-3
+                    sm:flex-row sm:flex-wrap sm:items-center
+                    lg:w-auto lg:flex-nowrap lg:justify-end
+                  "
+                  >
+                    {/* Seletor de ambiente */}
+                    <div
+                      className="
+                      flex shrink-0
+                      items-center
+                      rounded-xl
+                      border border-slate-200
+                      bg-slate-100/80
+                      p-1
+                      shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)]
+                    "
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleSelectEnvironment("homologacao")
+                        }
+                        aria-pressed={activeEnv === "homologacao"}
+                        className={`
+                        flex-1
+                        rounded-lg
+                        px-3 py-2
+                        text-xs font-semibold
+                        transition-all duration-200
+                        sm:flex-none
+                        ${activeEnv === "homologacao"
+                            ? `
+                              bg-gradient-to-b
+                              from-amber-500
+                              to-amber-600
+                              text-white
+                              shadow-[0_5px_12px_-6px_rgba(217,119,6,0.80),inset_0_1px_1px_rgba(255,255,255,0.30)]
+                            `
+                            : `
+                              cursor-pointer
+                              text-slate-500
+                              hover:bg-white/70
+                              hover:text-slate-800
+                            `
+                          }
+                      `}
+                      >
+                        Homologação
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleSelectEnvironment("producao")
+                        }
+                        aria-pressed={activeEnv === "producao"}
+                        className={`
+                        flex-1
+                        rounded-lg
+                        px-3 py-2
+                        text-xs font-semibold
+                        transition-all duration-200
+                        sm:flex-none
+                        ${activeEnv === "producao"
+                            ? `
+                              bg-gradient-to-b
+                              from-emerald-500
+                              to-emerald-600
+                              text-white
+                              shadow-[0_5px_12px_-6px_rgba(5,150,105,0.80),inset_0_1px_1px_rgba(255,255,255,0.30)]
+                            `
+                            : `
+                              cursor-pointer
+                              text-slate-500
+                              hover:bg-white/70
+                              hover:text-slate-800
+                            `
+                          }
+                      `}
+                      >
+                        Produção
+                      </button>
+                    </div>
+
+                    {/* Sincronizar */}
+                    {/* <button
+                      type="button"
+                      onClick={handleSyncBling}
+                      disabled={syncing || loading}
+                      className={`
+                      inline-flex min-h-10
+                      flex-1 items-center justify-center gap-2
+                      rounded-xl
+                      border border-slate-900/20
+                      bg-gradient-to-b
+                      from-slate-700
+                      to-slate-950
+                      px-4 py-2.5
+                      text-sm font-semibold
+                      text-white
+                      shadow-[0_8px_18px_-10px_rgba(15,23,42,0.90),inset_0_1px_1px_rgba(255,255,255,0.20)]
+                      transition-all duration-200
+                      sm:flex-none
+                      ${syncing || loading
+                          ? "cursor-not-allowed opacity-60"
+                          : `
+                            cursor-pointer
+                            hover:-translate-y-0.5
+                            hover:from-slate-600
+                            hover:to-slate-900
+                          `
+                        }
+                    `}
+                    >
+                      <RefreshCw
+                        className={`h-4 w-4 ${syncing ? "animate-spin" : ""
+                          }`}
+                      />
+
+                      <span>
+                        {syncing
+                          ? "Sincronizando..."
+                          : "Sincronizar Bling"}
+                      </span>
+                    </button> */}
+
+                    {/* Recarregar */}
+                    <button
+                      type="button"
+                      onClick={() => fetchData()}
+                      disabled={loading}
+                      title="Recarregar dados"
+                      aria-label="Recarregar dados"
+                      className="
+                      inline-flex min-h-10 min-w-10
+                      cursor-pointer
+                      items-center justify-center
+                      rounded-xl
+                      border border-slate-200
+                      bg-white/80
+                      p-2.5
+                      text-slate-600
+                      shadow-sm
+                      transition-all duration-200
+                      hover:-translate-y-0.5
+                      hover:border-[#00B0F1]/30
+                      hover:bg-[#00B0F1]/10
+                      hover:text-[#008FC7]
+                      focus:outline-none
+                      focus:ring-4
+                      focus:ring-[#00B0F1]/15
+                      disabled:cursor-not-allowed
+                      disabled:opacity-50
+                    "
+                    >
+                      <RefreshCw
+                        className={`h-4 w-4 ${loading ? "animate-spin" : ""
+                          }`}
+                      />
+                    </button>
+
+                    {/* Usuário */}
+                    <div
+                      className="
+                      flex min-w-0
+                      items-center justify-between gap-3
+                      border-t border-slate-200
+                      pt-3
+                      sm:border-l sm:border-t-0
+                      sm:pl-4 sm:pt-0
+                    "
+                    >
+                      <div className="min-w-0 text-right">
+                        <span className="block text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400">
+                          Usuário
+                        </span>
+
+                        <span className="block max-w-36 truncate text-xs font-semibold text-slate-700">
+                          {user?.nome}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={logout}
+                        title="Sair"
+                        aria-label="Sair do sistema"
+                        className="
+                        inline-flex h-10 w-10 shrink-0
+                        cursor-pointer
+                        items-center justify-center
+                        rounded-xl
+                        border border-slate-200
+                        bg-white/80
+                        text-slate-500
+                        shadow-sm
+                        transition-all duration-200
+                        hover:-translate-y-0.5
+                        hover:border-red-200
+                        hover:bg-red-50
+                        hover:text-red-500
+                        focus:outline-none
+                        focus:ring-4
+                        focus:ring-red-500/10
+                      "
+                      >
+                        <LogOut className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </header>
+
+              {/* Conteúdo principal */}
+              <main
+                className="
+                mx-auto flex w-full max-w-[1440px]
+                flex-1 flex-col gap-6
+                px-4 py-6
+                sm:px-6 sm:py-8
+                lg:px-8
+              "
+              >
+                {/* Alerta de erro */}
+                {error && (
+                  <div
+                    role="alert"
+                    aria-live="polite"
+                    className="
+                    flex items-start gap-3
+                    rounded-2xl
+                    border border-red-200/80
+                    bg-red-50/95
+                    p-4
+                    text-red-800
+                    shadow-[0_14px_32px_-22px_rgba(127,29,29,0.60),inset_0_1px_1px_rgba(255,255,255,0.80)]
+                    backdrop-blur-xl
+                  "
+                  >
+                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-red-100">
+                      <AlertCircle className="h-4 w-4 text-red-500" />
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-semibold">
+                        Não foi possível concluir a operação
+                      </p>
+
+                      <p className="mt-0.5 text-sm text-red-700">
+                        {error}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Indicadores */}
+                <section
+                  aria-label="Indicadores gerais"
+                  className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+                >
+                  {/* Total */}
+                  <article
+                    className="
+                    group relative
+                    overflow-hidden
+                    rounded-2xl
+                    border border-white/70
+                    bg-white/[0.94]
+                    p-5
+                    shadow-[0_18px_45px_-26px_rgba(2,6,23,0.75),inset_0_1px_1px_rgba(255,255,255,0.95),inset_0_-2px_5px_rgba(15,23,42,0.06)]
+                    backdrop-blur-xl
+                    transition-all duration-200
+                    hover:-translate-y-1
+                    hover:shadow-[0_24px_50px_-25px_rgba(2,6,23,0.85),inset_0_1px_1px_rgba(255,255,255,0.95)]
+                  "
+                  >
+                    <div
+                      aria-hidden="true"
+                      className="absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent"
+                    />
+
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+                          Total geral
+                        </p>
+
+                        <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+                          {totalMappings}
+                        </p>
+                      </div>
+
+                      <div
+                        className="
+                        flex h-11 w-11
+                        items-center justify-center
+                        rounded-2xl
+                        border border-[#00B0F1]/15
+                        bg-[#00B0F1]/10
+                        text-[#008FC7]
+                        shadow-[inset_0_1px_1px_rgba(255,255,255,0.75)]
+                      "
+                      >
+                        <CheckCircle2 className="h-5 w-5" />
+                      </div>
+                    </div>
+
+                    <p className="mt-3 text-xs text-slate-500">
+                      Mapeamentos concluídos
+                    </p>
+
+                    <div className="mt-4 h-1 overflow-hidden rounded-full bg-slate-100">
+                      <div className="h-full w-full rounded-full bg-gradient-to-r from-[#00B0F1] to-[#008FC7]" />
+                    </div>
+                  </article>
+
+                  {/* Clientes */}
+                  <article
+                    className="
+                    group relative
+                    overflow-hidden
+                    rounded-2xl
+                    border border-white/70
+                    bg-white/[0.94]
+                    p-5
+                    shadow-[0_18px_45px_-26px_rgba(2,6,23,0.75),inset_0_1px_1px_rgba(255,255,255,0.95),inset_0_-2px_5px_rgba(15,23,42,0.06)]
+                    backdrop-blur-xl
+                    transition-all duration-200
+                    hover:-translate-y-1
+                    hover:shadow-[0_24px_50px_-25px_rgba(2,6,23,0.85),inset_0_1px_1px_rgba(255,255,255,0.95)]
+                  "
+                  >
+                    <div
+                      aria-hidden="true"
+                      className="absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent"
+                    />
+
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+                          Clientes
+                        </p>
+
+                        <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+                          {mappings.clientes.length}
+                        </p>
+                      </div>
+
+                      <div
+                        className="
+                        flex h-11 w-11
+                        items-center justify-center
+                        rounded-2xl
+                        border border-blue-200
+                        bg-blue-50
+                        text-blue-600
+                        shadow-[inset_0_1px_1px_rgba(255,255,255,0.75)]
+                      "
+                      >
+                        <Users className="h-5 w-5" />
+                      </div>
+                    </div>
+
+                    <p className="mt-3 text-xs text-slate-500">
+                      Mapeados de {blingClientes.length} no Bling
+                    </p>
+
+                    <div className="mt-4 h-1 overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        className="h-full rounded-full bg-blue-500 transition-all duration-500"
+                        style={{
+                          width:
+                            blingClientes.length > 0
+                              ? `${Math.min(
+                                (mappings.clientes.length /
+                                  blingClientes.length) *
+                                100,
+                                100,
+                              )}%`
+                              : "0%",
+                        }}
+                      />
+                    </div>
+                  </article>
+
+                  {/* Produtos */}
+                  <article
+                    className="
+                    group relative
+                    overflow-hidden
+                    rounded-2xl
+                    border border-white/70
+                    bg-white/[0.94]
+                    p-5
+                    shadow-[0_18px_45px_-26px_rgba(2,6,23,0.75),inset_0_1px_1px_rgba(255,255,255,0.95),inset_0_-2px_5px_rgba(15,23,42,0.06)]
+                    backdrop-blur-xl
+                    transition-all duration-200
+                    hover:-translate-y-1
+                    hover:shadow-[0_24px_50px_-25px_rgba(2,6,23,0.85),inset_0_1px_1px_rgba(255,255,255,0.95)]
+                  "
+                  >
+                    <div
+                      aria-hidden="true"
+                      className="absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent"
+                    />
+
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+                          Produtos
+                        </p>
+
+                        <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+                          {mappings.produtos.length}
+                        </p>
+                      </div>
+
+                      <div
+                        className="
+                        flex h-11 w-11
+                        items-center justify-center
+                        rounded-2xl
+                        border border-orange-200
+                        bg-orange-50
+                        text-[#E66F00]
+                        shadow-[inset_0_1px_1px_rgba(255,255,255,0.75)]
+                      "
+                      >
+                        <ShoppingBag className="h-5 w-5" />
+                      </div>
+                    </div>
+
+                    <p className="mt-3 text-xs text-slate-500">
+                      Mapeados de {blingProdutos.length} no Bling
+                    </p>
+
+                    <div className="mt-4 h-1 overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        className="h-full rounded-full bg-[#FF8301] transition-all duration-500"
+                        style={{
+                          width:
+                            blingProdutos.length > 0
+                              ? `${Math.min(
+                                (mappings.produtos.length /
+                                  blingProdutos.length) *
+                                100,
+                                100,
+                              )}%`
+                              : "0%",
+                        }}
+                      />
+                    </div>
+                  </article>
+
+                  {/* Transportadoras */}
+                  <article
+                    className="
+                    group relative
+                    overflow-hidden
+                    rounded-2xl
+                    border border-white/70
+                    bg-white/[0.94]
+                    p-5
+                    shadow-[0_18px_45px_-26px_rgba(2,6,23,0.75),inset_0_1px_1px_rgba(255,255,255,0.95),inset_0_-2px_5px_rgba(15,23,42,0.06)]
+                    backdrop-blur-xl
+                    transition-all duration-200
+                    hover:-translate-y-1
+                    hover:shadow-[0_24px_50px_-25px_rgba(2,6,23,0.85),inset_0_1px_1px_rgba(255,255,255,0.95)]
+                  "
+                  >
+                    <div
+                      aria-hidden="true"
+                      className="absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent"
+                    />
+
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">
+                          Transportadoras
+                        </p>
+
+                        <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+                          {mappings.transportadoras.length}
+                        </p>
+                      </div>
+
+                      <div
+                        className="
+                        flex h-11 w-11
+                        items-center justify-center
+                        rounded-2xl
+                        border border-emerald-200
+                        bg-emerald-50
+                        text-emerald-600
+                        shadow-[inset_0_1px_1px_rgba(255,255,255,0.75)]
+                      "
+                      >
+                        <Truck className="h-5 w-5" />
+                      </div>
+                    </div>
+
+                    <p className="mt-3 text-xs text-slate-500">
+                      Mapeadas de {blingTransportadoras.length} no Bling
+                    </p>
+
+                    <div className="mt-4 h-1 overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                        style={{
+                          width:
+                            blingTransportadoras.length > 0
+                              ? `${Math.min(
+                                (mappings.transportadoras.length /
+                                  blingTransportadoras.length) *
+                                100,
+                                100,
+                              )}%`
+                              : "0%",
+                        }}
+                      />
+                    </div>
+                  </article>
+                </section>
+
+                {/* Navegação */}
+                <nav
+                  aria-label="Seções do integrador"
+                  className="
+                  relative
+                  overflow-hidden
+                  rounded-2xl
+                  border border-white/70
+                  bg-white/[0.94]
+                  p-2
+                  shadow-[0_18px_45px_-28px_rgba(2,6,23,0.75),inset_0_1px_1px_rgba(255,255,255,0.95)]
+                  backdrop-blur-xl
+                "
+                >
+                  <div className="overflow-x-auto">
+                    <div className="flex min-w-max items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("clientes")}
+                        aria-pressed={activeTab === "clientes"}
+                        className={`
+                        inline-flex items-center gap-2
+                        rounded-xl
+                        px-4 py-2.5
+                        text-sm font-semibold
+                        transition-all duration-200
+                        ${activeTab === "clientes"
+                            ? `
+                              bg-[#00B0F1]/10
+                              text-[#008FC7]
+                              shadow-[inset_0_0_0_1px_rgba(0,176,241,0.18)]
+                            `
+                            : `
+                              cursor-pointer
+                              text-slate-500
+                              hover:bg-slate-100
+                              hover:text-slate-900
+                            `
+                          }
+                      `}
+                      >
+                        <Users className="h-4 w-4" />
+                        <span>Clientes</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("produtos")}
+                        aria-pressed={activeTab === "produtos"}
+                        className={`
+                        inline-flex items-center gap-2
+                        rounded-xl
+                        px-4 py-2.5
+                        text-sm font-semibold
+                        transition-all duration-200
+                        ${activeTab === "produtos"
+                            ? `
+                              bg-[#00B0F1]/10
+                              text-[#008FC7]
+                              shadow-[inset_0_0_0_1px_rgba(0,176,241,0.18)]
+                            `
+                            : `
+                              cursor-pointer
+                              text-slate-500
+                              hover:bg-slate-100
+                              hover:text-slate-900
+                            `
+                          }
+                      `}
+                      >
+                        <ShoppingBag className="h-4 w-4" />
+                        <span>Produtos</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setActiveTab("formas_pagamento")
+                        }
+                        aria-pressed={
+                          activeTab === "formas_pagamento"
+                        }
+                        className={`
+                        inline-flex items-center gap-2
+                        rounded-xl
+                        px-4 py-2.5
+                        text-sm font-semibold
+                        transition-all duration-200
+                        ${activeTab === "formas_pagamento"
+                            ? `
+                              bg-[#00B0F1]/10
+                              text-[#008FC7]
+                              shadow-[inset_0_0_0_1px_rgba(0,176,241,0.18)]
+                            `
+                            : `
+                              cursor-pointer
+                              text-slate-500
+                              hover:bg-slate-100
+                              hover:text-slate-900
+                            `
+                          }
+                      `}
+                      >
+                        <CreditCard className="h-4 w-4" />
+                        <span>Formas de pagamento</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setActiveTab("transportadoras")
+                        }
+                        aria-pressed={
+                          activeTab === "transportadoras"
+                        }
+                        className={`
+                        inline-flex items-center gap-2
+                        rounded-xl
+                        px-4 py-2.5
+                        text-sm font-semibold
+                        transition-all duration-200
+                        ${activeTab === "transportadoras"
+                            ? `
+                              bg-[#00B0F1]/10
+                              text-[#008FC7]
+                              shadow-[inset_0_0_0_1px_rgba(0,176,241,0.18)]
+                            `
+                            : `
+                              cursor-pointer
+                              text-slate-500
+                              hover:bg-slate-100
+                              hover:text-slate-900
+                            `
+                          }
+                      `}
+                      >
+                        <Truck className="h-4 w-4" />
+                        <span>Transportadoras</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab("eventos")}
+                        aria-pressed={activeTab === "eventos"}
+                        className={`
+                        inline-flex items-center gap-2
+                        rounded-xl
+                        px-4 py-2.5
+                        text-sm font-semibold
+                        transition-all duration-200
+                        ${activeTab === "eventos"
+                            ? `
+                              bg-[#00B0F1]/10
+                              text-[#008FC7]
+                              shadow-[inset_0_0_0_1px_rgba(0,176,241,0.18)]
+                            `
+                            : `
+                              cursor-pointer
+                              text-slate-500
+                              hover:bg-slate-100
+                              hover:text-slate-900
+                            `
+                          }
+                      `}
+                      >
+                        <Activity className="h-4 w-4" />
+                        <span>Eventos</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setActiveTab("configuracoes")
+                        }
+                        aria-pressed={
+                          activeTab === "configuracoes"
+                        }
+                        className={`
+                        inline-flex items-center gap-2
+                        rounded-xl
+                        px-4 py-2.5
+                        text-sm font-semibold
+                        transition-all duration-200
+                        ${activeTab === "configuracoes"
+                            ? `
+                              bg-[#00B0F1]/10
+                              text-[#008FC7]
+                              shadow-[inset_0_0_0_1px_rgba(0,176,241,0.18)]
+                            `
+                            : `
+                              cursor-pointer
+                              text-slate-500
+                              hover:bg-slate-100
+                              hover:text-slate-900
+                            `
+                          }
+                      `}
+                      >
+                        <Settings className="h-4 w-4" />
+                        <span>Configurações</span>
+                      </button>
+                    </div>
+                  </div>
+                </nav>
+
+                {/* Conteúdo das abas */}
+                <section
+                  className="
+                  relative
+                  min-h-96
+                  overflow-hidden
+                  rounded-[28px]
+                  border border-white/70
+                  bg-white/[0.94]
+                  p-3
+                  shadow-[0_25px_65px_-35px_rgba(2,6,23,0.85),inset_0_1px_1px_rgba(255,255,255,0.95),inset_0_-3px_8px_rgba(15,23,42,0.06)]
+                  backdrop-blur-xl
+                  sm:p-5
+                "
+                >
+                  {/* Borda interna */}
+                  <div
+                    aria-hidden="true"
+                    className="
+                    pointer-events-none
+                    absolute inset-[5px]
+                    rounded-[22px]
+                    border border-slate-200/70
+                    shadow-[inset_0_1px_2px_rgba(255,255,255,0.95),inset_0_-2px_5px_rgba(15,23,42,0.06)]
+                  "
+                  />
+
+                  <div className="relative z-10">
+                    {activeTab === "clientes" && (
+                      <DeParaSection
+                        entity="clientes"
+                        title="Clientes"
+                        blingData={blingClientes}
+                        cigamData={cigamClientes}
+                        mappings={mappings.clientes}
+                        onSaveMapping={handleSaveMapping}
+                        onDeleteMapping={handleDeleteMapping}
+                        loading={loading}
+                        onRefresh={() =>
+                          fetchData({ silent: true })
+                        }
+                      />
+                    )}
+
+                    {activeTab === "produtos" && (
+                      <DeParaSection
+                        entity="produtos"
+                        title="Produtos"
+                        blingData={blingProdutos}
+                        cigamData={cigamProdutos}
+                        mappings={mappings.produtos}
+                        onSaveMapping={handleSaveMapping}
+                        onDeleteMapping={handleDeleteMapping}
+                        loading={loading}
+                        onSync={() =>
+                          handleSyncEntity("produtos")
+                        }
+                        syncing={syncing}
+                        logs={syncLogs}
+                        onRefresh={() =>
+                          fetchData({ silent: true })
+                        }
+                      />
+                    )}
+
+                    {activeTab === "formas_pagamento" && (
+                      <DeParaSection
+                        entity="formas_pagamento"
+                        title="Formas de Pagamento"
+                        blingData={blingFormasPagamento}
+                        cigamData={cigamFormasPagamento}
+                        mappings={mappings.formas_pagamento}
+                        onSaveMapping={handleSaveMapping}
+                        onDeleteMapping={handleDeleteMapping}
+                        loading={loading}
+                        onSync={() =>
+                          handleSyncEntity("formas_pagamento")
+                        }
+                        syncing={syncing}
+                        logs={syncLogs}
+                        onRefresh={() =>
+                          fetchData({ silent: true })
+                        }
+                      />
+                    )}
+
+                    {activeTab === "transportadoras" && (
+                      <DeParaSection
+                        entity="transportadoras"
+                        title="Transportadoras"
+                        blingData={blingTransportadoras}
+                        cigamData={cigamTransportadoras}
+                        mappings={mappings.transportadoras}
+                        onSaveMapping={handleSaveMapping}
+                        onDeleteMapping={handleDeleteMapping}
+                        loading={loading}
+                        onSync={() =>
+                          handleSyncEntity("transportadoras")
+                        }
+                        syncing={syncing}
+                        logs={syncLogs}
+                        onRefresh={() =>
+                          fetchData({ silent: true })
+                        }
+                      />
+                    )}
+
+                    {activeTab === "eventos" && (
+                      <EventsSection />
+                    )}
+
+                    {activeTab === "configuracoes" && (
+                      <ConfiguracoesSection
+                        API_BASE_URL={API_BASE_URL}
+                        onRefreshGlobal={fetchData}
+                      />
+                    )}
+                  </div>
+                </section>
+              </main>
+
+              {/* Painel de logs */}
+              {showLogs && (
+                <aside
+                  aria-label="Logs da sincronização"
+                  className="
+                  fixed inset-x-0 bottom-0 z-[60]
+                  border-t border-white/70
+                  bg-white/[0.96]
+                  shadow-[0_-24px_60px_-30px_rgba(2,6,23,0.75)]
+                  backdrop-blur-xl
+                "
+                >
+                  <div className="mx-auto w-full max-w-[1440px] px-4 py-4 sm:px-6 lg:px-8">
+                    <div className="mb-3 flex items-center justify-between gap-4">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div
+                          className="
+                          flex h-9 w-9 shrink-0
+                          items-center justify-center
+                          rounded-xl
+                          border border-[#00B0F1]/20
+                          bg-[#00B0F1]/10
+                          text-[#008FC7]
+                        "
+                        >
+                          <Terminal className="h-4 w-4" />
+                        </div>
+
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-semibold text-slate-900">
+                              Sincronização Bling
+                            </span>
+
+                            {syncing && (
+                              <span
+                                className="
+                                rounded-full
+                                border border-[#00B0F1]/20
+                                bg-[#00B0F1]/10
+                                px-2.5 py-0.5
+                                text-[0.65rem] font-bold
+                                uppercase tracking-wider
+                                text-[#008FC7]
+                              "
+                              >
+                                Em andamento
+                              </span>
+                            )}
+                          </div>
+
+                          <p className="mt-0.5 text-xs text-slate-500">
+                            Acompanhe o progresso e as mensagens da integração
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowLogs(false)}
+                        aria-label="Fechar painel de logs"
+                        className="
+                        inline-flex h-9 w-9 shrink-0
+                        cursor-pointer
+                        items-center justify-center
+                        rounded-xl
+                        border border-slate-200
+                        bg-white
+                        text-slate-500
+                        shadow-sm
+                        transition
+                        hover:border-red-200
+                        hover:bg-red-50
+                        hover:text-red-500
+                      "
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    {/* Progresso */}
+                    {syncProgress.total > 0 && (
+                      <div
+                        className="
+                        mb-3
+                        rounded-2xl
+                        border border-slate-200
+                        bg-slate-50/90
+                        p-3
+                      "
+                      >
+                        <div className="mb-2 flex items-center justify-between gap-4 text-xs">
+                          <span className="font-medium text-slate-600">
+                            {syncProgress.completed} de{" "}
+                            {syncProgress.total} produtos
+                          </span>
+
+                          <span className="font-bold text-[#008FC7]">
+                            {syncProgress.percent}%
+                          </span>
+                        </div>
+
+                        <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-200">
+                          <div
+                            className="
+                            h-full
+                            rounded-full
+                            bg-gradient-to-r
+                            from-[#00B0F1]
+                            to-[#008FC7]
+                            shadow-[0_0_10px_rgba(0,176,241,0.45)]
+                            transition-all duration-300
+                          "
+                            style={{
+                              width: `${syncProgress.percent}%`,
+                            }}
+                          />
+                        </div>
+
+                        <div className="mt-2 flex flex-wrap items-center justify-between gap-x-5 gap-y-1 text-[0.68rem] text-slate-500">
+                          <span>
+                            Decorrido:{" "}
+                            {syncProgress.tempoDecorrido || "0s"}
+                          </span>
+
+                          <span>
+                            Estimado:{" "}
+                            {syncProgress.tempoEstimado ||
+                              "Calculando..."}
+                          </span>
+
+                          {syncProgress.erros > 0 && (
+                            <span className="font-semibold text-red-500">
+                              Erros: {syncProgress.erros}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Terminal */}
+                    <div
+                      className="
+                      max-h-52
+                      space-y-1
+                      overflow-y-auto
+                      rounded-2xl
+                      border border-slate-800
+                      bg-slate-950
+                      p-4
+                      font-mono text-xs
+                      shadow-[inset_0_2px_8px_rgba(0,0,0,0.40)]
+                    "
+                    >
+                      {syncLogs.map((log, index) => (
+                        <div
+                          key={index}
+                          className={`
+                          flex items-start gap-3
+                          ${log.startsWith("[ERRO]")
+                              ? "text-red-400"
+                              : log.startsWith("Progresso:")
+                                ? "text-cyan-400"
+                                : "text-slate-300"
+                            }
+                        `}
+                        >
+                          <span className="shrink-0 select-none text-slate-600">
+                            {String(index + 1).padStart(3, "0")}
+                          </span>
+
+                          <span className="break-all leading-5">
+                            {log}
+                          </span>
+                        </div>
+                      ))}
+
+                      {syncing && (
+                        <div className="flex items-center gap-3 text-cyan-400">
+                          <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-400" />
+                          <span>Aguardando próximo log...</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </aside>
+              )}
+
+              {/* Footer */}
+              <footer
+                className="
+                mt-auto
+                border-t border-white/10
+                bg-white/30
+                px-4 py-6
+                text-center
+                backdrop-blur-sm
+              "
+              >
+                <p className="text-xs text-slate-400">
+                  © 2026 Chocmaster. Todos os direitos reservados.
+                </p>
+
+                <p className="mt-1 text-[0.65rem] text-slate-500">
+                  Integração Bling{" "}
+                  <span className="font-mono font-semibold text-[#00B0F1]">
+                    {"< >"}
+                  </span>{" "}
+                  ERP CIGAM
+                </p>
+                <div className="flex justify-center items-center gap-3 mt-2">
+                  <img
+                    src={logoBling}
+                    alt="Logo Bling"
+                    className="h-9 w-auto object-contain"
+                  />
+
+                  <img
+                    src={logoCigam}
+                    alt="Logo ERP CIGAM"
+                    className="h-9 w-auto object-contain"
+                  />
+                </div>
+
+                {/* <img
+                  src={LogoChoc}
+                  alt="Logo Chocmaster"
+                  className="h-9 w-auto object-contain"
+                /> */}
+              </footer>
+            </div>
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 }

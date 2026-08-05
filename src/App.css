@@ -1,184 +1,236 @@
-.counter {
-  font-size: 16px;
-  padding: 5px 10px;
-  border-radius: 5px;
-  color: var(--accent);
-  background: var(--accent-bg);
-  border: 2px solid transparent;
-  transition: border-color 0.3s;
-  margin-bottom: 24px;
 
-  &:hover {
-    border-color: var(--accent-border);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
+/*
+ * Estilos estruturais específicos do App.
+ *
+ * Cores, tipografia, scrollbars, animações e normalização
+ * permanecem no arquivo CSS global, como index.css.
+ */
+
+#root {
+  position: relative;
+  isolation: isolate;
+
+  width: 100%;
+  min-width: 320px;
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
-.hero {
+/* Estrutura principal da aplicação */
+.app-shell {
   position: relative;
 
-  .base,
-  .framework,
-  .vite {
-    inset-inline: 0;
-    margin: 0 auto;
-  }
-
-  .base {
-    width: 170px;
-    position: relative;
-    z-index: 0;
-  }
-
-  .framework,
-  .vite {
-    position: absolute;
-  }
-
-  .framework {
-    z-index: 1;
-    top: 34px;
-    height: 28px;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
-      scale(1.4);
-  }
-
-  .vite {
-    z-index: 0;
-    top: 107px;
-    height: 26px;
-    width: auto;
-    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
-      scale(0.8);
-  }
-}
-
-#center {
   display: flex;
   flex-direction: column;
-  gap: 25px;
-  place-content: center;
-  place-items: center;
-  flex-grow: 1;
 
-  @media (max-width: 1024px) {
-    padding: 32px 20px 24px;
-    gap: 18px;
-  }
-}
-
-#next-steps {
-  display: flex;
-  border-top: 1px solid var(--border);
-  text-align: left;
-
-  & > div {
-    flex: 1 1 0;
-    padding: 32px;
-    @media (max-width: 1024px) {
-      padding: 24px 20px;
-    }
-  }
-
-  .icon {
-    margin-bottom: 16px;
-    width: 22px;
-    height: 22px;
-  }
-
-  @media (max-width: 1024px) {
-    flex-direction: column;
-    text-align: center;
-  }
-}
-
-#docs {
-  border-right: 1px solid var(--border);
-
-  @media (max-width: 1024px) {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-  }
-}
-
-#next-steps ul {
-  list-style: none;
-  padding: 0;
-  display: flex;
-  gap: 8px;
-  margin: 32px 0 0;
-
-  .logo {
-    height: 18px;
-  }
-
-  a {
-    color: var(--text-h);
-    font-size: 16px;
-    border-radius: 6px;
-    background: var(--social-bg);
-    display: flex;
-    padding: 6px 12px;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    transition: box-shadow 0.3s;
-
-    &:hover {
-      box-shadow: var(--shadow);
-    }
-    .button-icon {
-      height: 18px;
-      width: 18px;
-    }
-  }
-
-  @media (max-width: 1024px) {
-    margin-top: 20px;
-    flex-wrap: wrap;
-    justify-content: center;
-
-    li {
-      flex: 1 1 calc(50% - 8px);
-    }
-
-    a {
-      width: 100%;
-      justify-content: center;
-      box-sizing: border-box;
-    }
-  }
-}
-
-#spacer {
-  height: 88px;
-  border-top: 1px solid var(--border);
-  @media (max-width: 1024px) {
-    height: 48px;
-  }
-}
-
-.ticks {
-  position: relative;
   width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
 
-  &::before,
-  &::after {
-    content: '';
-    position: absolute;
-    top: -4.5px;
-    border: 5px solid transparent;
+  overflow-x: hidden;
+}
+
+/* Área central de conteúdo */
+.app-content {
+  width: 100%;
+  max-width: 1440px;
+
+  margin-inline: auto;
+  padding: 24px 16px 40px;
+}
+
+/* Superfície clara padrão */
+.app-surface {
+  position: relative;
+  overflow: hidden;
+
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 24px;
+
+  background: rgba(255, 255, 255, 0.96);
+
+  box-shadow:
+    0 20px 50px -34px rgba(2, 6, 23, 0.7),
+    inset 0 1px 1px rgba(255, 255, 255, 0.95),
+    inset 0 -2px 5px rgba(15, 23, 42, 0.05);
+
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+/* Borda interna utilizada no efeito de alto-relevo */
+.app-surface::before {
+  content: "";
+
+  position: absolute;
+  inset: 5px;
+
+  z-index: 0;
+
+  pointer-events: none;
+
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 18px;
+}
+
+/* Mantém o conteúdo acima da borda decorativa */
+.app-surface-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Cabeçalho interno de cards e seções */
+.app-section-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+
+  padding: 20px 24px;
+
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+/* Corpo interno de cards e seções */
+.app-section-body {
+  position: relative;
+  z-index: 1;
+
+  padding: 20px 24px;
+}
+
+/* Cartão interativo utilizado em listas */
+.app-list-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+
+  background: #ffffff;
+
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.app-list-item:hover {
+  transform: translateY(-2px);
+
+  border-color: #cbd5e1;
+
+  box-shadow:
+    0 12px 28px -25px rgba(2, 6, 23, 0.5);
+}
+
+/* Estado selecionado para listas Bling, CIGAM e eventos */
+.app-list-item[data-selected="true"] {
+  border-color: rgba(0, 176, 241, 0.5);
+
+  background: rgba(0, 176, 241, 0.07);
+
+  box-shadow:
+    0 12px 28px -24px rgba(0, 176, 241, 0.7);
+}
+
+/* Fundo visual da aplicação */
+.app-background {
+  position: fixed;
+  inset: 0;
+
+  z-index: -1;
+
+  pointer-events: none;
+
+  background:
+    radial-gradient(
+      circle at 15% 5%,
+      rgba(0, 176, 241, 0.18) 0%,
+      transparent 32%
+    ),
+    radial-gradient(
+      circle at 90% 15%,
+      rgba(255, 131, 1, 0.12) 0%,
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 50% 100%,
+      rgba(255, 255, 255, 0.08) 0%,
+      transparent 38%
+    ),
+    linear-gradient(
+      145deg,
+      #020617 0%,
+      #0f172a 52%,
+      #020617 100%
+    );
+}
+
+/* Evita que modais herdem limites do conteúdo principal */
+.app-modal-layer {
+  position: fixed;
+  inset: 0;
+
+  z-index: 100;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 16px;
+}
+
+/* Tablets */
+@media (min-width: 640px) {
+  .app-content {
+    padding-inline: 24px;
+  }
+}
+
+/* Desktops */
+@media (min-width: 1024px) {
+  .app-content {
+    padding: 32px 32px 48px;
+  }
+}
+
+/* Telas pequenas */
+@media (max-width: 639px) {
+  .app-section-header {
+    flex-direction: column;
+
+    padding: 18px;
   }
 
-  &::before {
-    left: 0;
-    border-left-color: var(--border);
+  .app-section-body {
+    padding: 18px;
   }
-  &::after {
-    right: 0;
-    border-right-color: var(--border);
+
+  .app-surface {
+    border-radius: 20px;
+  }
+
+  .app-surface::before {
+    border-radius: 15px;
+  }
+}
+
+/* Compatibilidade para navegadores sem backdrop-filter */
+@supports not (
+  (backdrop-filter: blur(1px)) or
+  (-webkit-backdrop-filter: blur(1px))
+) {
+  .app-surface {
+    background: rgba(255, 255, 255, 0.98);
+  }
+}
+
+/* Redução de movimento para acessibilidade */
+@media (prefers-reduced-motion: reduce) {
+  .app-list-item {
+    transition: none;
+  }
+
+  .app-list-item:hover {
+    transform: none;
   }
 }
