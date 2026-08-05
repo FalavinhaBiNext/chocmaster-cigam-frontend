@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { MoonIcon, Mail, Lock, AlertCircle } from "lucide-react";
+import { Mail, Lock, AlertCircle } from "lucide-react";
 import Background from '../assets/FundoLoginChocmaster.jpg'
 import Logo from '../assets/LogoSFundoBlack.png'
 import logoBling from '../assets/LogoBlingBlack.png'

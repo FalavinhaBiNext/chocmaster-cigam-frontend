@@ -17,7 +17,6 @@ import {
   Activity,
   Terminal,
   X,
-  MoonIcon,
   Settings,
   LogOut,
   AlertCircle,
@@ -498,10 +497,6 @@ export default function App() {
     } finally {
       setSyncing(false);
     }
-  };
-
-  const handleSyncBling = async () => {
-    await runSyncStream("all");
   };
 
   const handleSyncEntity = async (entity: TabType) => {
