@@ -92,7 +92,7 @@ export function LoginPage() {
       <p className="mt-1 text-base font-light text-slate-600">
         Bling{" "}
         <span className="font-medium text-slate-400">
-          {"< >"}
+         &
         </span>{" "}
         ERP CIGAM
       </p>

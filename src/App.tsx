@@ -22,7 +22,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-import Logo from './assets/Chocmaster Logo-Sfundo.png'
+import Logo from './assets/LogoSFundoBlack.png'
 import logoCigam from './assets/LogoCigamBlack.png'
 import logoBling from './assets/LogoBlingBlack.png'
 
@@ -617,18 +617,18 @@ export default function App() {
                 >
                   {/* Identidade */}
                   <div className="flex min-w-0 items-center gap-3.5">
-                    <img src={Logo} alt="Logo" className="h-8 w-auto" />
+                    <img src={Logo} alt="Logo" className="h-16 w-auto" />
 
 
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        {/* <h1 className="truncate text-sm font-bold tracking-tight text-slate-900 sm:text-sm">
+                        <h1 className="truncate text-sm font-bold tracking-tight text-slate-900 sm:text-sm">
                           CHOCMASTER
                           <span className="mx-2 font-light text-slate-300">
                             |
                           </span>
                           CIGAM
-                        </h1> */}
+                        </h1>
 
                         <span
                           className="
@@ -636,7 +636,7 @@ export default function App() {
                           rounded-full
                           border border-[#00B0F1]/20
                           bg-[#00B0F1]/10
-                          px-2.5 py-1
+                          px-2.5
                           text-[0.65rem] font-bold
                           uppercase tracking-[0.08em]
                           text-[#008FC7]
@@ -646,8 +646,8 @@ export default function App() {
                         </span>
                       </div>
 
-                      <p className="mt-0.5 truncate text-xs text-slate-500">
-                        Gerenciador de mapeamentos De-Para de integração
+                      <p className="mt-0.5 truncate text-xs text-slate-500 italic">
+                        Gerenciador e mapeamentos para integração
                       </p>
                     </div>
                   </div>

@@ -3,6 +3,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { calculateSimilarity, calculateCodeSimilarity } from '../utils/similarity';
 import { CheckCircle, AlertCircle, ArrowRight, Search, Link2, Sparkles, ChevronDown, RefreshCw, SlidersHorizontal, Download } from 'lucide-react';
 
+import logoBling from '../assets/LogoBlingBlack.png'
+import logoCigam from '../assets/LogoCigamBlack.png'
+
 interface BlingItem {
   id: string;
   name: string;
@@ -205,9 +208,9 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
     let validSku = 0;
 
     blingData.forEach(item => {
-      const matchesSearch = item.name.toLowerCase().includes(searchBling.toLowerCase()) || 
-                            item.id.includes(searchBling) ||
-                            (item.codigo && item.codigo.toLowerCase().includes(searchBling.toLowerCase()));
+      const matchesSearch = item.name.toLowerCase().includes(searchBling.toLowerCase()) ||
+        item.id.includes(searchBling) ||
+        (item.codigo && item.codigo.toLowerCase().includes(searchBling.toLowerCase()));
       const isUnmapped = !mappedBlingIds.has(item.id);
 
       if (matchesSearch) {
@@ -232,17 +235,17 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
       }
     });
 
-    return { 
-      unmapped: unmappedCount, 
-      mapped: mappedCount, 
-      hasNcm, 
-      noNcm, 
-      hasPrice, 
-      noPrice, 
-      hasStock, 
-      noStock, 
-      formatS, 
-      formatE, 
+    return {
+      unmapped: unmappedCount,
+      mapped: mappedCount,
+      hasNcm,
+      noNcm,
+      hasPrice,
+      noPrice,
+      hasStock,
+      noStock,
+      formatS,
+      formatE,
       formatV,
       validSku
     };
@@ -251,11 +254,11 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
   // Filtering Bling Items
   const filteredBlingData = useMemo(() => {
     return blingData.filter((item) => {
-      const matchesSearch = item.name.toLowerCase().includes(searchBling.toLowerCase()) || 
-                            item.id.includes(searchBling) ||
-                            (item.codigo && item.codigo.toLowerCase().includes(searchBling.toLowerCase()));
+      const matchesSearch = item.name.toLowerCase().includes(searchBling.toLowerCase()) ||
+        item.id.includes(searchBling) ||
+        (item.codigo && item.codigo.toLowerCase().includes(searchBling.toLowerCase()));
       const isUnmapped = !mappedBlingIds.has(item.id);
-      
+
       if (!matchesSearch) return false;
 
       // Other entities show only unmapped items by default
@@ -315,9 +318,9 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
     let unmapped = 0;
 
     cigamData.forEach((item) => {
-      const matchesSearch = item.name.toLowerCase().includes(searchCigam.toLowerCase()) || 
-             item.id.toLowerCase().includes(searchCigam.toLowerCase()) ||
-             (item.codigo && String(item.codigo).toLowerCase().includes(searchCigam.toLowerCase()));
+      const matchesSearch = item.name.toLowerCase().includes(searchCigam.toLowerCase()) ||
+        item.id.toLowerCase().includes(searchCigam.toLowerCase()) ||
+        (item.codigo && String(item.codigo).toLowerCase().includes(searchCigam.toLowerCase()));
 
       if (matchesSearch) {
         const associatedBlingItems = cigamToBlingMap.get(item.id);
@@ -337,9 +340,9 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
   // Filtering CIGAM Items
   const filteredCigamData = useMemo(() => {
     return cigamData.filter((item) => {
-      const matchesSearch = item.name.toLowerCase().includes(searchCigam.toLowerCase()) || 
-             item.id.toLowerCase().includes(searchCigam.toLowerCase()) ||
-             (item.codigo && String(item.codigo).toLowerCase().includes(searchCigam.toLowerCase()));
+      const matchesSearch = item.name.toLowerCase().includes(searchCigam.toLowerCase()) ||
+        item.id.toLowerCase().includes(searchCigam.toLowerCase()) ||
+        (item.codigo && String(item.codigo).toLowerCase().includes(searchCigam.toLowerCase()));
 
       if (!matchesSearch) return false;
 
@@ -501,12 +504,12 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
     setIsExporting(true);
     try {
       const response = await fetch(`https://api-chocmaster.falavinhanext.tec.br/api/v1/produtos/export-excel`);
-      
+
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
         throw new Error(errData.message || 'Erro ao exportar planilha. Verifique se o template ESMATERI.xlsx está na pasta Downloads.');
       }
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -601,7 +604,7 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
         `A sincronização de ${entityLabel} foi finalizada com sucesso!\n\n• Total encontrado: ${resData.data?.total || 0}\n• Novos registros: ${resData.data?.created || 0}\n• Registros atualizados: ${resData.data?.updated || 0}`,
         'success'
       );
-      
+
       if (onRefresh) {
         await onRefresh();
       }
@@ -626,27 +629,27 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
         // Conflitos de NCM
         if (tagId === 'has_ncm') next = next.filter(id => id !== 'no_ncm');
         if (tagId === 'no_ncm') next = next.filter(id => id !== 'has_ncm');
-        
+
         // Conflitos de Preço
         if (tagId === 'has_price') next = next.filter(id => id !== 'no_price');
         if (tagId === 'no_price') next = next.filter(id => id !== 'has_price');
-        
+
         // Conflitos de Estoque
         if (tagId === 'has_stock') next = next.filter(id => id !== 'no_stock');
         if (tagId === 'no_stock') next = next.filter(id => id !== 'has_stock');
-        
+
         // Exclusividade de Formato
         if (tagId === 'format_s') next = next.filter(id => id !== 'format_e' && id !== 'format_v');
         if (tagId === 'format_e') next = next.filter(id => id !== 'format_s' && id !== 'format_v');
         if (tagId === 'format_v') next = next.filter(id => id !== 'format_s' && id !== 'format_e');
-        
+
         next.push(tagId);
       }
       return next;
     });
   };
 
-    const itemDetails = modalItem as any;
+  const itemDetails = modalItem as any;
 
   const hasBlingFilters =
     entity === "produtos"
@@ -878,9 +881,8 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                 "
               >
                 <RefreshCw
-                  className={`h-3.5 w-3.5 ${
-                    syncing ? "animate-spin" : ""
-                  }`}
+                  className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""
+                    }`}
                 />
 
                 <span>
@@ -926,9 +928,8 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                 "
               >
                 <RefreshCw
-                  className={`h-3.5 w-3.5 ${
-                    isSyncingCigam ? "animate-spin" : ""
-                  }`}
+                  className={`h-3.5 w-3.5 ${isSyncingCigam ? "animate-spin" : ""
+                    }`}
                 />
 
                 <span>
@@ -1116,7 +1117,7 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                       type="checkbox"
                       checked={
                         selectedSuggestions.size ===
-                          smartMatches.length &&
+                        smartMatches.length &&
                         smartMatches.length > 0
                       }
                       onChange={() => undefined}
@@ -1253,14 +1254,13 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                         border
                         p-4
                         transition-all duration-200
-                        ${
-                          isChecked
-                            ? `
+                        ${isChecked
+                          ? `
                               border-[#00B0F1]/40
                               bg-[#00B0F1]/[0.06]
                               shadow-[0_12px_28px_-24px_rgba(0,176,241,0.70)]
                             `
-                            : `
+                          : `
                               border-slate-200
                               bg-white
                               hover:border-slate-300
@@ -1333,14 +1333,13 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                               border
                               px-2.5 py-1
                               text-[0.65rem] font-bold
-                              ${
-                                match.score >= 80
-                                  ? `
+                              ${match.score >= 80
+                                ? `
                                     border-emerald-200
                                     bg-emerald-50
                                     text-emerald-700
                                   `
-                                  : `
+                                : `
                                     border-sky-200
                                     bg-sky-50
                                     text-sky-700
@@ -1470,21 +1469,20 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
 
                 {(entity === "produtos" ||
                   entity === "formas_pagamento") && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setShowFilters((current) => !current)
-                    }
-                    title={
-                      showFilters
-                        ? "Ocultar filtros"
-                        : "Mostrar filtros"
-                    }
-                    className={`
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowFilters((current) => !current)
+                      }
+                      title={
+                        showFilters
+                          ? "Ocultar filtros"
+                          : "Mostrar filtros"
+                      }
+                      className={`
                       ${secondaryButtonClassName}
                       shrink-0
-                      ${
-                        showFilters
+                      ${showFilters
                           ? `
                             border-[#00B0F1]/35
                             bg-[#00B0F1]/10
@@ -1497,31 +1495,31 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                               text-amber-700
                             `
                             : ""
-                      }
+                        }
                     `}
-                  >
-                    <SlidersHorizontal className="h-3.5 w-3.5" />
+                    >
+                      <SlidersHorizontal className="h-3.5 w-3.5" />
 
-                    <span>
-                      {showFilters ? "Ocultar" : "Filtros"}
-                    </span>
+                      <span>
+                        {showFilters ? "Ocultar" : "Filtros"}
+                      </span>
 
-                    {hasBlingFilters && (
-                      <span
-                        className="
+                      {hasBlingFilters && (
+                        <span
+                          className="
                           rounded-full
                           bg-white/80
                           px-1.5 py-0.5
                           text-[0.6rem]
                         "
-                      >
-                        {entity === "produtos"
-                          ? activeTags.length
-                          : 1}
-                      </span>
-                    )}
-                  </button>
-                )}
+                        >
+                          {entity === "produtos"
+                            ? activeTags.length
+                            : 1}
+                        </span>
+                      )}
+                    </button>
+                  )}
 
                 {entity === "produtos" && (
                   <button
@@ -1673,14 +1671,13 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                           px-2.5 py-1
                           text-[0.68rem] font-semibold
                           transition
-                          ${
-                            isActive
-                              ? `
+                          ${isActive
+                            ? `
                                 border-[#00B0F1]/40
                                 bg-[#00B0F1]/10
                                 text-[#008FC7]
                               `
-                              : `
+                            : `
                                 border-slate-200
                                 bg-white
                                 text-slate-500
@@ -1697,10 +1694,9 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                             rounded-full
                             px-1.5 py-0.5
                             text-[0.58rem]
-                            ${
-                              isActive
-                                ? "bg-[#00B0F1]/10"
-                                : "bg-slate-100"
+                            ${isActive
+                              ? "bg-[#00B0F1]/10"
+                              : "bg-slate-100"
                             }
                           `}
                         >
@@ -1742,9 +1738,9 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                           onClick={() =>
                             setBlingFilter(
                               tag.id as
-                                | "all"
-                                | "mapped"
-                                | "unmapped",
+                              | "all"
+                              | "mapped"
+                              | "unmapped",
                             )
                           }
                           className={`
@@ -1754,14 +1750,13 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                             px-2.5 py-1
                             text-[0.68rem] font-semibold
                             transition
-                            ${
-                              isActive
-                                ? `
+                            ${isActive
+                              ? `
                                   border-[#00B0F1]/40
                                   bg-[#00B0F1]/10
                                   text-[#008FC7]
                                 `
-                                : `
+                              : `
                                   border-slate-200
                                   bg-white
                                   text-slate-500
@@ -1802,22 +1797,21 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                         p-3
                         text-left
                         transition-all duration-200
-                        ${
-                          isMapped
-                            ? `
+                        ${isMapped
+                          ? `
                               cursor-not-allowed
                               border-slate-200
                               bg-slate-50
                               opacity-70
                             `
-                            : isSelected
-                              ? `
+                          : isSelected
+                            ? `
                                 cursor-pointer
                                 border-[#00B0F1]/50
                                 bg-[#00B0F1]/[0.07]
                                 shadow-[0_10px_22px_-20px_rgba(0,176,241,0.75)]
                               `
-                              : `
+                            : `
                                 cursor-pointer
                                 border-slate-200
                                 bg-white
@@ -1931,14 +1925,14 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
 
                 {filteredBlingData.length >
                   visibleBlingCount && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setVisibleBlingCount(
-                        (current) => current + 25,
-                      )
-                    }
-                    className="
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setVisibleBlingCount(
+                          (current) => current + 25,
+                        )
+                      }
+                      className="
                       flex w-full
                       items-center justify-center gap-2
                       rounded-xl
@@ -1952,17 +1946,17 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                       hover:bg-[#00B0F1]/10
                       hover:text-[#008FC7]
                     "
-                  >
-                    <ChevronDown className="h-3.5 w-3.5" />
+                    >
+                      <ChevronDown className="h-3.5 w-3.5" />
 
-                    <span>
-                      Ver mais (
-                      {filteredBlingData.length -
-                        visibleBlingCount}{" "}
-                      restantes)
-                    </span>
-                  </button>
-                )}
+                      <span>
+                        Ver mais (
+                        {filteredBlingData.length -
+                          visibleBlingCount}{" "}
+                        restantes)
+                      </span>
+                    </button>
+                  )}
 
                 {filteredBlingData.length === 0 && (
                   <div className="flex min-h-48 flex-col items-center justify-center text-center">
@@ -2084,48 +2078,47 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
 
               {(entity === "produtos" ||
                 entity === "formas_pagamento") && (
-                <div className="mb-4 flex flex-wrap gap-1.5 rounded-xl border border-slate-200 bg-slate-50/80 p-2.5">
-                  {[
-                    {
-                      id: "all",
-                      label: "Todos",
-                      count: cigamCounts.all,
-                    },
-                    {
-                      id: "unmapped",
-                      label: "Não associados",
-                      count: cigamCounts.unmapped,
-                    },
-                    {
-                      id: "mapped",
-                      label: "Associados",
-                      count: cigamCounts.mapped,
-                    },
-                  ].map((tag) => {
-                    const isActive =
-                      cigamFilter === tag.id;
+                  <div className="mb-4 flex flex-wrap gap-1.5 rounded-xl border border-slate-200 bg-slate-50/80 p-2.5">
+                    {[
+                      {
+                        id: "all",
+                        label: "Todos",
+                        count: cigamCounts.all,
+                      },
+                      {
+                        id: "unmapped",
+                        label: "Não associados",
+                        count: cigamCounts.unmapped,
+                      },
+                      {
+                        id: "mapped",
+                        label: "Associados",
+                        count: cigamCounts.mapped,
+                      },
+                    ].map((tag) => {
+                      const isActive =
+                        cigamFilter === tag.id;
 
-                    return (
-                      <button
-                        key={tag.id}
-                        type="button"
-                        onClick={() =>
-                          setCigamFilter(
-                            tag.id as
+                      return (
+                        <button
+                          key={tag.id}
+                          type="button"
+                          onClick={() =>
+                            setCigamFilter(
+                              tag.id as
                               | "all"
                               | "mapped"
                               | "unmapped",
-                          )
-                        }
-                        className={`
+                            )
+                          }
+                          className={`
                           inline-flex items-center gap-1.5
                           rounded-full
                           border
                           px-2.5 py-1
                           text-[0.68rem] font-semibold
                           transition
-                          ${
-                            isActive
+                          ${isActive
                               ? `
                                 border-[#00B0F1]/40
                                 bg-[#00B0F1]/10
@@ -2138,19 +2131,19 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                                 hover:border-slate-300
                                 hover:text-slate-800
                               `
-                          }
+                            }
                         `}
-                      >
-                        <span>{tag.label}</span>
+                        >
+                          <span>{tag.label}</span>
 
-                        <span className="rounded-full bg-white/80 px-1.5 py-0.5 text-[0.58rem]">
-                          {tag.count ?? 0}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+                          <span className="rounded-full bg-white/80 px-1.5 py-0.5 text-[0.58rem]">
+                            {tag.count ?? 0}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
 
               <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
                 {displayedCigamData.map((item) => {
@@ -2177,14 +2170,13 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                         p-3
                         text-left
                         transition-all duration-200
-                        ${
-                          isSelected
-                            ? `
+                        ${isSelected
+                          ? `
                               border-[#00B0F1]/50
                               bg-[#00B0F1]/[0.07]
                               shadow-[0_10px_22px_-20px_rgba(0,176,241,0.75)]
                             `
-                            : `
+                          : `
                               border-slate-200
                               bg-white
                               hover:-translate-y-0.5
@@ -2283,14 +2275,14 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
 
                 {filteredCigamData.length >
                   visibleCigamCount && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setVisibleCigamCount(
-                        (current) => current + 25,
-                      )
-                    }
-                    className="
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setVisibleCigamCount(
+                          (current) => current + 25,
+                        )
+                      }
+                      className="
                       flex w-full
                       items-center justify-center gap-2
                       rounded-xl
@@ -2304,17 +2296,17 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                       hover:bg-[#00B0F1]/10
                       hover:text-[#008FC7]
                     "
-                  >
-                    <ChevronDown className="h-3.5 w-3.5" />
+                    >
+                      <ChevronDown className="h-3.5 w-3.5" />
 
-                    <span>
-                      Ver mais (
-                      {filteredCigamData.length -
-                        visibleCigamCount}{" "}
-                      restantes)
-                    </span>
-                  </button>
-                )}
+                      <span>
+                        Ver mais (
+                        {filteredCigamData.length -
+                          visibleCigamCount}{" "}
+                        restantes)
+                      </span>
+                    </button>
+                  )}
 
                 {filteredCigamData.length === 0 && (
                   <div className="flex min-h-48 flex-col items-center justify-center text-center">
@@ -2370,13 +2362,12 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                 rounded-2xl
                 border
                 p-4
-                ${
-                  selectedBlingItem
-                    ? `
+                ${selectedBlingItem
+                  ? `
                       border-amber-200
                       bg-amber-50/70
                     `
-                    : `
+                  : `
                       border-slate-200
                       bg-white/80
                     `
@@ -2420,13 +2411,12 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                 rounded-2xl
                 border
                 p-4
-                ${
-                  selectedCigamItem
-                    ? `
+                ${selectedCigamItem
+                  ? `
                       border-[#00B0F1]/25
                       bg-[#00B0F1]/[0.06]
                     `
-                    : `
+                  : `
                       border-slate-200
                       bg-white/80
                     `
@@ -2449,6 +2439,19 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                   : "Selecione um registro na tabela CIGAM"}
               </p>
             </div>
+          </div>
+          <div className='flex justify-center items-center gap-4 px-4'>
+            <img
+              src={logoBling}
+              alt="Logo Bling"
+              className="h-9 w-auto object-contain"
+            />
+
+            <img
+              src={logoCigam}
+              alt="Logo ERP CIGAM"
+              className="h-9 w-auto object-contain"
+            />
           </div>
 
           <button
@@ -2670,8 +2673,8 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                   {Math.min(
                     mappings.length,
                     (mappingsPage - 1) *
-                      itemsPerPage +
-                      1,
+                    itemsPerPage +
+                    1,
                   )}
                 </span>{" "}
                 a{" "}
@@ -2725,15 +2728,14 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                           border
                           text-xs font-semibold
                           transition
-                          ${
-                            mappingsPage === pageNumber
-                              ? `
+                          ${mappingsPage === pageNumber
+                            ? `
                                 border-[#00B0F1]
                                 bg-[#00B0F1]
                                 text-white
                                 shadow-sm
                               `
-                              : `
+                            : `
                                 border-slate-200
                                 bg-white
                                 text-slate-600
@@ -2751,7 +2753,7 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                   if (
                     pageNumber === 2 ||
                     pageNumber ===
-                      totalMappingsPages - 1
+                    totalMappingsPages - 1
                   ) {
                     return (
                       <span
@@ -2830,14 +2832,13 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                     px-2.5 py-1
                     text-[0.62rem] font-bold
                     uppercase tracking-[0.1em]
-                    ${
-                      modalSource === "bling"
-                        ? `
+                    ${modalSource === "bling"
+                      ? `
                           border-amber-200
                           bg-amber-50
                           text-amber-700
                         `
-                        : `
+                      : `
                           border-[#00B0F1]/20
                           bg-[#00B0F1]/10
                           text-[#008FC7]
@@ -3072,13 +3073,12 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                         rounded-xl
                         border
                         p-3.5
-                        ${
-                          itemDetails.ativo
-                            ? `
+                        ${itemDetails.ativo
+                          ? `
                               border-emerald-200
                               bg-emerald-50/70
                             `
-                            : `
+                          : `
                               border-red-200
                               bg-red-50/70
                             `
@@ -3090,11 +3090,10 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                       </span>
 
                       <p
-                        className={`mt-1 text-sm font-semibold ${
-                          itemDetails.ativo
+                        className={`mt-1 text-sm font-semibold ${itemDetails.ativo
                             ? "text-emerald-700"
                             : "text-red-600"
-                        }`}
+                          }`}
                       >
                         {itemDetails.ativo
                           ? "Ativo"
@@ -3123,7 +3122,7 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                     {itemDetails.fornecedor_precoCusto !==
                       undefined &&
                       itemDetails.fornecedor_precoCusto !==
-                        null && (
+                      null && (
                         <p className="mt-1 text-xs text-slate-500">
                           Custo:{" "}
                           {new Intl.NumberFormat("pt-BR", {
@@ -3204,20 +3203,19 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                   items-center justify-center
                   rounded-2xl
                   border
-                  ${
-                    alertConfig.type === "success"
-                      ? `
+                  ${alertConfig.type === "success"
+                    ? `
                         border-emerald-200
                         bg-emerald-50
                         text-emerald-600
                       `
-                      : alertConfig.type === "error"
-                        ? `
+                    : alertConfig.type === "error"
+                      ? `
                           border-red-200
                           bg-red-50
                           text-red-500
                         `
-                        : `
+                      : `
                           border-[#00B0F1]/20
                           bg-[#00B0F1]/10
                           text-[#008FC7]
@@ -3263,12 +3261,11 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                   shadow-sm
                   transition
                   hover:-translate-y-0.5
-                  ${
-                    alertConfig.type === "success"
-                      ? "bg-emerald-600 hover:bg-emerald-500"
-                      : alertConfig.type === "error"
-                        ? "bg-red-600 hover:bg-red-500"
-                        : "bg-[#008FC7] hover:bg-[#00B0F1]"
+                  ${alertConfig.type === "success"
+                    ? "bg-emerald-600 hover:bg-emerald-500"
+                    : alertConfig.type === "error"
+                      ? "bg-red-600 hover:bg-red-500"
+                      : "bg-[#008FC7] hover:bg-[#00B0F1]"
                   }
                 `}
               >
