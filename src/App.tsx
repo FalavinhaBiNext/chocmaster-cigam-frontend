@@ -1,7 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
+import { Routes, Route } from "react-router-dom";
 import { DeParaSection } from "./components/DeParaSection";
 import { EventsSection } from "./components/EventsSection";
 import { ConfiguracoesSection } from "./components/ConfiguracoesSection";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import { LoginPage } from "./pages/LoginPage";
+import { RegisterPage } from "./pages/RegisterPage";
+import { useAuth } from "./contexts/AuthContext";
 import {
   Users,
   ShoppingBag,
@@ -14,6 +19,7 @@ import {
   X,
   MoonIcon,
   Settings,
+  LogOut,
 } from "lucide-react";
 
 const API_BASE_URL = "https://api-chocmaster.falavinhanext.tec.br/api/v1";
@@ -73,6 +79,7 @@ interface MappingStatus {
 }
 
 export default function App() {
+  const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>("clientes");
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
@@ -375,6 +382,20 @@ export default function App() {
                 setSyncLogs((prev) => [...prev, data.message]);
               } else if (data.type === "error") {
                 setSyncLogs((prev) => [...prev, `[ERRO] ${data.message}`]);
+              } else if (data.type === "auth_required") {
+                setSyncLogs((prev) => [
+                  ...prev,
+                  `[AUTH] ${data.message}`,
+                ]);
+                setError(data.message);
+                if (data.authUrl) {
+                  setSyncLogs((prev) => [
+                    ...prev,
+                    `[AUTH] Clique no link para autenticar novamente: ${data.authUrl}`,
+                  ]);
+                  // Abre a URL de autenticação em nova aba
+                  window.open(data.authUrl, "_blank");
+                }
               }
             } catch (e) {
               // Ignore invalid JSON
@@ -500,26 +521,31 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      {/* Header */}
-      <header className="border-b border-slate-800/80 bg-slate-900/30 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#00B0F1] to-[#e3f4fa] flex items-center justify-center shadow-lg shadow-indigo-500/20">
-              <MoonIcon className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight text-[#FF8301] flex items-center space-x-2">
-                <span>CHOCMASTER | CIGAM</span>
-                <span className="text-xs text-indigo-400 bg-indigo-950 border border-indigo-500/20 px-2 py-0.5 rounded-full font-medium">
-                  Integrador CIGAM
-                </span>
-              </h1>
-              <p className="text-xs text-white/80 italic">
-                Gerenciador de Mapeamentos De-Para de Integracao
-              </p>
-            </div>
-          </div>
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/cadastro" element={<RegisterPage />} />
+      <Route path="/*" element={
+        <ProtectedRoute>
+          <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+            {/* Header */}
+            <header className="border-b border-slate-800/80 bg-slate-900/30 backdrop-blur-md sticky top-0 z-50">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#00B0F1] to-[#e3f4fa] flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <MoonIcon className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-bold tracking-tight text-[#FF8301] flex items-center space-x-2">
+                      <span>CHOCMASTER | CIGAM</span>
+                      <span className="text-xs text-indigo-400 bg-indigo-950 border border-indigo-500/20 px-2 py-0.5 rounded-full font-medium">
+                        Integrador CIGAM
+                      </span>
+                    </h1>
+                    <p className="text-xs text-white/80 italic">
+                      Gerenciador de Mapeamentos De-Para de Integracao
+                    </p>
+                  </div>
+                </div>
           <div className="flex items-center space-x-4">
             {/* Seletor de Ambiente CIGAM */}
             <div className="flex items-center bg-slate-905 border border-slate-800 rounded-xl p-1 shrink-0">
@@ -565,6 +591,17 @@ export default function App() {
             >
               <RefreshCw className="w-4 h-4" />
             </button>
+
+            <div className="flex items-center gap-2 pl-2 border-l border-slate-800">
+              <span className="text-xs text-slate-400">{user?.nome}</span>
+              <button
+                onClick={logout}
+                className="p-2 bg-slate-800 hover:bg-red-950/30 hover:border-red-500/30 hover:text-red-400 border border-slate-700 rounded-xl text-slate-300 transition duration-200 cursor-pointer"
+                title="Sair"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -872,5 +909,8 @@ export default function App() {
         <p>&copy; 2026 Chocmaster. Todos os direitos reservados.</p>
       </footer>
     </div>
+      </ProtectedRoute>
+      } />
+    </Routes>
   );
 }

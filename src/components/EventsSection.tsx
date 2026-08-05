@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, FileText, ShoppingBag, Truck, User, RefreshCw, ShieldAlert } from 'lucide-react';
+import { Activity, FileText, ShoppingBag, Truck, User, RefreshCw, ShieldAlert, CheckCircle2, XCircle } from 'lucide-react';
 
 interface EventItem {
   id: string;
@@ -9,6 +9,8 @@ interface EventItem {
   numero_pedido: number;
   numero_loja: string;
   total_pedido: number;
+  cigam_sincronizado: boolean;
+  cigam_pedido_id: string | null;
   created_at: string;
 }
 
@@ -190,9 +192,22 @@ export const EventsSection: React.FC = () => {
                   }`}
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-800 border border-slate-700 text-slate-300 rounded-md">
-                      {evt.event}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-800 border border-slate-700 text-slate-300 rounded-md">
+                        {evt.event}
+                      </span>
+                      {evt.cigam_sincronizado ? (
+                        <span className="flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 rounded-md">
+                          <CheckCircle2 className="w-2.5 h-2.5" />
+                          CIGAM
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 bg-red-950/40 border border-red-500/30 text-red-400 rounded-md">
+                          <XCircle className="w-2.5 h-2.5" />
+                          CIGAM
+                        </span>
+                      )}
+                    </div>
                     <span className="text-[10px] text-slate-500">{formatDate(evt.created_at)}</span>
                   </div>
                   <h5 className="font-semibold text-sm text-slate-200">Pedido #{evt.numero_pedido}</h5>
