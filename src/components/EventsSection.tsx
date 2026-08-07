@@ -12,8 +12,10 @@ import {
   CheckCircle2,
   FileText,
   RefreshCw,
+  RotateCcw,
   ShieldAlert,
   ShoppingBag,
+  Trash2,
   Truck,
   User,
   XCircle,
@@ -132,6 +134,14 @@ export const EventsSection: FC = () => {
   const [loadingDetail, setLoadingDetail] = useState(false);
 
   const [detailError, setDetailError] = useState<
+    string | null
+  >(null);
+
+  const [retryingEventId, setRetryingEventId] = useState<
+    string | null
+  >(null);
+
+  const [deletingEventId, setDeletingEventId] = useState<
     string | null
   >(null);
 
@@ -307,6 +317,104 @@ export const EventsSection: FC = () => {
       );
     } finally {
       setLoadingDetail(false);
+    }
+  };
+
+  const handleRetryCigam = async (
+    event: EventItem,
+  ) => {
+    setRetryingEventId(event.id);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/events/${event.id}/retry-cigam`,
+        {
+          method: "POST",
+          headers: authHeaders,
+        },
+      );
+
+      const result = await parseApiResponse<{ cigamPedidoId: string }>(
+        response,
+      );
+
+      if (result.success) {
+        setEvents((prev) =>
+          prev.map((e) =>
+            e.id === event.id
+              ? {
+                  ...e,
+                  cigam_sincronizado: true,
+                  cigam_pedido_id: result.data?.cigamPedidoId || null,
+                }
+              : e,
+          ),
+        );
+
+        if (selectedEvent?.id === event.id) {
+          setSelectedEvent((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  cigam_sincronizado: true,
+                  cigam_pedido_id: result.data?.cigamPedidoId || null,
+                }
+              : prev,
+          );
+        }
+      }
+    } catch (error: unknown) {
+      console.error(error);
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Falha ao sincronizar com o CIGAM.",
+      );
+    } finally {
+      setRetryingEventId(null);
+    }
+  };
+
+  const handleDeleteEvent = async (
+    event: EventItem,
+  ) => {
+    setDeletingEventId(event.id);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/events/${event.id}`,
+        {
+          method: "DELETE",
+          headers: authHeaders,
+        },
+      );
+
+      const result = await parseApiResponse<unknown>(
+        response,
+      );
+
+      if (result.success) {
+        setEvents((prev) =>
+          prev.filter((e) => e.id !== event.id),
+        );
+
+        if (selectedEvent?.id === event.id) {
+          setSelectedEvent(null);
+          setOrderDetails(null);
+          setOrderProducts([]);
+        }
+      }
+    } catch (error: unknown) {
+      console.error(error);
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Falha ao excluir o evento.",
+      );
+    } finally {
+      setDeletingEventId(null);
     }
   };
 
@@ -720,6 +828,90 @@ export const EventsSection: FC = () => {
                         <span className="shrink-0 text-[0.62rem] text-slate-400">
                           {formatDate(event.created_at)}
                         </span>
+                      </div>
+
+                      {!event.cigam_sincronizado && (
+                        <div className="mt-3">
+                          <button
+                            type="button"
+                            disabled={retryingEventId === event.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRetryCigam(event);
+                            }}
+                            className="
+                              inline-flex
+                              items-center
+                              gap-1.5
+                              rounded-xl
+                              border border-amber-300
+                              bg-amber-50
+                              px-3
+                              py-1.5
+                              text-[0.65rem]
+                              font-semibold
+                              text-amber-700
+                              transition-all
+                              duration-200
+                              hover:border-amber-400
+                              hover:bg-amber-100
+                              disabled:cursor-not-allowed
+                              disabled:opacity-50
+                            "
+                          >
+                            <RotateCcw
+                              className={`h-3 w-3 ${
+                                retryingEventId === event.id
+                                  ? "animate-spin"
+                                  : ""
+                              }`}
+                            />
+                            {retryingEventId === event.id
+                              ? "Sincronizando..."
+                              : "Tentar novamente"}
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="mt-3">
+                        <button
+                          type="button"
+                          disabled={deletingEventId === event.id}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteEvent(event);
+                          }}
+                          className="
+                            inline-flex
+                            items-center
+                            gap-1.5
+                            rounded-xl
+                            border border-red-200
+                            bg-red-50
+                            px-3
+                            py-1.5
+                            text-[0.65rem]
+                            font-semibold
+                            text-red-600
+                            transition-all
+                            duration-200
+                            hover:border-red-300
+                            hover:bg-red-100
+                            disabled:cursor-not-allowed
+                            disabled:opacity-50
+                          "
+                        >
+                          <Trash2
+                            className={`h-3 w-3 ${
+                              deletingEventId === event.id
+                                ? "animate-spin"
+                                : ""
+                            }`}
+                          />
+                          {deletingEventId === event.id
+                            ? "Excluindo..."
+                            : "Excluir"}
+                        </button>
                       </div>
 
                       <div className="mt-4">
