@@ -579,47 +579,77 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
 
     setIsSyncingCigam(true);
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 minutos
-
-      const response = await fetch(`https://api-chocmaster.falavinhanext.tec.br/api/v1/cigam/sync/${endpoint}`, {
+      // 1. Dispara o sync (retorna imediatamente com jobId)
+      const startResponse = await fetch(`https://api-chocmaster.falavinhanext.tec.br/api/v1/cigam/sync/${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({}),
-        signal: controller.signal,
       });
 
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.message || `Falha ao sincronizar ${entityLabel} do CIGAM.`);
+      if (!startResponse.ok) {
+        const errData = await startResponse.json().catch(() => ({}));
+        throw new Error(errData.message || `Falha ao iniciar sincronização de ${entityLabel} do CIGAM.`);
       }
 
-      const resData = await response.json();
-      const extractionErrors = resData.data?.errors || [];
-      if (extractionErrors.length > 0) {
-        throw new Error(extractionErrors.join('\n'));
+      const startData = await startResponse.json();
+      const jobId = startData.data?.jobId;
+
+      if (!jobId) {
+        throw new Error('Resposta inválida do servidor: jobId não encontrado.');
       }
 
-      showAlert(
-        'Sincronização CIGAM',
-        `A sincronização de ${entityLabel} foi finalizada com sucesso!\n\n• Total encontrado: ${resData.data?.total || 0}\n• Novos registros: ${resData.data?.created || 0}\n• Registros atualizados: ${resData.data?.updated || 0}`,
-        'success'
-      );
+      // 2. Polling do status até completar (máximo 15 minutos)
+      const maxAttempts = 90; // 90 x 10s = 15 minutos
+      const pollInterval = 10000; // 10 segundos
 
-      if (onRefresh) {
-        await onRefresh();
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, pollInterval));
+
+        const statusResponse = await fetch(`https://api-chocmaster.falavinhanext.tec.br/api/v1/cigam/sync/status/${jobId}`, {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+
+        if (!statusResponse.ok) {
+          continue; // Tenta novamente
+        }
+
+        const statusData = await statusResponse.json();
+        const job = statusData.data;
+
+        if (job?.status === 'completed') {
+          const result = job.result;
+          const extractionErrors = result?.errors || [];
+          if (extractionErrors.length > 0) {
+            throw new Error(extractionErrors.join('\n'));
+          }
+
+          showAlert(
+            'Sincronização CIGAM',
+            `A sincronização de ${entityLabel} foi finalizada com sucesso!\n\n• Total encontrado: ${result?.total || 0}\n• Novos registros: ${result?.created || 0}\n• Registros atualizados: ${result?.updated || 0}`,
+            'success'
+          );
+
+          if (onRefresh) {
+            await onRefresh();
+          }
+          return;
+        }
+
+        if (job?.status === 'failed') {
+          throw new Error(job.error || `Falha na sincronização de ${entityLabel} do CIGAM.`);
+        }
+        // status === 'running' → continua polling
       }
+
+      throw new Error(`A sincronização de ${entityLabel} do CIGAM está demorando mais de 15 minutos. Verifique o console do backend.`);
     } catch (error: any) {
       console.error(error);
-      const message = error.name === 'AbortError'
-        ? `A sincronização de ${entityLabel} do CIGAM demorou mais de 10 minutos e foi cancelada. Verifique se a API CIGAM está respondendo.`
-        : error.message || `Ocorreu um erro ao sincronizar ${entityLabel} do CIGAM.`;
-      showAlert('Erro de Sincronização', message, 'error');
+      showAlert('Erro de Sincronização', error.message || `Ocorreu um erro ao sincronizar ${entityLabel} do CIGAM.`, 'error');
     } finally {
       setIsSyncingCigam(false);
     }
@@ -3185,100 +3215,63 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
         </div>
       )}
 
-      {/* Modal de alerta */}
+      {/* Toast de alerta */}
       {alertConfig?.show && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/65 p-4 backdrop-blur-sm">
-          <div
-            className="absolute inset-0"
-            onClick={() => setAlertConfig(null)}
-          />
-
+        <div className="fixed right-4 top-4 z-[100] w-full max-w-sm animate-slideIn">
           <div
             className="
               relative
-              w-full max-w-md
               overflow-hidden
-              rounded-[24px]
-              border border-white/70
+              rounded-2xl
+              border
               bg-white
-              p-6
-              shadow-[0_35px_100px_-30px_rgba(2,6,23,0.85)]
+              p-4
+              shadow-[0_20px_60px_-15px_rgba(2,6,23,0.45)]
+              ${alertConfig.type === 'success'
+                ? 'border-emerald-200'
+                : alertConfig.type === 'error'
+                  ? 'border-red-200'
+                  : 'border-[#00B0F1]/30'
+              }
             "
           >
-            <div className="flex items-start gap-4">
+            <div className="flex items-start gap-3">
               <div
                 className={`
-                  flex h-12 w-12 shrink-0
+                  flex h-10 w-10 shrink-0
                   items-center justify-center
-                  rounded-2xl
+                  rounded-xl
                   border
                   ${alertConfig.type === "success"
-                    ? `
-                        border-emerald-200
-                        bg-emerald-50
-                        text-emerald-600
-                      `
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-600'
                     : alertConfig.type === "error"
-                      ? `
-                          border-red-200
-                          bg-red-50
-                          text-red-500
-                        `
-                      : `
-                          border-[#00B0F1]/20
-                          bg-[#00B0F1]/10
-                          text-[#008FC7]
-                        `
+                      ? 'border-red-200 bg-red-50 text-red-500'
+                      : 'border-[#00B0F1]/20 bg-[#00B0F1]/10 text-[#008FC7]'
                   }
                 `}
               >
-                {alertConfig.type === "success" && (
-                  <CheckCircle className="h-6 w-6" />
-                )}
-
-                {alertConfig.type === "error" && (
-                  <AlertCircle className="h-6 w-6" />
-                )}
-
-                {alertConfig.type === "info" && (
-                  <Sparkles className="h-6 w-6" />
-                )}
+                {alertConfig.type === "success" && <CheckCircle className="h-5 w-5" />}
+                {alertConfig.type === "error" && <AlertCircle className="h-5 w-5" />}
+                {alertConfig.type === "info" && <Sparkles className="h-5 w-5" />}
               </div>
 
               <div className="min-w-0 flex-1">
-                <h3 className="text-base font-bold text-slate-900">
+                <h3 className="text-sm font-bold text-slate-900">
                   {alertConfig.title}
                 </h3>
-
-                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-500">
+                <p className="mt-1 whitespace-pre-line text-xs leading-5 text-slate-500">
                   {alertConfig.message}
                 </p>
               </div>
-            </div>
 
-            <div className="mt-6 flex justify-end">
               <button
                 type="button"
                 onClick={() => setAlertConfig(null)}
-                className={`
-                  inline-flex h-10
-                  items-center justify-center
-                  rounded-xl
-                  px-5
-                  text-xs font-semibold
-                  text-white
-                  shadow-sm
-                  transition
-                  hover:-translate-y-0.5
-                  ${alertConfig.type === "success"
-                    ? "bg-emerald-600 hover:bg-emerald-500"
-                    : alertConfig.type === "error"
-                      ? "bg-red-600 hover:bg-red-500"
-                      : "bg-[#008FC7] hover:bg-[#00B0F1]"
-                  }
-                `}
+                className="shrink-0 rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
               >
-                Entendido
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
           </div>
