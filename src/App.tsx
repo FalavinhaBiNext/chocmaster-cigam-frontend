@@ -218,14 +218,14 @@ export default function App() {
 
       setCigamClientes(
         (resCigamCli.data || []).map((c: any) => ({
-          id: c.codigo_cigam || c.id_cigam || c.id,
+          id: (c.codigo_cigam || c.id_cigam || c.id || '').toString().trim(),
           name: c.nome || c.nome_completo || c.NomeCompleto,
           extra: c.documento || undefined,
         })),
       );
       setCigamProdutos(
         (resCigamProd.data || []).map((p: any) => ({
-          id: p.codigo_cigam || p.id_cigam || p.id,
+          id: (p.codigo_cigam || p.id_cigam || p.id || '').toString().trim(),
           name: p.nome,
           codigo: p.codigo,
           temVariacoes: p.temVariacoes,
@@ -251,13 +251,13 @@ export default function App() {
       );
       setCigamFormasPagamento(
         (resCigamPay.data || []).map((f: any) => ({
-          id: f.codigo_cigam || f.id_cigam || f.id,
+          id: (f.codigo_cigam || f.id_cigam || f.id || '').toString().trim(),
           name: f.descricao,
         })),
       );
       setCigamTransportadoras(
         (resCigamTrans.data || []).map((t: any) => ({
-          id: t.codigo_cigam || t.id_cigam || t.id,
+          id: (t.codigo_cigam || t.id_cigam || t.id || '').toString().trim(),
           name: t.nome || t.fantasia,
         })),
       );

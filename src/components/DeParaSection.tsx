@@ -2616,7 +2616,7 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                   const cigamItemName =
                     cigamData.find(
                       (item) =>
-                        item.id === mapping.id_cigam,
+                        item.id.trim() === mapping.id_cigam.trim(),
                     )?.name || "Cadastro não localizado";
 
                   return (
