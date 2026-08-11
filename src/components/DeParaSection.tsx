@@ -579,6 +579,9 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
 
     setIsSyncingCigam(true);
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 minutos
+
       const response = await fetch(`https://api-chocmaster.falavinhanext.tec.br/api/v1/cigam/sync/${endpoint}`, {
         method: 'POST',
         headers: {
@@ -586,7 +589,10 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({}),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
@@ -610,7 +616,10 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
       }
     } catch (error: any) {
       console.error(error);
-      showAlert('Erro de Sincronização', error.message || `Ocorreu um erro ao sincronizar ${entityLabel} do CIGAM.`, 'error');
+      const message = error.name === 'AbortError'
+        ? `A sincronização de ${entityLabel} do CIGAM demorou mais de 10 minutos e foi cancelada. Verifique se a API CIGAM está respondendo.`
+        : error.message || `Ocorreu um erro ao sincronizar ${entityLabel} do CIGAM.`;
+      showAlert('Erro de Sincronização', message, 'error');
     } finally {
       setIsSyncingCigam(false);
     }
