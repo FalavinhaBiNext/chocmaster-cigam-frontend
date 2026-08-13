@@ -6,6 +6,8 @@ import { ConfiguracoesSection } from "./components/ConfiguracoesSection";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { MercadoLivreCallbackPage } from "./pages/MercadoLivreCallbackPage";
+import { MercadoLivreOrdersSection } from "./components/MercadoLivreOrdersSection";
 import { useAuth } from "./contexts/AuthContext";
 import {
   Users,
@@ -20,6 +22,7 @@ import {
   LogOut,
   AlertCircle,
   Building2,
+  Package,
 } from "lucide-react";
 
 import Logo from './assets/LogoSFundoBlack.png'
@@ -197,6 +200,7 @@ type TabType =
   | "transportadoras"
   | "eventos"
   | "unidades_negocio"
+  | "mercado_livre"
   | "configuracoes";
 
 interface BlingItem {
@@ -706,6 +710,8 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
 
       <Route path="/cadastro" element={<RegisterPage />} />
+
+      <Route path="/mercado-livre/callback" element={<MercadoLivreCallbackPage />} />
 
       <Route
         path="/*"
@@ -1546,6 +1552,35 @@ export default function App() {
 
                       <button
                         type="button"
+                        onClick={() => setActiveTab("mercado_livre")}
+                        aria-pressed={activeTab === "mercado_livre"}
+                        className={`
+                        inline-flex items-center gap-2
+                        rounded-xl
+                        px-4 py-2.5
+                        text-sm font-semibold
+                        transition-all duration-200
+                        ${activeTab === "mercado_livre"
+                            ? `
+                              bg-[#FFE600]/15
+                              text-yellow-700
+                              shadow-[inset_0_0_0_1px_rgba(255,230,0,0.3)]
+                            `
+                            : `
+                              cursor-pointer
+                              text-slate-500
+                              hover:bg-slate-100
+                              hover:text-slate-900
+                            `
+                          }
+                      `}
+                      >
+                        <Package className="h-4 w-4" />
+                        <span>Mercado Livre</span>
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={() =>
                           setActiveTab("configuracoes")
                         }
@@ -1699,6 +1734,10 @@ export default function App() {
                         authHeaders={authHeaders}
                         onRefresh={() => fetchData({ silent: true })}
                       />
+                    )}
+
+                    {activeTab === "mercado_livre" && (
+                      <MercadoLivreOrdersSection />
                     )}
 
                     {activeTab === "configuracoes" && (
