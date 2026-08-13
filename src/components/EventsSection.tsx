@@ -945,8 +945,13 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                       </div>
 
                       <div className="mt-4">
-                        <p className="text-sm font-bold text-slate-900">
+                        <p className="flex flex-wrap items-center gap-2 text-sm font-bold text-slate-900">
                           Pedido #{event.numero_pedido}
+                          {pedidosMap[String(event.pedido_id)]?.unidade_negocio && (
+                            <span className="inline-flex items-center rounded-full bg-[#00B0F1]/10 px-2 py-0.5 text-[0.6rem] font-bold text-[#008FC7]">
+                              {pedidosMap[String(event.pedido_id)].unidade_negocio}
+                            </span>
+                          )}
                         </p>
 
                         <p className="mt-1 text-xs text-slate-500">
@@ -1156,8 +1161,13 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                           )}
                         </div>
 
-                        <h3 className="mt-3 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+                        <h3 className="mt-3 flex flex-wrap items-center gap-2 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
                           Pedido #{orderDetails.codigo_curto}
+                          {orderDetails.unidade_negocio && (
+                            <span className="inline-flex items-center rounded-full bg-[#00B0F1]/10 px-2 py-0.5 text-xs font-bold text-[#008FC7]">
+                              {orderDetails.unidade_negocio}
+                            </span>
+                          )}
                         </h3>
 
                         <p className="mt-1 text-xs text-slate-500">
@@ -1473,18 +1483,6 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                                     orderDetails.valor_frete,
                                   ),
                                 )}
-                              </span>
-                            </div>
-                          )}
-
-                          {orderDetails.unidade_negocio && (
-                            <div className="flex items-center justify-between gap-4 text-sm">
-                              <span className="text-slate-500">
-                                Unidade
-                              </span>
-
-                              <span className="inline-flex items-center rounded-full bg-[#00B0F1]/10 px-2 py-0.5 text-xs font-bold text-[#008FC7]">
-                                {orderDetails.unidade_negocio}
                               </span>
                             </div>
                           )}
