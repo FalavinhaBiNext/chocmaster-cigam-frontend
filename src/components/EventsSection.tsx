@@ -52,6 +52,8 @@ interface OrderDetail {
   desconto: number;
   valor_frete: number;
   status_venda: string;
+  unidade_negocio: string | null;
+  data_prevista: string | null;
 }
 
 interface OrderProduct {
@@ -98,7 +100,7 @@ const parseApiResponse = async <T,>(
   return payload;
 };
 
-export const EventsSection: FC = () => {
+export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNegocioFilter }) => {
   const { token } = useAuth();
 
   const authHeaders = useMemo<HeadersInit>(
@@ -114,6 +116,7 @@ export const EventsSection: FC = () => {
   );
 
   const [events, setEvents] = useState<EventItem[]>([]);
+  const [pedidosMap, setPedidosMap] = useState<Record<string, { unidade_negocio: string | null }>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -145,26 +148,34 @@ export const EventsSection: FC = () => {
     string | null
   >(null);
 
-  const synchronizedEvents = useMemo(
+  const filteredEvents = useMemo(() => {
+    if (!unidadeNegocioFilter) return events;
+    return events.filter((event) => {
+      const pedido = pedidosMap[String(event.pedido_id)];
+      return pedido?.unidade_negocio === unidadeNegocioFilter;
+    });
+  }, [events, pedidosMap, unidadeNegocioFilter]);
+
+  const filteredSynchronizedEvents = useMemo(
     () =>
-      events.filter((event) => event.cigam_sincronizado)
+      filteredEvents.filter((event) => event.cigam_sincronizado)
         .length,
-    [events],
+    [filteredEvents],
   );
 
-  const pendingEvents = useMemo(
-    () => events.length - synchronizedEvents,
-    [events.length, synchronizedEvents],
+  const filteredPendingEvents = useMemo(
+    () => filteredEvents.length - filteredSynchronizedEvents,
+    [filteredEvents.length, filteredSynchronizedEvents],
   );
 
-  const totalEventsValue = useMemo(
+  const filteredTotalValue = useMemo(
     () =>
-      events.reduce(
+      filteredEvents.reduce(
         (total, event) =>
           total + Number(event.total_pedido || 0),
         0,
       ),
-    [events],
+    [filteredEvents],
   );
 
   const formatCurrency = (value: number) => {
@@ -195,7 +206,7 @@ export const EventsSection: FC = () => {
     setError(null);
 
     try {
-      const [eventsResponse, productsResponse] =
+      const [eventsResponse, productsResponse, pedidosResponse] =
         await Promise.all([
           fetch(`${API_BASE_URL}/events`, {
             headers: authHeaders,
@@ -203,6 +214,9 @@ export const EventsSection: FC = () => {
           fetch(`${API_BASE_URL}/produtos`, {
             headers: authHeaders,
           }),
+          fetch(`${API_BASE_URL}/pedidos`, {
+            headers: authHeaders,
+          }).catch(() => null),
         ]);
 
       const [eventsResult, productsResult] =
@@ -241,6 +255,22 @@ export const EventsSection: FC = () => {
         });
 
         setProductsMap(productNames);
+      }
+
+      // Build pedidos map for unidade_negocio filtering
+      if (pedidosResponse?.ok) {
+        try {
+          const pedidosResult = await parseApiResponse<any[]>(pedidosResponse);
+          if (pedidosResult.success && pedidosResult.data) {
+            const map: Record<string, { unidade_negocio: string | null }> = {};
+            pedidosResult.data.forEach((p: any) => {
+              map[p.id_bling] = { unidade_negocio: p.unidade_negocio || null };
+            });
+            setPedidosMap(map);
+          }
+        } catch {
+          // Ignore pedidos fetch errors
+        }
       }
     } catch (error: unknown) {
       console.error(error);
@@ -544,7 +574,7 @@ export const EventsSection: FC = () => {
               </p>
 
               <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
-                {events.length}
+                {filteredEvents.length}
               </p>
             </div>
 
@@ -570,7 +600,7 @@ export const EventsSection: FC = () => {
               </p>
 
               <p className="mt-2 text-2xl font-bold tracking-tight text-emerald-700">
-                {synchronizedEvents}
+                {filteredSynchronizedEvents}
               </p>
             </div>
 
@@ -596,7 +626,7 @@ export const EventsSection: FC = () => {
               </p>
 
               <p className="mt-2 text-2xl font-bold tracking-tight text-amber-700">
-                {pendingEvents}
+                {filteredPendingEvents}
               </p>
             </div>
 
@@ -622,7 +652,7 @@ export const EventsSection: FC = () => {
               </p>
 
               <p className="mt-2 truncate text-xl font-bold tracking-tight text-slate-900">
-                {formatCurrency(totalEventsValue)}
+                {formatCurrency(filteredTotalValue)}
               </p>
             </div>
 
@@ -738,7 +768,7 @@ export const EventsSection: FC = () => {
               </div>
 
               <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-4 sm:p-5">
-                {events.map((event) => {
+                {filteredEvents.map((event) => {
                   const isSelected =
                     selectedEvent?.id === event.id;
 
@@ -1443,6 +1473,30 @@ export const EventsSection: FC = () => {
                                     orderDetails.valor_frete,
                                   ),
                                 )}
+                              </span>
+                            </div>
+                          )}
+
+                          {orderDetails.unidade_negocio && (
+                            <div className="flex items-center justify-between gap-4 text-sm">
+                              <span className="text-slate-500">
+                                Unidade
+                              </span>
+
+                              <span className="inline-flex items-center rounded-full bg-[#00B0F1]/10 px-2 py-0.5 text-xs font-bold text-[#008FC7]">
+                                {orderDetails.unidade_negocio}
+                              </span>
+                            </div>
+                          )}
+
+                          {orderDetails.data_prevista && (
+                            <div className="flex items-center justify-between gap-4 text-sm">
+                              <span className="text-slate-500">
+                                Data Prevista
+                              </span>
+
+                              <span className="font-semibold text-slate-700">
+                                {new Date(orderDetails.data_prevista + 'T00:00:00').toLocaleDateString('pt-BR')}
                               </span>
                             </div>
                           )}

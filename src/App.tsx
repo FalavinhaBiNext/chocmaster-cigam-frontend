@@ -12,7 +12,6 @@ import {
   ShoppingBag,
   CreditCard,
   Truck,
-  RefreshCw,
   CheckCircle2,
   Activity,
   Terminal,
@@ -20,6 +19,7 @@ import {
   Settings,
   LogOut,
   AlertCircle,
+  Building2,
 } from "lucide-react";
 
 import Logo from './assets/LogoSFundoBlack.png'
@@ -28,12 +28,175 @@ import logoBling from './assets/LogoBlingBlack.png'
 
 const API_BASE_URL = "https://api-chocmaster.falavinhanext.tec.br/api/v1";
 
+function UnidadesNegocioSection({
+  data,
+  API_BASE_URL,
+  authHeaders,
+  onRefresh,
+}: {
+  data: any[];
+  API_BASE_URL: string;
+  authHeaders: () => Record<string, string>;
+  onRefresh: () => Promise<void>;
+}) {
+  const [isCreating, setIsCreating] = useState(false);
+  const [newCompanyId, setNewCompanyId] = useState('');
+  const [newUnidade, setNewUnidade] = useState('');
+  const [newNome, setNewNome] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+
+  const handleCreate = async () => {
+    if (!newCompanyId.trim() || !newUnidade.trim() || !newNome.trim()) {
+      setError('Todos os campos são obrigatórios.');
+      return;
+    }
+    setIsCreating(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/depara/unidades-negocio`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          company_id_bling: newCompanyId.trim(),
+          unidade_negocio: newUnidade.trim(),
+          nome: newNome.trim(),
+        }),
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || 'Erro ao criar mapeamento');
+      }
+      setNewCompanyId('');
+      setNewUnidade('');
+      setNewNome('');
+      await onRefresh();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    setDeleting(id);
+    try {
+      const res = await fetch(`${API_BASE_URL}/depara/unidades-negocio/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      if (!res.ok) throw new Error('Erro ao excluir mapeamento');
+      await onRefresh();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-lg font-bold text-slate-900">Unidades de Negócio</h2>
+        <p className="text-sm text-slate-500">Mapeie o companyId da Bling para a unidade de negócio do CIGAM</p>
+      </div>
+
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
+
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <h3 className="mb-3 text-sm font-semibold text-slate-700">Novo Mapeamento</h3>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <input
+            type="text"
+            placeholder="Company ID (Bling)"
+            value={newCompanyId}
+            onChange={(e) => setNewCompanyId(e.target.value)}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-[#00B0F1] focus:outline-none focus:ring-2 focus:ring-[#00B0F1]/20"
+          />
+          <input
+            type="text"
+            placeholder="Unidade (CIGAM)"
+            value={newUnidade}
+            onChange={(e) => setNewUnidade(e.target.value)}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-[#00B0F1] focus:outline-none focus:ring-2 focus:ring-[#00B0F1]/20"
+          />
+          <input
+            type="text"
+            placeholder="Nome descritivo"
+            value={newNome}
+            onChange={(e) => setNewNome(e.target.value)}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:border-[#00B0F1] focus:outline-none focus:ring-2 focus:ring-[#00B0F1]/20"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={handleCreate}
+          disabled={isCreating}
+          className="mt-3 inline-flex items-center gap-2 rounded-xl bg-[#00B0F1] px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#008FC7] disabled:opacity-50"
+        >
+          {isCreating ? 'Salvando...' : 'Salvar'}
+        </button>
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-slate-200">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <tr>
+              <th className="px-4 py-3">Company ID (Bling)</th>
+              <th className="px-4 py-3">Unidade (CIGAM)</th>
+              <th className="px-4 py-3">Nome</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3 text-right">Ações</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {data.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
+                  Nenhum mapeamento cadastrado
+                </td>
+              </tr>
+            )}
+            {data.map((item: any) => (
+              <tr key={item.id} className="transition hover:bg-slate-50">
+                <td className="px-4 py-3 font-mono text-xs text-slate-700">{item.company_id_bling}</td>
+                <td className="px-4 py-3 font-semibold text-slate-900">{item.unidade_negocio}</td>
+                <td className="px-4 py-3 text-slate-600">{item.nome}</td>
+                <td className="px-4 py-3">
+                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${item.ativo ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                    {item.ativo ? 'Ativo' : 'Inativo'}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(item.id)}
+                    disabled={deleting === item.id}
+                    className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50"
+                  >
+                    {deleting === item.id ? 'Excluindo...' : 'Excluir'}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 type TabType =
   | "clientes"
   | "produtos"
   | "formas_pagamento"
   | "transportadoras"
   | "eventos"
+  | "unidades_negocio"
   | "configuracoes";
 
 interface BlingItem {
@@ -136,6 +299,10 @@ export default function App() {
     transportadoras: [],
   });
 
+  // Unidades de Negócio
+  const [unidadesNegocio, setUnidadesNegocio] = useState<any[]>([]);
+  const [unidadeNegocioFilter, setUnidadeNegocioFilter] = useState<string>('');
+
   const fetchData = useCallback(async (options?: { silent?: boolean }) => {
     if (!options?.silent) setLoading(true);
     setError(null);
@@ -154,6 +321,7 @@ export default function App() {
         resMapPay,
         resMapTrans,
         resCigamUsers,
+        resUnidadesNegocio,
       ] = await Promise.all([
         fetch(`${API_BASE_URL}/clientes`, { headers: authHeaders() }).then((r) => r.json()),
         fetch(`${API_BASE_URL}/produtos`, { headers: authHeaders() }).then((r) => r.json()),
@@ -168,6 +336,7 @@ export default function App() {
         fetch(`${API_BASE_URL}/depara/formas_pagamento`, { headers: authHeaders() }).then((r) => r.json()),
         fetch(`${API_BASE_URL}/depara/transportadoras`, { headers: authHeaders() }).then((r) => r.json()),
         fetch(`${API_BASE_URL}/cigam/usuarios/find-all`, { headers: authHeaders() }).then((r) => r.json()),
+        fetch(`${API_BASE_URL}/depara/unidades-negocio`, { headers: authHeaders() }).then((r) => r.json()).catch(() => ({ data: [] })),
       ]);
 
       setBlingClientes(
@@ -201,6 +370,7 @@ export default function App() {
           ncm: p.ncm,
           quantidade_estoque: p.quantidade_estoque,
           ativo: p.ativo,
+          unidade_negocio: p.unidade_negocio,
         })),
       );
       setBlingFormasPagamento(
@@ -275,6 +445,8 @@ export default function App() {
       if (activeUser) {
         setActiveEnv(activeUser.ambiente.toLowerCase());
       }
+
+      setUnidadesNegocio(resUnidadesNegocio.data || []);
     } catch (err: any) {
       console.error(err);
       setError(
@@ -740,6 +912,35 @@ export default function App() {
                       </button>
                     </div>
 
+                    {/* Filtro Unidade de Negócio */}
+                    {unidadesNegocio.length > 0 && (
+                      <select
+                        value={unidadeNegocioFilter}
+                        onChange={(e) => setUnidadeNegocioFilter(e.target.value)}
+                        className="
+                        shrink-0
+                        rounded-xl
+                        border border-slate-200
+                        bg-white/80
+                        px-3 py-2
+                        text-xs font-semibold
+                        text-slate-700
+                        shadow-sm
+                        focus:border-[#00B0F1]
+                          focus:outline-none
+                          focus:ring-2
+                          focus:ring-[#00B0F1]/20
+                        "
+                      >
+                        <option value="">Todas as unidades</option>
+                        {unidadesNegocio.map((u: any) => (
+                          <option key={u.id} value={u.unidade_negocio}>
+                            {u.nome} ({u.unidade_negocio})
+                          </option>
+                        ))}
+                      </select>
+                    )}
+
                     {/* Sincronizar */}
                     {/* <button
                       type="button"
@@ -781,41 +982,6 @@ export default function App() {
                           : "Sincronizar Bling"}
                       </span>
                     </button> */}
-
-                    {/* Recarregar */}
-                    <button
-                      type="button"
-                      onClick={() => fetchData()}
-                      disabled={loading}
-                      title="Recarregar dados"
-                      aria-label="Recarregar dados"
-                      className="
-                      inline-flex min-h-10 min-w-10
-                      cursor-pointer
-                      items-center justify-center
-                      rounded-xl
-                      border border-slate-200
-                      bg-white/80
-                      p-2.5
-                      text-slate-600
-                      shadow-sm
-                      transition-all duration-200
-                      hover:-translate-y-0.5
-                      hover:border-[#00B0F1]/30
-                      hover:bg-[#00B0F1]/10
-                      hover:text-[#008FC7]
-                      focus:outline-none
-                      focus:ring-4
-                      focus:ring-[#00B0F1]/15
-                      disabled:cursor-not-allowed
-                      disabled:opacity-50
-                    "
-                    >
-                      <RefreshCw
-                        className={`h-4 w-4 ${loading ? "animate-spin" : ""
-                          }`}
-                      />
-                    </button>
 
                     {/* Usuário */}
                     <div
@@ -1351,6 +1517,35 @@ export default function App() {
 
                       <button
                         type="button"
+                        onClick={() => setActiveTab("unidades_negocio")}
+                        aria-pressed={activeTab === "unidades_negocio"}
+                        className={`
+                        inline-flex items-center gap-2
+                        rounded-xl
+                        px-4 py-2.5
+                        text-sm font-semibold
+                        transition-all duration-200
+                        ${activeTab === "unidades_negocio"
+                            ? `
+                              bg-[#00B0F1]/10
+                              text-[#008FC7]
+                              shadow-[inset_0_0_0_1px_rgba(0,176,241,0.18)]
+                            `
+                            : `
+                              cursor-pointer
+                              text-slate-500
+                              hover:bg-slate-100
+                              hover:text-slate-900
+                            `
+                          }
+                      `}
+                      >
+                        <Building2 className="h-4 w-4" />
+                        <span>Unidades</span>
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={() =>
                           setActiveTab("configuracoes")
                         }
@@ -1447,6 +1642,7 @@ export default function App() {
                         onRefresh={() =>
                           fetchData({ silent: true })
                         }
+                        unidadeNegocioFilter={unidadeNegocioFilter}
                       />
                     )}
 
@@ -1493,7 +1689,16 @@ export default function App() {
                     )}
 
                     {activeTab === "eventos" && (
-                      <EventsSection />
+                      <EventsSection unidadeNegocioFilter={unidadeNegocioFilter} />
+                    )}
+
+                    {activeTab === "unidades_negocio" && (
+                      <UnidadesNegocioSection
+                        data={unidadesNegocio}
+                        API_BASE_URL={API_BASE_URL}
+                        authHeaders={authHeaders}
+                        onRefresh={() => fetchData({ silent: true })}
+                      />
                     )}
 
                     {activeTab === "configuracoes" && (

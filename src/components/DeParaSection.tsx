@@ -59,6 +59,7 @@ interface DeParaSectionProps {
   syncing?: boolean;
   logs?: string[];
   onRefresh?: () => Promise<void>;
+  unidadeNegocioFilter?: string;
 }
 
 export const DeParaSection: React.FC<DeParaSectionProps> = ({
@@ -74,6 +75,7 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
   syncing,
   logs,
   onRefresh,
+  unidadeNegocioFilter,
 }) => {
   const { token } = useAuth();
   const [searchBling, setSearchBling] = useState('');
@@ -254,6 +256,11 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
   // Filtering Bling Items
   const filteredBlingData = useMemo(() => {
     return blingData.filter((item) => {
+      // Filter by unidade_negocio for products
+      if (entity === 'produtos' && unidadeNegocioFilter && item.unidade_negocio !== unidadeNegocioFilter) {
+        return false;
+      }
+
       const matchesSearch = item.name.toLowerCase().includes(searchBling.toLowerCase()) ||
         item.id.includes(searchBling) ||
         (item.codigo && item.codigo.toLowerCase().includes(searchBling.toLowerCase()));
@@ -290,7 +297,7 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
 
       return true;
     });
-  }, [blingData, searchBling, mappedBlingIds, activeTags, blingFilter, entity]);
+  }, [blingData, searchBling, mappedBlingIds, activeTags, blingFilter, entity, unidadeNegocioFilter]);
 
   const blingCounts = useMemo(() => {
     let mapped = 0;
