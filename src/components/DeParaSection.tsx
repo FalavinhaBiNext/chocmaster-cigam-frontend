@@ -30,6 +30,7 @@ interface BlingItem {
   ncm?: string;
   quantidade_estoque?: number;
   ativo?: boolean;
+  unidade_negocio?: string;
   [key: string]: unknown;
 }
 
@@ -1778,6 +1779,11 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-semibold text-slate-900">
                             {item.name}
+                            {item.unidade_negocio && (
+                              <span className="ml-2 inline-flex items-center rounded-full bg-[#00B0F1]/10 px-1.5 py-0.5 text-[0.6rem] font-bold text-[#008FC7]">
+                                {item.unidade_negocio}
+                              </span>
+                            )}
                           </p>
 
                           <p className="mt-1 truncate text-xs text-slate-500">
@@ -2540,6 +2546,11 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                       <td className="px-5 py-4 sm:px-6">
                         <p className="text-sm font-semibold text-slate-900">
                           {blingItemName}
+                          {blingItem?.unidade_negocio && (
+                            <span className="ml-2 inline-flex items-center rounded-full bg-[#00B0F1]/10 px-1.5 py-0.5 text-[0.6rem] font-bold text-[#008FC7]">
+                              {blingItem.unidade_negocio}
+                            </span>
+                          )}
                         </p>
 
                         <p className="mt-1 font-mono text-xs text-amber-700">
