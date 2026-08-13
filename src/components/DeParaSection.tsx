@@ -193,21 +193,13 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
   // Dynamic tag counts based on text search and active tags
   const tagCounts = useMemo(() => {
     if (entity !== 'produtos') return {
-      unmapped: 0, mapped: 0, hasNcm: 0, noNcm: 0, hasPrice: 0, noPrice: 0, hasStock: 0, noStock: 0, formatS: 0, formatE: 0, formatV: 0, validSku: 0
+      unmapped: 0, mapped: 0, validSku: 0, hasNcm: 0
     };
 
     let unmappedCount = 0;
     let mappedCount = 0;
-    let hasNcm = 0;
-    let noNcm = 0;
-    let hasPrice = 0;
-    let noPrice = 0;
-    let hasStock = 0;
-    let noStock = 0;
-    let formatS = 0;
-    let formatE = 0;
-    let formatV = 0;
     let validSku = 0;
+    let hasNcm = 0;
 
     blingData.forEach(item => {
       const matchesSearch = item.name.toLowerCase().includes(searchBling.toLowerCase()) ||
@@ -220,17 +212,6 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
         else mappedCount++;
 
         if (item.ncm && item.ncm.trim() !== '') hasNcm++;
-        else noNcm++;
-
-        if (item.preco && item.preco > 0) hasPrice++;
-        else noPrice++;
-
-        if (item.quantidade_estoque && item.quantidade_estoque > 0) hasStock++;
-        else noStock++;
-
-        if (item.formato === 'S') formatS++;
-        else if (item.formato === 'E') formatE++;
-        else if (item.formato === 'V') formatV++;
 
         const isStandardSku = item.codigo ? /^\d{4}[a-zA-Z0-9]{0,2}$/.test(item.codigo) : false;
         if (isStandardSku) validSku++;
@@ -240,16 +221,8 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
     return {
       unmapped: unmappedCount,
       mapped: mappedCount,
-      hasNcm,
-      noNcm,
-      hasPrice,
-      noPrice,
-      hasStock,
-      noStock,
-      formatS,
-      formatE,
-      formatV,
-      validSku
+      validSku,
+      hasNcm
     };
   }, [blingData, entity, searchBling, mappedBlingIds]);
 
@@ -280,14 +253,6 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
           if (tag === 'unmapped' && !isUnmapped) return false;
           if (tag === 'mapped' && isUnmapped) return false;
           if (tag === 'has_ncm' && (!item.ncm || item.ncm.trim() === '')) return false;
-          if (tag === 'no_ncm' && item.ncm && item.ncm.trim() !== '') return false;
-          if (tag === 'has_price' && (!item.preco || item.preco <= 0)) return false;
-          if (tag === 'no_price' && item.preco && item.preco > 0) return false;
-          if (tag === 'has_stock' && (!item.quantidade_estoque || item.quantidade_estoque <= 0)) return false;
-          if (tag === 'no_stock' && item.quantidade_estoque && item.quantidade_estoque > 0) return false;
-          if (tag === 'format_s' && item.formato !== 'S') return false;
-          if (tag === 'format_e' && item.formato !== 'E') return false;
-          if (tag === 'format_v' && item.formato !== 'V') return false;
           if (tag === 'valid_sku') {
             const isStandardSku = item.codigo ? /^\d{4}[a-zA-Z0-9]{0,2}$/.test(item.codigo) : false;
             if (!isStandardSku) return false;
@@ -668,27 +633,8 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
       if (next.includes(tagId)) {
         next = next.filter(id => id !== tagId);
       } else {
-        // Conflitos de Associação
         if (tagId === 'unmapped') next = next.filter(id => id !== 'mapped');
         if (tagId === 'mapped') next = next.filter(id => id !== 'unmapped');
-
-        // Conflitos de NCM
-        if (tagId === 'has_ncm') next = next.filter(id => id !== 'no_ncm');
-        if (tagId === 'no_ncm') next = next.filter(id => id !== 'has_ncm');
-
-        // Conflitos de Preço
-        if (tagId === 'has_price') next = next.filter(id => id !== 'no_price');
-        if (tagId === 'no_price') next = next.filter(id => id !== 'has_price');
-
-        // Conflitos de Estoque
-        if (tagId === 'has_stock') next = next.filter(id => id !== 'no_stock');
-        if (tagId === 'no_stock') next = next.filter(id => id !== 'has_stock');
-
-        // Exclusividade de Formato
-        if (tagId === 'format_s') next = next.filter(id => id !== 'format_e' && id !== 'format_v');
-        if (tagId === 'format_e') next = next.filter(id => id !== 'format_s' && id !== 'format_v');
-        if (tagId === 'format_v') next = next.filter(id => id !== 'format_s' && id !== 'format_e');
-
         next.push(tagId);
       }
       return next;
@@ -1661,46 +1607,6 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                       id: "has_ncm",
                       label: "Possui NCM",
                       count: tagCounts.hasNcm,
-                    },
-                    {
-                      id: "no_ncm",
-                      label: "Sem NCM",
-                      count: tagCounts.noNcm,
-                    },
-                    {
-                      id: "has_price",
-                      label: "Possui preço",
-                      count: tagCounts.hasPrice,
-                    },
-                    {
-                      id: "no_price",
-                      label: "Sem preço",
-                      count: tagCounts.noPrice,
-                    },
-                    {
-                      id: "has_stock",
-                      label: "Com estoque",
-                      count: tagCounts.hasStock,
-                    },
-                    {
-                      id: "no_stock",
-                      label: "Sem estoque",
-                      count: tagCounts.noStock,
-                    },
-                    {
-                      id: "format_s",
-                      label: "Simples",
-                      count: tagCounts.formatS,
-                    },
-                    {
-                      id: "format_e",
-                      label: "Estrutura",
-                      count: tagCounts.formatE,
-                    },
-                    {
-                      id: "format_v",
-                      label: "Variações",
-                      count: tagCounts.formatV,
                     },
                   ].map((tag) => {
                     const isActive = activeTags.includes(tag.id);
