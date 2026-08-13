@@ -19,6 +19,7 @@ import {
   Settings,
   Trash2,
   User,
+  Zap,
 } from "lucide-react";
 
 import { useAuth } from "../contexts/AuthContext";
@@ -105,6 +106,8 @@ export const ConfiguracoesSection = ({
 
   const [usuarios, setUsuarios] = useState<UsuarioCigam[]>([]);
   const [loading, setLoading] = useState(true);
+  const [envioAutomatico, setEnvioAutomatico] = useState(true);
+  const [togglingEnvio, setTogglingEnvio] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -128,12 +131,16 @@ export const ConfiguracoesSection = ({
     setError(null);
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/cigam/usuarios/find-all`,
-        {
-          headers: authHeaders,
-        },
-      );
+      const [response, configResponse] = await Promise.all([
+        fetch(
+          `${API_BASE_URL}/cigam/usuarios/find-all`,
+          { headers: authHeaders },
+        ),
+        fetch(
+          `${API_BASE_URL}/configuracoes/envio-automatico`,
+          { headers: authHeaders },
+        ).catch(() => null),
+      ]);
 
       if (!response.ok) {
         throw new Error(
@@ -144,6 +151,11 @@ export const ConfiguracoesSection = ({
       const data = await response.json();
 
       setUsuarios(data.data || []);
+
+      if (configResponse?.ok) {
+        const configData = await configResponse.json();
+        setEnvioAutomatico(configData.data?.envio_automatico_cigam ?? true);
+      }
     } catch (error: unknown) {
       console.error(error);
 
@@ -315,7 +327,43 @@ export const ConfiguracoesSection = ({
   const isProcessing =
     saving ||
     deletingId !== null ||
-    activatingId !== null;
+    activatingId !== null ||
+    togglingEnvio;
+
+  const handleToggleEnvioAutomatico = async () => {
+    setTogglingEnvio(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/configuracoes/envio-automatico`,
+        {
+          method: "PATCH",
+          headers: authHeaders,
+          body: JSON.stringify({ ativo: !envioAutomatico }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error("Erro ao alterar configuração de envio automático.");
+      }
+
+      setEnvioAutomatico(!envioAutomatico);
+      setSuccess(
+        `Envio automático para CIGAM ${!envioAutomatico ? 'ativado' : 'desativado'} com sucesso.`,
+      );
+    } catch (error: unknown) {
+      console.error(error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Erro ao alterar configuração de envio automático.",
+      );
+    } finally {
+      setTogglingEnvio(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -458,6 +506,82 @@ export const ConfiguracoesSection = ({
           </div>
         </div>
       )}
+
+      {/* Envio Automático CIGAM */}
+      <div
+        className="
+          relative
+          overflow-hidden
+          rounded-[24px]
+          border border-slate-200/80
+          bg-white/95
+          p-5
+          shadow-[0_20px_50px_-34px_rgba(2,6,23,0.75),inset_0_1px_1px_rgba(255,255,255,0.95)]
+          sm:p-6
+        "
+      >
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div
+              className="
+                flex h-12 w-12 shrink-0
+                items-center justify-center
+                rounded-2xl
+                border border-amber-200
+                bg-amber-50
+                text-[#E66F00]
+                shadow-[inset_0_1px_1px_rgba(255,255,255,0.85)]
+              "
+            >
+              <Zap className="h-5 w-5" />
+            </div>
+
+            <div>
+              <h3 className="text-base font-bold text-slate-900">
+                Envio Automático para CIGAM
+              </h3>
+              <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500">
+                Quando ativado, os pedidos recebidos via webhook são automaticamente enviados para o ERP CIGAM.
+                Quando desativado, os pedidos são salvos localmente mas não integrados.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleToggleEnvioAutomatico}
+            disabled={togglingEnvio}
+            className={`
+              relative inline-flex h-10 w-[72px] shrink-0 cursor-pointer
+              items-center rounded-full
+              border-2 border-transparent
+              transition-colors duration-200 ease-in-out
+              focus:outline-none focus:ring-4 focus:ring-[#00B0F1]/20
+              disabled:cursor-not-allowed disabled:opacity-50
+              ${envioAutomatico ? 'bg-emerald-500' : 'bg-slate-300'}
+            `}
+          >
+            <span
+              className={`
+                inline-block h-7 w-7 transform
+                rounded-full bg-white
+                shadow-lg
+                transition-transform duration-200 ease-in-out
+                ${envioAutomatico ? 'translate-x-9' : 'translate-x-1'}
+              `}
+            />
+          </button>
+        </div>
+
+        <div className="mt-3 flex items-center gap-2">
+          <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[0.65rem] font-bold uppercase tracking-[0.08em] ${envioAutomatico ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-500 border border-slate-200'}`}>
+            {envioAutomatico ? 'Ativado' : 'Desativado'}
+          </span>
+          <span className="text-xs text-slate-400">
+            {envioAutomatico ? 'Pedidos serão integrados automaticamente ao CIGAM' : 'Pedidos serão salvos apenas localmente'}
+          </span>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
         {/* Ambientes configurados */}
