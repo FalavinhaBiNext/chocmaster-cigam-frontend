@@ -29,15 +29,8 @@ export function MercadoLivreCallbackPage() {
 
     const processAuth = async () => {
       try {
-        // Aqui você precisa passar o app_id, client_secret e redirect_uri
-        // que estão configurados no seu sistema
-        const params = new URLSearchParams(window.location.search);
-        const appId = params.get("app_id") || "";
-        const clientSecret = params.get("client_secret") || "";
-        const redirectUri = params.get("redirect_uri") || `${window.location.origin}/mercado-livre/callback`;
-
         const response = await fetch(
-          `${API_BASE_URL}/mercado-livre/callback?code=${code}&state=${state || ""}&app_id=${appId}&client_secret=${clientSecret}&redirect_uri=${encodeURIComponent(redirectUri)}`,
+          `${API_BASE_URL}/mercado-livre/callback?code=${code}&state=${state || ""}`,
           { method: "GET" }
         );
 

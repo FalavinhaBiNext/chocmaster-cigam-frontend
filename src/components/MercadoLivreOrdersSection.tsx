@@ -160,21 +160,14 @@ export const MercadoLivreOrdersSection = () => {
     setError(null);
 
     try {
-      const appId = prompt("Digite o APP_ID do Mercado Livre:");
-      if (!appId) {
-        setConnecting(false);
-        return;
-      }
-
-      const redirectUri = `${window.location.origin}/mercado-livre/callback`;
-
       const response = await fetch(
-        `${API_BASE_URL}/mercado-livre/auth-url?appId=${appId}&redirectUri=${encodeURIComponent(redirectUri)}`,
+        `${API_BASE_URL}/mercado-livre/auth-url`,
         { headers: authHeaders },
       );
 
       if (!response.ok) {
-        throw new Error("Erro ao gerar URL de autenticação.");
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.message || "Erro ao gerar URL de autenticação.");
       }
 
       const data = await response.json();
