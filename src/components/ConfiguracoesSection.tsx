@@ -1688,138 +1688,31 @@ export const ConfiguracoesSection = ({
               <div className="flex items-center justify-center py-8">
                 <span className="h-6 w-6 animate-spin rounded-full border-2 border-[#00B0F1]/30 border-t-[#00B0F1]" />
               </div>
-            ) : blingTokens.length === 0 && !showNewBlingForm ? (
-              <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/50 py-8 text-center">
-                <Link className="mx-auto h-8 w-8 text-slate-300" />
-                <p className="mt-2 text-sm text-slate-500">
-                  Nenhuma conta Bling conectada
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setShowNewBlingForm(true)}
-                  className="
-                    mt-3
-                    inline-flex
-                    items-center
-                    gap-2
-                    rounded-xl
-                    border border-[#00B0F1]/30
-                    bg-[#00B0F1]/10
-                    px-4
-                    py-2
-                    text-xs
-                    font-semibold
-                    text-[#008FC7]
-                    transition-all
-                    hover:bg-[#00B0F1]/20
-                  "
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Conectar conta Bling
-                </button>
-              </div>
-            ) : showNewBlingForm ? (
-              <div className="rounded-xl border border-[#00B0F1]/20 bg-[#00B0F1]/5 p-4">
-                <h4 className="text-sm font-semibold text-slate-900">
-                  Nova conta Bling
-                </h4>
-                <p className="mt-1 text-xs text-slate-500">
-                  Informe as credenciais da aplicação Bling
-                </p>
-
-                <div className="mt-4 space-y-3">
-                  <div>
-                    <label className="text-[0.6rem] font-semibold uppercase text-slate-500">
-                      Nome da Unidade
-                    </label>
-                    <input
-                      type="text"
-                      value={newBlingNomeUnidade}
-                      onChange={(e) => setNewBlingNomeUnidade(e.target.value)}
-                      placeholder="Ex: Filial SP"
-                      className="mt-1 h-8 w-full rounded-lg border border-slate-200 px-2 text-xs focus:border-[#00B0F1] focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[0.6rem] font-semibold uppercase text-slate-500">
-                      Client ID *
-                    </label>
-                    <input
-                      type="text"
-                      value={newBlingClientId}
-                      onChange={(e) => setNewBlingClientId(e.target.value)}
-                      placeholder="Client ID da aplicação Bling"
-                      required
-                      className="mt-1 h-8 w-full rounded-lg border border-slate-200 px-2 text-xs focus:border-[#00B0F1] focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[0.6rem] font-semibold uppercase text-slate-500">
-                      Client Secret *
-                    </label>
-                    <input
-                      type="password"
-                      value={newBlingClientSecret}
-                      onChange={(e) => setNewBlingClientSecret(e.target.value)}
-                      placeholder="Client Secret da aplicação Bling"
-                      required
-                      className="mt-1 h-8 w-full rounded-lg border border-slate-200 px-2 text-xs focus:border-[#00B0F1] focus:outline-none"
-                    />
-                  </div>
-
-                  <div className="flex gap-2 pt-2">
-                    <a
-                      href={`/api/v1/bling/auth?client_id=${encodeURIComponent(newBlingClientId)}&client_secret=${encodeURIComponent(newBlingClientSecret)}`}
-                      onClick={(e) => {
-                        if (!newBlingClientId.trim() || !newBlingClientSecret.trim()) {
-                          e.preventDefault();
-                          setError("Por favor, preencha o Client ID e Client Secret.");
-                        }
-                      }}
-                      className="
-                        flex h-8 items-center gap-1.5 rounded-lg
-                        bg-[#00B0F1] px-4 text-[0.65rem]
-                        font-semibold text-white
-                        hover:bg-[#008FC7]
-                      "
-                    >
-                      <Link className="h-3 w-3" />
-                      Conectar
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowNewBlingForm(false);
-                        setNewBlingClientId("");
-                        setNewBlingClientSecret("");
-                        setNewBlingNomeUnidade("");
-                      }}
-                      className="
-                        flex h-8 items-center gap-1 rounded-lg
-                        border border-slate-200 bg-white px-3
-                        text-[0.65rem] font-semibold text-slate-600
-                        hover:bg-slate-50
-                      "
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              </div>
             ) : (
-              <div className="space-y-3">
-                {blingTokens.map((blingToken) => (
-                  <BlingTokenCard
-                    key={blingToken.id}
-                    token={blingToken}
-                    onActivate={handleActivateBlingToken}
-                    onUpdate={handleUpdateBlingToken}
-                    onDelete={handleDeleteBlingToken}
-                    isActivating={activatingId === blingToken.id}
-                    isDeleting={deletingId === blingToken.id}
-                  />
-                ))}
+              <div className="space-y-4">
+                {/* Lista de contas Bling conectadas */}
+                {blingTokens.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-[0.6rem] font-semibold uppercase tracking-wider text-slate-500">
+                      Contas conectadas
+                    </p>
+                    <div className="space-y-2">
+                      {blingTokens.map((blingToken) => (
+                        <BlingTokenCard
+                          key={blingToken.id}
+                          token={blingToken}
+                          onActivate={handleActivateBlingToken}
+                          onUpdate={handleUpdateBlingToken}
+                          onDelete={handleDeleteBlingToken}
+                          isActivating={activatingId === blingToken.id}
+                          isDeleting={deletingId === blingToken.id}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
 
+                {/* Formulário para nova conta Bling */}
                 {!showNewBlingForm ? (
                   <button
                     type="button"
@@ -1844,7 +1737,7 @@ export const ConfiguracoesSection = ({
                     "
                   >
                     <Plus className="h-3.5 w-3.5" />
-                    Conectar nova conta
+                    {blingTokens.length === 0 ? 'Conectar primeira conta' : 'Conectar nova conta'}
                   </button>
                 ) : (
                   <div className="rounded-xl border border-[#00B0F1]/20 bg-[#00B0F1]/5 p-4">
@@ -1864,7 +1757,7 @@ export const ConfiguracoesSection = ({
                           type="text"
                           value={newBlingNomeUnidade}
                           onChange={(e) => setNewBlingNomeUnidade(e.target.value)}
-                          placeholder="Ex: Filial RJ"
+                          placeholder="Ex: Filial SP"
                           className="mt-1 h-8 w-full rounded-lg border border-slate-200 px-2 text-xs focus:border-[#00B0F1] focus:outline-none"
                         />
                       </div>
@@ -1896,13 +1789,15 @@ export const ConfiguracoesSection = ({
                       </div>
 
                       <div className="flex gap-2 pt-2">
-                        <a
-                          href={`/api/v1/bling/auth?client_id=${encodeURIComponent(newBlingClientId)}&client_secret=${encodeURIComponent(newBlingClientSecret)}`}
-                          onClick={(e) => {
+                        <button
+                          type="button"
+                          onClick={() => {
                             if (!newBlingClientId.trim() || !newBlingClientSecret.trim()) {
-                              e.preventDefault();
                               setError("Por favor, preencha o Client ID e Client Secret.");
+                              return;
                             }
+                            const authUrl = `/api/v1/bling/auth?client_id=${encodeURIComponent(newBlingClientId)}&client_secret=${encodeURIComponent(newBlingClientSecret)}`;
+                            window.location.href = authUrl;
                           }}
                           className="
                             flex h-8 items-center gap-1.5 rounded-lg
@@ -1913,7 +1808,7 @@ export const ConfiguracoesSection = ({
                         >
                           <Link className="h-3 w-3" />
                           Conectar
-                        </a>
+                        </button>
                         <button
                           type="button"
                           onClick={() => {
