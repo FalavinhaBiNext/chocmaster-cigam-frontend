@@ -370,6 +370,11 @@ export const ConfiguracoesSection = ({
   const [senha, setSenha] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  const [showNewBlingForm, setShowNewBlingForm] = useState(false);
+  const [newBlingClientId, setNewBlingClientId] = useState("");
+  const [newBlingClientSecret, setNewBlingClientSecret] = useState("");
+  const [newBlingNomeUnidade, setNewBlingNomeUnidade] = useState("");
+
   const fetchUsuarios = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -1683,14 +1688,15 @@ export const ConfiguracoesSection = ({
               <div className="flex items-center justify-center py-8">
                 <span className="h-6 w-6 animate-spin rounded-full border-2 border-[#00B0F1]/30 border-t-[#00B0F1]" />
               </div>
-            ) : blingTokens.length === 0 ? (
+            ) : blingTokens.length === 0 && !showNewBlingForm ? (
               <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/50 py-8 text-center">
                 <Link className="mx-auto h-8 w-8 text-slate-300" />
                 <p className="mt-2 text-sm text-slate-500">
                   Nenhuma conta Bling conectada
                 </p>
-                <a
-                  href="/api/v1/bling/auth"
+                <button
+                  type="button"
+                  onClick={() => setShowNewBlingForm(true)}
                   className="
                     mt-3
                     inline-flex
@@ -1710,7 +1716,95 @@ export const ConfiguracoesSection = ({
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Conectar conta Bling
-                </a>
+                </button>
+              </div>
+            ) : showNewBlingForm ? (
+              <div className="rounded-xl border border-[#00B0F1]/20 bg-[#00B0F1]/5 p-4">
+                <h4 className="text-sm font-semibold text-slate-900">
+                  Nova conta Bling
+                </h4>
+                <p className="mt-1 text-xs text-slate-500">
+                  Informe as credenciais da aplicação Bling
+                </p>
+
+                <div className="mt-4 space-y-3">
+                  <div>
+                    <label className="text-[0.6rem] font-semibold uppercase text-slate-500">
+                      Nome da Unidade
+                    </label>
+                    <input
+                      type="text"
+                      value={newBlingNomeUnidade}
+                      onChange={(e) => setNewBlingNomeUnidade(e.target.value)}
+                      placeholder="Ex: Filial SP"
+                      className="mt-1 h-8 w-full rounded-lg border border-slate-200 px-2 text-xs focus:border-[#00B0F1] focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[0.6rem] font-semibold uppercase text-slate-500">
+                      Client ID *
+                    </label>
+                    <input
+                      type="text"
+                      value={newBlingClientId}
+                      onChange={(e) => setNewBlingClientId(e.target.value)}
+                      placeholder="Client ID da aplicação Bling"
+                      required
+                      className="mt-1 h-8 w-full rounded-lg border border-slate-200 px-2 text-xs focus:border-[#00B0F1] focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[0.6rem] font-semibold uppercase text-slate-500">
+                      Client Secret *
+                    </label>
+                    <input
+                      type="password"
+                      value={newBlingClientSecret}
+                      onChange={(e) => setNewBlingClientSecret(e.target.value)}
+                      placeholder="Client Secret da aplicação Bling"
+                      required
+                      className="mt-1 h-8 w-full rounded-lg border border-slate-200 px-2 text-xs focus:border-[#00B0F1] focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <a
+                      href={`/api/v1/bling/auth?client_id=${encodeURIComponent(newBlingClientId)}&client_secret=${encodeURIComponent(newBlingClientSecret)}`}
+                      onClick={(e) => {
+                        if (!newBlingClientId.trim() || !newBlingClientSecret.trim()) {
+                          e.preventDefault();
+                          setError("Por favor, preencha o Client ID e Client Secret.");
+                        }
+                      }}
+                      className="
+                        flex h-8 items-center gap-1.5 rounded-lg
+                        bg-[#00B0F1] px-4 text-[0.65rem]
+                        font-semibold text-white
+                        hover:bg-[#008FC7]
+                      "
+                    >
+                      <Link className="h-3 w-3" />
+                      Conectar
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowNewBlingForm(false);
+                        setNewBlingClientId("");
+                        setNewBlingClientSecret("");
+                        setNewBlingNomeUnidade("");
+                      }}
+                      className="
+                        flex h-8 items-center gap-1 rounded-lg
+                        border border-slate-200 bg-white px-3
+                        text-[0.65rem] font-semibold text-slate-600
+                        hover:bg-slate-50
+                      "
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="space-y-3">
@@ -1726,29 +1820,121 @@ export const ConfiguracoesSection = ({
                   />
                 ))}
 
-                <a
-                  href="/api/v1/bling/auth"
-                  className="
-                    flex
-                    items-center
-                    justify-center
-                    gap-2
-                    rounded-xl
-                    border border-dashed
-                    border-[#00B0F1]/30
-                    bg-[#00B0F1]/5
-                    px-4
-                    py-3
-                    text-xs
-                    font-semibold
-                    text-[#008FC7]
-                    transition-all
-                    hover:bg-[#00B0F1]/10
-                  "
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Conectar nova conta
-                </a>
+                {!showNewBlingForm ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowNewBlingForm(true)}
+                    className="
+                      flex
+                      w-full
+                      items-center
+                      justify-center
+                      gap-2
+                      rounded-xl
+                      border border-dashed
+                      border-[#00B0F1]/30
+                      bg-[#00B0F1]/5
+                      px-4
+                      py-3
+                      text-xs
+                      font-semibold
+                      text-[#008FC7]
+                      transition-all
+                      hover:bg-[#00B0F1]/10
+                    "
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Conectar nova conta
+                  </button>
+                ) : (
+                  <div className="rounded-xl border border-[#00B0F1]/20 bg-[#00B0F1]/5 p-4">
+                    <h4 className="text-sm font-semibold text-slate-900">
+                      Nova conta Bling
+                    </h4>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Informe as credenciais da aplicação Bling
+                    </p>
+
+                    <div className="mt-4 space-y-3">
+                      <div>
+                        <label className="text-[0.6rem] font-semibold uppercase text-slate-500">
+                          Nome da Unidade
+                        </label>
+                        <input
+                          type="text"
+                          value={newBlingNomeUnidade}
+                          onChange={(e) => setNewBlingNomeUnidade(e.target.value)}
+                          placeholder="Ex: Filial RJ"
+                          className="mt-1 h-8 w-full rounded-lg border border-slate-200 px-2 text-xs focus:border-[#00B0F1] focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[0.6rem] font-semibold uppercase text-slate-500">
+                          Client ID *
+                        </label>
+                        <input
+                          type="text"
+                          value={newBlingClientId}
+                          onChange={(e) => setNewBlingClientId(e.target.value)}
+                          placeholder="Client ID da aplicação Bling"
+                          required
+                          className="mt-1 h-8 w-full rounded-lg border border-slate-200 px-2 text-xs focus:border-[#00B0F1] focus:outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[0.6rem] font-semibold uppercase text-slate-500">
+                          Client Secret *
+                        </label>
+                        <input
+                          type="password"
+                          value={newBlingClientSecret}
+                          onChange={(e) => setNewBlingClientSecret(e.target.value)}
+                          placeholder="Client Secret da aplicação Bling"
+                          required
+                          className="mt-1 h-8 w-full rounded-lg border border-slate-200 px-2 text-xs focus:border-[#00B0F1] focus:outline-none"
+                        />
+                      </div>
+
+                      <div className="flex gap-2 pt-2">
+                        <a
+                          href={`/api/v1/bling/auth?client_id=${encodeURIComponent(newBlingClientId)}&client_secret=${encodeURIComponent(newBlingClientSecret)}`}
+                          onClick={(e) => {
+                            if (!newBlingClientId.trim() || !newBlingClientSecret.trim()) {
+                              e.preventDefault();
+                              setError("Por favor, preencha o Client ID e Client Secret.");
+                            }
+                          }}
+                          className="
+                            flex h-8 items-center gap-1.5 rounded-lg
+                            bg-[#00B0F1] px-4 text-[0.65rem]
+                            font-semibold text-white
+                            hover:bg-[#008FC7]
+                          "
+                        >
+                          <Link className="h-3 w-3" />
+                          Conectar
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowNewBlingForm(false);
+                            setNewBlingClientId("");
+                            setNewBlingClientSecret("");
+                            setNewBlingNomeUnidade("");
+                          }}
+                          className="
+                            flex h-8 items-center gap-1 rounded-lg
+                            border border-slate-200 bg-white px-3
+                            text-[0.65rem] font-semibold text-slate-600
+                            hover:bg-slate-50
+                          "
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
