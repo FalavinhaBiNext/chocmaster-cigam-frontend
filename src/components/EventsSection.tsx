@@ -5,6 +5,7 @@ import {
   useState,
   type FC,
 } from "react";
+import { createPortal } from "react-dom";
 
 import {
   Activity,
@@ -489,39 +490,39 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
   `;
 
   return (
-    <div className="relative space-y-6">
-      {/* Toast */}
-      {toast && (
-        <div
-          className={`
-            fixed right-4 top-4 z-50
-            flex items-center gap-3
-            rounded-xl border px-4 py-3
-            shadow-lg transition-all duration-300
-            ${
-              toast.type === "success"
-                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                : "border-red-200 bg-red-50 text-red-800"
-            }
-          `}
-          onAnimationEnd={() => {
-            setTimeout(() => setToast(null), 3000);
-          }}
-        >
-          {toast.type === "success" ? (
-            <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
-          ) : (
-            <AlertCircle className="h-5 w-5 shrink-0 text-red-600" />
-          )}
-          <span className="text-sm font-medium">{toast.message}</span>
-          <button
-            type="button"
-            onClick={() => setToast(null)}
-            className="ml-2 shrink-0 rounded-lg p-1 hover:bg-black/5"
+    <div className="space-y-6">
+      {/* Toast via Portal */}
+      {createPortal(
+        toast && (
+          <div
+            className={`
+              fixed right-4 bottom-4 z-[9999]
+              flex items-center gap-3
+              rounded-xl border px-4 py-3
+              shadow-lg transition-all duration-300
+              ${
+                toast.type === "success"
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                  : "border-red-200 bg-red-50 text-red-800"
+              }
+            `}
           >
-            <XCircle className="h-4 w-4" />
-          </button>
-        </div>
+            {toast.type === "success" ? (
+              <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
+            ) : (
+              <AlertCircle className="h-5 w-5 shrink-0 text-red-600" />
+            )}
+            <span className="text-sm font-medium">{toast.message}</span>
+            <button
+              type="button"
+              onClick={() => setToast(null)}
+              className="ml-2 shrink-0 rounded-lg p-1 hover:bg-black/5"
+            >
+              <XCircle className="h-4 w-4" />
+            </button>
+          </div>
+        ),
+        document.body
       )}
 
       {/* Cabeçalho */}
@@ -1046,6 +1047,12 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                             </span>
                           )}
                         </p>
+
+                        {event.cigam_pedido_id && (
+                          <p className="mt-1 text-xs font-medium text-emerald-600">
+                            CIGAM: {event.cigam_pedido_id}
+                          </p>
+                        )}
 
                         <p className="mt-1 text-xs text-slate-500">
                           ID Bling: {event.pedido_id}
