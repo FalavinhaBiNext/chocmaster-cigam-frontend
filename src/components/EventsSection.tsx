@@ -1179,6 +1179,12 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                               orderDetails.data_pedido,
                             )}`}
                         </p>
+
+                        {orderDetails.data_prevista && (
+                          <p className="mt-0.5 text-xs font-medium text-[#008FC7]">
+                            Previsão faturamento/etiqueta: {formatDate(orderDetails.data_prevista)}
+                          </p>
+                        )}
                       </div>
 
                       <div className="sm:text-right">
