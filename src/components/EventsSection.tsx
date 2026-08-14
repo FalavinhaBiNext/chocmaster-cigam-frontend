@@ -13,6 +13,7 @@ import {
   FileText,
   RefreshCw,
   RotateCcw,
+  Search,
   ShieldAlert,
   ShoppingBag,
   Trash2,
@@ -148,13 +149,33 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
     string | null
   >(null);
 
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
+
+  const [searchPedido, setSearchPedido] = useState("");
+
   const filteredEvents = useMemo(() => {
-    if (!unidadeNegocioFilter) return events;
-    return events.filter((event) => {
-      const pedido = pedidosMap[String(event.pedido_id)];
-      return pedido?.unidade_negocio === unidadeNegocioFilter;
-    });
-  }, [events, pedidosMap, unidadeNegocioFilter]);
+    let result = events;
+
+    if (unidadeNegocioFilter) {
+      result = result.filter((event) => {
+        const pedido = pedidosMap[String(event.pedido_id)];
+        return pedido?.unidade_negocio === unidadeNegocioFilter;
+      });
+    }
+
+    if (searchPedido.trim()) {
+      const term = searchPedido.trim().toLowerCase();
+      result = result.filter((event) =>
+        String(event.pedido_id).includes(term) ||
+        String(event.numero_pedido).toLowerCase().includes(term)
+      );
+    }
+
+    return result;
+  }, [events, pedidosMap, unidadeNegocioFilter, searchPedido]);
 
   const filteredSynchronizedEvents = useMemo(
     () =>
@@ -289,6 +310,12 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
     fetchEventsAndProducts();
   }, [fetchEventsAndProducts]);
 
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
   const handleSelectEvent = async (
     event: EventItem,
   ) => {
@@ -392,15 +419,19 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
               : prev,
           );
         }
+
+        setToast({
+          message: `Pedido #${event.numero_pedido} sincronizado com sucesso!`,
+          type: "success",
+        });
       }
     } catch (error: unknown) {
       console.error(error);
 
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Falha ao sincronizar com o CIGAM.",
-      );
+      setToast({
+        message: `Falha ao sincronizar o pedido #${event.numero_pedido} no CIGAM.`,
+        type: "error",
+      });
     } finally {
       setRetryingEventId(null);
     }
@@ -458,7 +489,41 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
   `;
 
   return (
-    <div className="space-y-6">
+    <div className="relative space-y-6">
+      {/* Toast */}
+      {toast && (
+        <div
+          className={`
+            fixed right-4 top-4 z-50
+            flex items-center gap-3
+            rounded-xl border px-4 py-3
+            shadow-lg transition-all duration-300
+            ${
+              toast.type === "success"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-red-200 bg-red-50 text-red-800"
+            }
+          `}
+          onAnimationEnd={() => {
+            setTimeout(() => setToast(null), 3000);
+          }}
+        >
+          {toast.type === "success" ? (
+            <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
+          ) : (
+            <AlertCircle className="h-5 w-5 shrink-0 text-red-600" />
+          )}
+          <span className="text-sm font-medium">{toast.message}</span>
+          <button
+            type="button"
+            onClick={() => setToast(null)}
+            className="ml-2 shrink-0 rounded-lg p-1 hover:bg-black/5"
+          >
+            <XCircle className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {/* Cabeçalho */}
       <header
         className="
@@ -752,18 +817,46 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                     </p>
                   </div>
 
-                  <span
-                    className="
-                      rounded-full
-                      border border-[#00B0F1]/20
-                      bg-[#00B0F1]/10
-                      px-2.5 py-1
-                      text-[0.65rem] font-bold
-                      text-[#008FC7]
-                    "
-                  >
-                    {events.length}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="Buscar pedido Bling..."
+                        value={searchPedido}
+                        onChange={(e) => setSearchPedido(e.target.value)}
+                        className="
+                          h-9
+                          w-48
+                          rounded-lg
+                          border border-slate-200
+                          bg-white
+                          pl-9
+                          pr-3
+                          text-xs
+                          text-slate-700
+                          placeholder:text-slate-400
+                          focus:border-[#00B0F1]
+                          focus:outline-none
+                          focus:ring-2
+                          focus:ring-[#00B0F1]/20
+                        "
+                      />
+                    </div>
+
+                    <span
+                      className="
+                        rounded-full
+                        border border-[#00B0F1]/20
+                        bg-[#00B0F1]/10
+                        px-2.5 py-1
+                        text-[0.65rem] font-bold
+                        text-[#008FC7]
+                      "
+                    >
+                      {filteredEvents.length}
+                    </span>
+                  </div>
                 </div>
               </div>
 
