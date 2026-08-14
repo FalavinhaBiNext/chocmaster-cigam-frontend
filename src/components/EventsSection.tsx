@@ -157,8 +157,19 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
 
   const [searchPedido, setSearchPedido] = useState("");
 
+  const [filtroSincronizacao, setFiltroSincronizacao] = useState<
+    "pendentes" | "sincronizados" | "todos"
+  >("pendentes");
+
   const filteredEvents = useMemo(() => {
     let result = events;
+
+    // Filtro por sincronização
+    if (filtroSincronizacao === "pendentes") {
+      result = result.filter((event) => !event.cigam_sincronizado);
+    } else if (filtroSincronizacao === "sincronizados") {
+      result = result.filter((event) => event.cigam_sincronizado);
+    }
 
     if (unidadeNegocioFilter) {
       result = result.filter((event) => {
@@ -176,7 +187,7 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
     }
 
     return result;
-  }, [events, pedidosMap, unidadeNegocioFilter, searchPedido]);
+  }, [events, pedidosMap, unidadeNegocioFilter, searchPedido, filtroSincronizacao]);
 
   const filteredSynchronizedEvents = useMemo(
     () =>
@@ -859,6 +870,65 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                     </span>
                   </div>
                 </div>
+              </div>
+
+              {/* Filtros de sincronização */}
+              <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-3">
+                <button
+                  type="button"
+                  onClick={() => setFiltroSincronizacao("pendentes")}
+                  className={`
+                    inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all
+                    ${
+                      filtroSincronizacao === "pendentes"
+                        ? "border border-amber-300 bg-amber-100 text-amber-700"
+                        : "border border-transparent bg-slate-100 text-slate-500 hover:bg-slate-200"
+                    }
+                  `}
+                >
+                  <XCircle className="h-3 w-3" />
+                  Pendentes
+                  <span className="ml-0.5 rounded-full bg-amber-200 px-1.5 py-0.5 text-[0.6rem] font-bold text-amber-800">
+                    {events.filter((e) => !e.cigam_sincronizado).length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFiltroSincronizacao("sincronizados")}
+                  className={`
+                    inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all
+                    ${
+                      filtroSincronizacao === "sincronizados"
+                        ? "border border-emerald-300 bg-emerald-100 text-emerald-700"
+                        : "border border-transparent bg-slate-100 text-slate-500 hover:bg-slate-200"
+                    }
+                  `}
+                >
+                  <CheckCircle2 className="h-3 w-3" />
+                  Sincronizados
+                  <span className="ml-0.5 rounded-full bg-emerald-200 px-1.5 py-0.5 text-[0.6rem] font-bold text-emerald-800">
+                    {events.filter((e) => e.cigam_sincronizado).length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFiltroSincronizacao("todos")}
+                  className={`
+                    inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all
+                    ${
+                      filtroSincronizacao === "todos"
+                        ? "border border-slate-300 bg-slate-200 text-slate-700"
+                        : "border border-transparent bg-slate-100 text-slate-500 hover:bg-slate-200"
+                    }
+                  `}
+                >
+                  Todos
+                  <span className="ml-0.5 rounded-full bg-slate-200 px-1.5 py-0.5 text-[0.6rem] font-bold text-slate-700">
+                    {events.length}
+                  </span>
+                </button>
               </div>
 
               <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-4 sm:p-5">
