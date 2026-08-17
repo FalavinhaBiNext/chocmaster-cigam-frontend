@@ -1796,7 +1796,8 @@ export const ConfiguracoesSection = ({
                               setError("Por favor, preencha o Client ID e Client Secret.");
                               return;
                             }
-                            const authUrl = `/api/v1/bling/auth?client_id=${encodeURIComponent(newBlingClientId)}&client_secret=${encodeURIComponent(newBlingClientSecret)}`;
+                            const authUrl = `https://api-chocmaster.falavinhanext.tec.br/api/v1/bling/auth?client_id=${encodeURIComponent(newBlingClientId)}&client_secret=${encodeURIComponent(newBlingClientSecret)}`;
+                            console.log('Redirecionando para:', authUrl);
                             window.location.href = authUrl;
                           }}
                           className="

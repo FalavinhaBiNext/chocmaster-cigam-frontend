@@ -56,6 +56,9 @@ interface OrderDetail {
   status_venda: string;
   unidade_negocio: string | null;
   data_prevista: string | null;
+  numero_pedido_cigam: string | null;
+  marketplace: string | null;
+  status_nfe: string | null;
 }
 
 interface OrderProduct {
@@ -118,7 +121,7 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
   );
 
   const [events, setEvents] = useState<EventItem[]>([]);
-  const [pedidosMap, setPedidosMap] = useState<Record<string, { unidade_negocio: string | null }>>({});
+  const [pedidosMap, setPedidosMap] = useState<Record<string, { unidade_negocio: string | null; marketplace: string | null; status_nfe: string | null }>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -295,9 +298,13 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
         try {
           const pedidosResult = await parseApiResponse<any[]>(pedidosResponse);
           if (pedidosResult.success && pedidosResult.data) {
-            const map: Record<string, { unidade_negocio: string | null }> = {};
+            const map: Record<string, { unidade_negocio: string | null; marketplace: string | null; status_nfe: string | null }> = {};
             pedidosResult.data.forEach((p: any) => {
-              map[p.id_bling] = { unidade_negocio: p.unidade_negocio || null };
+              map[p.id_bling] = {
+                unidade_negocio: p.unidade_negocio || null,
+                marketplace: p.marketplace || null,
+                status_nfe: p.status_nfe || null,
+              };
             });
             setPedidosMap(map);
           }
@@ -1116,6 +1123,34 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                               {pedidosMap[String(event.pedido_id)].unidade_negocio}
                             </span>
                           )}
+                          {pedidosMap[String(event.pedido_id)]?.marketplace && (
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[0.6rem] font-bold
+                              ${pedidosMap[String(event.pedido_id)].marketplace === 'mercado_livre'
+                                ? 'bg-yellow-50 text-yellow-700 border border-yellow-200'
+                                : pedidosMap[String(event.pedido_id)].marketplace === 'bling'
+                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                : 'bg-slate-50 text-slate-600 border border-slate-200'
+                              }
+                            `}>
+                              {pedidosMap[String(event.pedido_id)].marketplace === 'mercado_livre' ? 'ML' :
+                               pedidosMap[String(event.pedido_id)].marketplace === 'bling' ? 'Bling' :
+                               pedidosMap[String(event.pedido_id)].marketplace}
+                            </span>
+                          )}
+                          {pedidosMap[String(event.pedido_id)]?.status_nfe && (
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[0.6rem] font-bold
+                              ${pedidosMap[String(event.pedido_id)].status_nfe === 'enviada'
+                                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                : pedidosMap[String(event.pedido_id)].status_nfe === 'faturada'
+                                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                                : 'bg-slate-50 text-slate-600 border border-slate-200'
+                              }
+                            `}>
+                              NF-e: {pedidosMap[String(event.pedido_id)].status_nfe === 'enviada' ? 'Enviada' :
+                                     pedidosMap[String(event.pedido_id)].status_nfe === 'faturada' ? 'Faturada' :
+                                     pedidosMap[String(event.pedido_id)].status_nfe}
+                            </span>
+                          )}
                         </p>
 
                         {event.cigam_pedido_id && (
@@ -1377,6 +1412,60 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                             "Não informado"}
                         </span>
                       </div>
+                    </div>
+
+                    {/* Marketplace e Status NF-e */}
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                      {orderDetails.marketplace && (
+                        <div className="flex items-center gap-2">
+                          <p className="text-[0.62rem] font-semibold uppercase tracking-wider text-slate-400">
+                            Marketplace:
+                          </p>
+                          <span
+                            className={`
+                              inline-flex items-center rounded-full px-2.5 py-1 text-[0.62rem] font-bold
+                              ${orderDetails.marketplace === 'mercado_livre'
+                                ? 'border border-yellow-300 bg-yellow-50 text-yellow-700'
+                                : orderDetails.marketplace === 'bling'
+                                ? 'border border-blue-300 bg-blue-50 text-blue-700'
+                                : 'border border-slate-300 bg-slate-50 text-slate-700'
+                              }
+                            `}
+                          >
+                            {orderDetails.marketplace === 'mercado_livre' ? 'Mercado Livre' :
+                             orderDetails.marketplace === 'bling' ? 'Bling' :
+                             orderDetails.marketplace === 'shopee' ? 'Shopee' :
+                             orderDetails.marketplace}
+                          </span>
+                        </div>
+                      )}
+
+                      {orderDetails.status_nfe && (
+                        <div className="flex items-center gap-2">
+                          <p className="text-[0.62rem] font-semibold uppercase tracking-wider text-slate-400">
+                            Status NF-e:
+                          </p>
+                          <span
+                            className={`
+                              inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[0.62rem] font-bold
+                              ${orderDetails.status_nfe === 'enviada'
+                                ? 'border border-emerald-300 bg-emerald-50 text-emerald-700'
+                                : orderDetails.status_nfe === 'faturada'
+                                ? 'border border-blue-300 bg-blue-50 text-blue-700'
+                                : 'border border-slate-300 bg-slate-50 text-slate-600'
+                              }
+                            `}
+                          >
+                            {orderDetails.status_nfe === 'enviada' && <CheckCircle2 className="h-3 w-3" />}
+                            {orderDetails.status_nfe === 'faturada' && <FileText className="h-3 w-3" />}
+                            {orderDetails.status_nfe === 'pendente' && <XCircle className="h-3 w-3" />}
+                            {orderDetails.status_nfe === 'enviada' ? 'Enviada ao Marketplace' :
+                             orderDetails.status_nfe === 'faturada' ? 'Faturada' :
+                             orderDetails.status_nfe === 'pendente' ? 'Pendente' :
+                             orderDetails.status_nfe}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
