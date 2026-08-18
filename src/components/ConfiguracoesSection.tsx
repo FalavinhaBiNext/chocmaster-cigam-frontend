@@ -15,7 +15,6 @@ import {
   Globe,
   Key,
   Link,
-  Package,
   Plus,
   Server,
   Settings,
@@ -25,6 +24,8 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "../contexts/AuthContext";
+import logoMercadoLivre from "../assets/LogoMercadoLivre.svg";
+import logoShopee from "../assets/LogoShopee.svg";
 
 interface UsuarioCigam {
   id: string;
@@ -1395,15 +1396,15 @@ export const ConfiguracoesSection = ({
           <div className="mb-6 flex items-center gap-3">
             <div
               className="
-                flex h-10 w-10 shrink-0
+                flex h-12 w-12 shrink-0
                 items-center justify-center
                 rounded-xl
                 border border-yellow-200
                 bg-yellow-50
-                text-yellow-600
+                p-2
               "
             >
-              <Package className="h-4 w-4" />
+              <img src={logoMercadoLivre} alt="Mercado Livre" className="h-full w-full object-contain" />
             </div>
 
             <div>
@@ -1563,15 +1564,15 @@ export const ConfiguracoesSection = ({
           <div className="mb-6 flex items-center gap-3">
             <div
               className="
-                flex h-10 w-10 shrink-0
+                flex h-12 w-12 shrink-0
                 items-center justify-center
                 rounded-xl
                 border border-orange-200
                 bg-orange-50
-                text-orange-600
+                p-2
               "
             >
-              <Package className="h-4 w-4" />
+              <img src={logoShopee} alt="Shopee" className="h-full w-full object-contain" />
             </div>
 
             <div>

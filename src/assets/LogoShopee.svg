@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" fill="none">
+  <path d="M20 15C20 15 30 5 45 5C60 5 65 15 65 25C65 35 55 40 45 50C35 40 25 35 25 25C25 15 20 15 20 15Z" fill="#EE4D2D"/>
+  <circle cx="45" cy="20" r="5" fill="white"/>
+  <text x="75" y="52" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="#EE4D2D">Shopee</text>
+</svg>
