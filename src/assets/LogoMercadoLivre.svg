@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" fill="none">
-  <path d="M25 10L45 40L25 70L5 40L25 10Z" fill="#FFE600"/>
-  <path d="M45 10L65 40L45 70L25 40L45 10Z" fill="#3483FA"/>
-  <path d="M65 10L85 40L65 70L45 40L65 10Z" fill="#3483FA"/>
-  <path d="M85 10L105 40L85 70L65 40L85 10Z" fill="#00A650"/>
-  <text x="115" y="52" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#333333">MercadoLivre</text>
-</svg>
