@@ -124,6 +124,11 @@ export const ConfiguracoesSection = ({
   const [senha, setSenha] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  // Mercado Livre state
+  const [mlTokens, setMlTokens] = useState<any[]>([]);
+  const [loadingMl, setLoadingMl] = useState(true);
+  const [mlAuthSuccess, setMlAuthSuccess] = useState(false);
+
 
 
   const fetchUsuarios = useCallback(async () => {
@@ -167,9 +172,71 @@ export const ConfiguracoesSection = ({
     }
   }, [API_BASE_URL, authHeaders]);
 
+  const fetchMlTokens = useCallback(async () => {
+    setLoadingMl(true);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/mercado-livre/tokens`,
+        { headers: authHeaders },
+      );
+      if (!response.ok) {
+        throw new Error("Erro ao carregar tokens Mercado Livre.");
+      }
+      const data = await response.json();
+      setMlTokens(data.data || []);
+    } catch (error: unknown) {
+      console.error(error);
+    } finally {
+      setLoadingMl(false);
+    }
+  }, [API_BASE_URL, authHeaders]);
+
   useEffect(() => {
     fetchUsuarios();
-  }, [fetchUsuarios]);
+    fetchMlTokens();
+
+    // Check if returning from ML auth
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get("ml_auth") === "success") {
+      setMlAuthSuccess(true);
+      fetchMlTokens();
+      // Clean URL
+      window.history.replaceState({}, "", window.location.pathname);
+      setTimeout(() => setMlAuthSuccess(false), 5000);
+    }
+  }, [fetchUsuarios, fetchMlTokens]);
+
+  // Listen for messages from ML auth popup
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin === window.location.origin && event.data?.type === "ML_AUTH_SUCCESS") {
+        setMlAuthSuccess(true);
+        fetchMlTokens();
+        setTimeout(() => setMlAuthSuccess(false), 5000);
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [fetchMlTokens]);
+
+  const getTimeRemaining = (expiresAt: string) => {
+    const now = new Date();
+    const expires = new Date(expiresAt);
+    const diff = expires.getTime() - now.getTime();
+
+    if (diff <= 0) return "Expirado";
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (days > 0) return `${days}d ${hours}h restantes`;
+    if (hours > 0) return `${hours}h ${minutes}min restantes`;
+    return `${minutes}min restantes`;
+  };
+
+  const activeMlToken = mlTokens.find((t) => t.active);
 
   const handleCreate = async (
     event: FormEvent<HTMLFormElement>,
@@ -1311,36 +1378,120 @@ export const ConfiguracoesSection = ({
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={async () => {
-              try {
-                const response = await fetch(
-                  `${API_BASE_URL}/mercado-livre/auth-url`,
-                  { headers: authHeaders },
-                );
-                if (!response.ok) {
-                  throw new Error("Erro ao gerar URL de autenticação.");
+          {/* Auth success message */}
+          {mlAuthSuccess && (
+            <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                <p className="text-sm font-semibold text-emerald-800">
+                  Conta Mercado Livre conectada com sucesso!
+                </p>
+              </div>
+            </div>
+          )}
+
+          {loadingMl ? (
+            <div className="flex items-center justify-center py-8">
+              <span className="h-6 w-6 animate-spin rounded-full border-2 border-yellow-300 border-t-yellow-600" />
+            </div>
+          ) : activeMlToken ? (
+            <div className="space-y-4">
+              {/* Connected account info */}
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
+                      <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">
+                        {activeMlToken.nickname || `ID: ${activeMlToken.user_id_ml}`}
+                      </p>
+                      <p className="text-xs text-emerald-600">Conexão ativa</p>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[0.65rem] font-semibold text-emerald-700">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Ativo
+                  </span>
+                </div>
+
+                {activeMlToken.expires_at && (
+                  <div className="mt-3 border-t border-emerald-200 pt-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs text-slate-500">Validade do token:</p>
+                      <p className="text-xs font-semibold text-slate-700">
+                        {getTimeRemaining(activeMlToken.expires_at)}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Reconnect button */}
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const response = await fetch(
+                      `${API_BASE_URL}/mercado-livre/auth-url`,
+                      { headers: authHeaders },
+                    );
+                    if (!response.ok) {
+                      throw new Error("Erro ao gerar URL de autenticação.");
+                    }
+                    const data = await response.json();
+                    if (data.data?.authUrl) {
+                      window.open(data.data.authUrl, "_blank");
+                    }
+                  } catch (error: unknown) {
+                    console.error(error);
+                  }
+                }}
+                className="
+                  flex w-full items-center justify-center gap-2
+                  rounded-xl border border-slate-200
+                  bg-white px-4 py-3
+                  text-sm font-semibold text-slate-600
+                  transition-all hover:bg-slate-50
+                "
+              >
+                <Link className="h-4 w-4" />
+                Reconectar Mercado Livre
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const response = await fetch(
+                    `${API_BASE_URL}/mercado-livre/auth-url`,
+                    { headers: authHeaders },
+                  );
+                  if (!response.ok) {
+                    throw new Error("Erro ao gerar URL de autenticação.");
+                  }
+                  const data = await response.json();
+                  if (data.data?.authUrl) {
+                    window.open(data.data.authUrl, "_blank");
+                  }
+                } catch (error: unknown) {
+                  console.error(error);
                 }
-                const data = await response.json();
-                if (data.data?.authUrl) {
-                  window.location.href = data.data.authUrl;
-                }
-              } catch (error: unknown) {
-                console.error(error);
-              }
-            }}
-            className="
-              flex w-full items-center justify-center gap-2
-              rounded-xl border border-yellow-300/50
-              bg-yellow-50 px-4 py-3
-              text-sm font-semibold text-yellow-700
-              transition-all hover:bg-yellow-100
-            "
-          >
-            <Link className="h-4 w-4" />
-            Conectar Mercado Livre
-          </button>
+              }}
+              className="
+                flex w-full items-center justify-center gap-2
+                rounded-xl border border-yellow-300/50
+                bg-yellow-50 px-4 py-3
+                text-sm font-semibold text-yellow-700
+                transition-all hover:bg-yellow-100
+              "
+            >
+              <Link className="h-4 w-4" />
+              Conectar Mercado Livre
+            </button>
+          )}
         </div>
       </aside>
     </div>

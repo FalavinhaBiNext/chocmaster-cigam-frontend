@@ -43,6 +43,11 @@ export function MercadoLivreCallbackPage() {
         setStatus("success");
         setMessage("Conta Mercado Livre conectada com sucesso!");
         setUserData(data.data);
+
+        // Notify opener window about successful auth
+        if (window.opener) {
+          window.opener.postMessage({ type: "ML_AUTH_SUCCESS" }, window.location.origin);
+        }
       } catch (err: any) {
         setStatus("error");
         setMessage(err.message || "Erro ao processar autenticação.");
