@@ -139,6 +139,7 @@ export const ConfiguracoesSection = ({
   const [shopeeTokens, setShopeeTokens] = useState<any[]>([]);
   const [loadingShopee, setLoadingShopee] = useState(true);
   const [shopeeAuthSuccess, setShopeeAuthSuccess] = useState(false);
+  const [showShopeeDocs, setShowShopeeDocs] = useState(false);
 
 
 
@@ -769,6 +770,437 @@ export const ConfiguracoesSection = ({
           <button
             type="button"
             onClick={() => setShowMlDocs(false)}
+            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
+          >
+            Fechar
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+
+  // Modal de documentação da Shopee
+  const shopeeDocsModal = showShopeeDocs && createPortal(
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      onClick={() => setShowShopeeDocs(false)}
+    >
+      <div
+        className="relative flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl animate-scaleIn"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+          <div className="flex items-center gap-3">
+            <img src={logoShopee} alt="Shopee" className="h-8 w-8 object-contain" />
+            <div>
+              <h3 className="text-lg font-bold text-slate-900">
+                Documentação API - Shopee
+              </h3>
+              <p className="text-xs text-slate-500">
+                Fluxo de autenticação OAuth2 e rotas utilizadas
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowShopeeDocs(false)}
+            className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {/* Visão Geral */}
+          <div className="mb-8">
+            <h4 className="mb-3 text-base font-bold text-slate-900">Visão Geral</h4>
+            <p className="text-sm leading-6 text-slate-600">
+              O Chocmaster utiliza a API da Shopee Open Platform para autenticar vendedores e gerenciar pedidos. 
+              O fluxo segue o padrão OAuth2 <strong>Authorization Code Grant</strong>, com autenticação via 
+              <strong> HMAC-SHA256</strong> (Partner ID + Partner Key + Timestamp).
+            </p>
+          </div>
+
+          {/* Fluxo de Autenticação */}
+          <div className="mb-8">
+            <h4 className="mb-4 text-base font-bold text-slate-900">Fluxo de Autenticação</h4>
+            <div className="space-y-4">
+              {[
+                { step: "1", title: "Geração da URL de Autorização", desc: "O backend gera a URL com partner_id, redirect e timestamp. A assinatura HMAC-SHA256 é calculada." },
+                { step: "2", title: "Redirecionamento do Usuário", desc: "O usuário é redirecionado para a página de autorização da Shopee em uma nova aba." },
+                { step: "3", title: "Autorização da Loja", desc: "O vendedor faz login na Shopee e autoriza o aplicativo a acessar sua loja." },
+                { step: "4", title: "Callback com Código", desc: "A Shopee redireciona de volta com o código de autorização e shop_id na URL." },
+                { step: "5", title: "Troca de Código por Token", desc: "O backend troca o código por access_token e refresh_token via POST." },
+                { step: "6", title: "Busca de Info da Loja", desc: "O sistema busca o nome da loja via GET /shop/get_shop_info." },
+                { step: "7", title: "Salvamento dos Tokens", desc: "Os tokens são salvos no banco com shop_id, shop_name e data de expiração." },
+              ].map((item) => (
+                <div key={item.step} className="flex gap-4">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-100 text-sm font-bold text-orange-700">
+                    {item.step}
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">{item.title}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Assinatura HMAC-SHA256 */}
+          <div className="mb-8">
+            <h4 className="mb-4 text-base font-bold text-slate-900">Assinatura HMAC-SHA256</h4>
+            <div className="rounded-xl border border-purple-200 bg-purple-50 p-4">
+              <p className="text-xs text-purple-800 font-semibold mb-2">Cálculo da Assinatura</p>
+              <p className="text-xs text-purple-700 mb-3">
+                Todas as requisições à API da Shopee requerem uma assinatura HMAC-SHA256. O cálculo é:
+              </p>
+              <div className="rounded-lg bg-purple-100 p-3">
+                <code className="text-xs text-purple-900">
+                  sign = HMAC_SHA256(partner_key, partner_id + path + timestamp)
+                </code>
+              </div>
+              <div className="mt-3 space-y-1">
+                <p className="text-xs text-purple-700">• <strong>partner_key</strong>: Chave secreta do parceiro</p>
+                <p className="text-xs text-purple-700">• <strong>partner_id</strong>: ID do parceiro (como string)</p>
+                <p className="text-xs text-purple-700">• <strong>path</strong>: Caminho da API (ex: /api/v2/auth/token/get)</p>
+                <p className="text-xs text-purple-700">• <strong>timestamp</strong>: Timestamp Unix atual em segundos</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Rotas Utilizadas */}
+          <div className="mb-8">
+            <h4 className="mb-4 text-base font-bold text-slate-900">Rotas da API da Shopee</h4>
+            <div className="space-y-4">
+              {/* Rota 1 */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="rounded bg-blue-100 px-2 py-0.5 text-[0.65rem] font-bold text-blue-700">GET</span>
+                  <code className="text-xs text-slate-700">https://partner.shopeemobile.com/api/v2/shop/auth_partner</code>
+                </div>
+                <p className="text-xs text-slate-600">
+                  <strong>Descrição:</strong> URL de autorização onde o vendedor é redirecionado para autorizar o aplicativo.
+                </p>
+                <div className="mt-2">
+                  <p className="text-[0.65rem] font-semibold uppercase text-slate-500">Parâmetros obrigatórios:</p>
+                  <ul className="mt-1 space-y-1 text-xs text-slate-600">
+                    <li>• <code className="bg-slate-200 px-1 rounded">partner_id</code>: ID do parceiro na Shopee Open Platform</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">redirect</code>: URL de callback configurada na aplicação</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">timestamp</code>: Timestamp Unix atual em segundos</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">state</code>: String aleatória para segurança (recomendado)</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Rota 2 */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="rounded bg-green-100 px-2 py-0.5 text-[0.65rem] font-bold text-green-700">POST</span>
+                  <code className="text-xs text-slate-700">https://partner.shopeemobile.com/api/v2/auth/token/get</code>
+                </div>
+                <p className="text-xs text-slate-600">
+                  <strong>Descrição:</strong> Endpoint para trocar o código de autorização por access_token e refresh_token.
+                </p>
+                <div className="mt-2">
+                  <p className="text-[0.65rem] font-semibold uppercase text-slate-500">Parâmetros de query (assinatura):</p>
+                  <ul className="mt-1 space-y-1 text-xs text-slate-600">
+                    <li>• <code className="bg-slate-200 px-1 rounded">partner_id</code>: ID do parceiro</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">timestamp</code>: Timestamp Unix</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">sign</code>: Assinatura HMAC-SHA256</li>
+                  </ul>
+                </div>
+                <div className="mt-2">
+                  <p className="text-[0.65rem] font-semibold uppercase text-slate-500">Body (JSON):</p>
+                  <ul className="mt-1 space-y-1 text-xs text-slate-600">
+                    <li>• <code className="bg-slate-200 px-1 rounded">code</code>: Código de autorização recebido no callback</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">shop_id</code>: ID da loja Shopee (número)</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">partner_id</code>: ID do parceiro (número)</li>
+                  </ul>
+                </div>
+                <div className="mt-3 rounded-lg bg-slate-100 p-3">
+                  <p className="text-[0.65rem] font-semibold uppercase text-slate-500">Resposta de Sucesso:</p>
+                  <pre className="mt-1 overflow-x-auto text-[0.7rem] text-slate-700">
+{`{
+  "access_token": "627679f953717732f5439761...",
+  "refresh_token": "627679f953717732f5439762...",
+  "expire_in": 2592000,
+  "request_id": "abc123"
+}`}
+                  </pre>
+                </div>
+              </div>
+
+              {/* Rota 3 */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="rounded bg-green-100 px-2 py-0.5 text-[0.65rem] font-bold text-green-700">POST</span>
+                  <code className="text-xs text-slate-700">https://partner.shopeemobile.com/api/v2/auth/access_token/get</code>
+                </div>
+                <p className="text-xs text-slate-600">
+                  <strong>Descrição:</strong> Endpoint para renovar o access_token usando o refresh_token.
+                </p>
+                <div className="mt-2">
+                  <p className="text-[0.65rem] font-semibold uppercase text-slate-500">Parâmetros de query (assinatura):</p>
+                  <ul className="mt-1 space-y-1 text-xs text-slate-600">
+                    <li>• <code className="bg-slate-200 px-1 rounded">partner_id</code>: ID do parceiro</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">timestamp</code>: Timestamp Unix</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">sign</code>: Assinatura HMAC-SHA256</li>
+                  </ul>
+                </div>
+                <div className="mt-2">
+                  <p className="text-[0.65rem] font-semibold uppercase text-slate-500">Body (JSON):</p>
+                  <ul className="mt-1 space-y-1 text-xs text-slate-600">
+                    <li>• <code className="bg-slate-200 px-1 rounded">refresh_token</code>: Token de renovação válido</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">shop_id</code>: ID da loja Shopee</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">partner_id</code>: ID do parceiro</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Rota 4 */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="rounded bg-blue-100 px-2 py-0.5 text-[0.65rem] font-bold text-blue-700">GET</span>
+                  <code className="text-xs text-slate-700">https://partner.shopeemobile.com/api/v2/shop/get_shop_info</code>
+                </div>
+                <p className="text-xs text-slate-600">
+                  <strong>Descrição:</strong> Obtém informações da loja autenticada (nome, região, status).
+                </p>
+                <div className="mt-2">
+                  <p className="text-[0.65rem] font-semibold uppercase text-slate-500">Parâmetros de query:</p>
+                  <ul className="mt-1 space-y-1 text-xs text-slate-600">
+                    <li>• <code className="bg-slate-200 px-1 rounded">partner_id</code>: ID do parceiro</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">timestamp</code>: Timestamp Unix</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">sign</code>: Assinatura HMAC-SHA256</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">access_token</code>: Token de acesso</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">shop_id</code>: ID da loja</li>
+                  </ul>
+                </div>
+                <div className="mt-3 rounded-lg bg-slate-100 p-3">
+                  <p className="text-[0.65rem] font-semibold uppercase text-slate-500">Resposta:</p>
+                  <pre className="mt-1 overflow-x-auto text-[0.7rem] text-slate-700">
+{`{
+  "shop_id": 12345,
+  "shop_name": "Minha Loja",
+  "region": "BR",
+  "status": "NORMAL",
+  "request_id": "abc123"
+}`}
+                  </pre>
+                </div>
+              </div>
+
+              {/* Rota 5 */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="rounded bg-blue-100 px-2 py-0.5 text-[0.65rem] font-bold text-blue-700">GET</span>
+                  <code className="text-xs text-slate-700">https://partner.shopeemobile.com/api/v2/order/get_order_list</code>
+                </div>
+                <p className="text-xs text-slate-600">
+                  <strong>Descrição:</strong> Lista pedidos da loja com filtros de status e data.
+                </p>
+                <div className="mt-2">
+                  <p className="text-[0.65rem] font-semibold uppercase text-slate-500">Parâmetros de query:</p>
+                  <ul className="mt-1 space-y-1 text-xs text-slate-600">
+                    <li>• <code className="bg-slate-200 px-1 rounded">partner_id</code>: ID do parceiro</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">timestamp</code>: Timestamp Unix</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">sign</code>: Assinatura HMAC-SHA256</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">access_token</code>: Token de acesso</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">shop_id</code>: ID da loja</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">order_status</code>: Status do pedido (opcional)</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">time_from</code>: Data início em timestamp (opcional)</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">time_to</code>: Data fim em timestamp (opcional)</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">page_size</code>: Itens por página (máx: 100)</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">cursor</code>: Cursor para paginação (opcional)</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Rota 6 */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="rounded bg-blue-100 px-2 py-0.5 text-[0.65rem] font-bold text-blue-700">GET</span>
+                  <code className="text-xs text-slate-700">https://partner.shopeemobile.com/api/v2/order/get_order_detail</code>
+                </div>
+                <p className="text-xs text-slate-600">
+                  <strong>Descrição:</strong> Obtém detalhes completos de um pedido específico, incluindo itens, endereço e status de envio.
+                </p>
+                <div className="mt-2">
+                  <p className="text-[0.65rem] font-semibold uppercase text-slate-500">Parâmetros de query:</p>
+                  <ul className="mt-1 space-y-1 text-xs text-slate-600">
+                    <li>• <code className="bg-slate-200 px-1 rounded">partner_id</code>: ID do parceiro</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">timestamp</code>: Timestamp Unix</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">sign</code>: Assinatura HMAC-SHA256</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">access_token</code>: Token de acesso</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">shop_id</code>: ID da loja</li>
+                    <li>• <code className="bg-slate-200 px-1 rounded">order_sn_list</code>: Lista de números de pedidos (separados por vírgula)</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Rotas Internas do Chocmaster */}
+          <div className="mb-8">
+            <h4 className="mb-4 text-base font-bold text-slate-900">Rotas Internas do Chocmaster</h4>
+            <div className="space-y-3">
+              {[
+                { method: "GET", path: "/api/v1/shopee/auth-url", desc: "Gera a URL de autorização para o usuário" },
+                { method: "GET", path: "/api/v1/shopee/callback", desc: "Recebe o callback da Shopee e troca código por token" },
+                { method: "GET", path: "/api/v1/shopee/tokens", desc: "Lista todos os tokens salvos" },
+                { method: "DELETE", path: "/api/v1/shopee/tokens/:id", desc: "Remove/desconecta uma conta Shopee" },
+                { method: "PATCH", path: "/api/v1/shopee/tokens/:id/activate", desc: "Ativa um token específico" },
+              ].map((route) => (
+                <div key={route.path} className="flex items-start gap-3 rounded-lg border border-slate-100 bg-white p-3">
+                  <span className={`rounded px-2 py-0.5 text-[0.6rem] font-bold ${
+                    route.method === "GET" ? "bg-blue-100 text-blue-700" :
+                    route.method === "DELETE" ? "bg-red-100 text-red-700" :
+                    "bg-amber-100 text-amber-700"
+                  }`}>
+                    {route.method}
+                  </span>
+                  <div>
+                    <code className="text-xs font-semibold text-slate-800">{route.path}</code>
+                    <p className="mt-0.5 text-[0.7rem] text-slate-500">{route.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Variáveis de Ambiente */}
+          <div className="mb-8">
+            <h4 className="mb-4 text-base font-bold text-slate-900">Variáveis de Ambiente Necessárias</h4>
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <div className="space-y-2">
+                {[
+                  { var: "SHOPEE_PARTNER_ID", desc: "ID do parceiro na Shopee Open Platform" },
+                  { var: "SHOPEE_PARTNER_KEY", desc: "Chave secreta do parceiro (usada para gerar assinatura HMAC)" },
+                  { var: "SHOPEE_REDIRECT_URI", desc: "URL de callback exata configurada na aplicação Shopee" },
+                ].map((env) => (
+                  <div key={env.var} className="flex items-start gap-2">
+                    <code className="rounded bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-800">
+                      {env.var}
+                    </code>
+                    <p className="text-xs text-amber-700">{env.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Informações Importantes */}
+          <div className="mb-6">
+            <h4 className="mb-4 text-base font-bold text-slate-900">Informações Importantes</h4>
+            <div className="space-y-3">
+              <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
+                <p className="text-xs font-semibold text-orange-800">⏱️ Tempo de Expiração</p>
+                <p className="mt-1 text-xs text-orange-700">
+                  O access_token da Shopee expira em <strong>30 dias</strong> (2592000 segundos). 
+                  O sistema renova automaticamente usando o refresh_token quando necessário.
+                </p>
+              </div>
+              <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
+                <p className="text-xs font-semibold text-orange-800">🔄 Refresh Token</p>
+                <p className="mt-1 text-xs text-orange-700">
+                  O refresh_token tem validade de <strong>365 dias</strong>. Diferente do Mercado Livre, 
+                  o refresh_token da Shopee pode ser usado <strong>múltiplas vezes</strong> até expirar.
+                </p>
+              </div>
+              <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
+                <p className="text-xs font-semibold text-orange-800">🔐 Assinatura HMAC-SHA256</p>
+                <p className="mt-1 text-xs text-orange-700">
+                  Todas as requisições requerem assinatura HMAC-SHA256 calculada com: 
+                  <code className="bg-orange-100 px-1 rounded mx-1">partner_id + path + timestamp</code> 
+                  usando o <strong>partner_key</strong> como chave secreta.
+                </p>
+              </div>
+              <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
+                <p className="text-xs font-semibold text-orange-800">📍 Região</p>
+                <p className="mt-1 text-xs text-orange-700">
+                  O sistema está configurado para a região <strong>Brasil (BR)</strong>. 
+                  A URL base é <code className="bg-orange-100 px-1 rounded">partner.shopeemobile.com</code>.
+                </p>
+              </div>
+              <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
+                <p className="text-xs font-semibold text-orange-800">⚠️ Limitações</p>
+                <p className="mt-1 text-xs text-orange-700">
+                  • O código de autorização expira em <strong>5 minutos</strong><br/>
+                  • Cada código só pode ser usado <strong>uma vez</strong><br/>
+                  • O shop_id é obrigatório para todas as requisições autenticadas<br/>
+                  • A redirect_uri deve ser exatamente igual à configurada na Shopee
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Status dos Pedidos */}
+          <div className="mb-8">
+            <h4 className="mb-4 text-base font-bold text-slate-900">Status dos Pedidos na Shopee</h4>
+            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-slate-50">
+                    <th className="px-4 py-2 text-left font-semibold text-slate-600">Status</th>
+                    <th className="px-4 py-2 text-left font-semibold text-slate-600">Descrição</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  <tr>
+                    <td className="px-4 py-2"><code className="bg-blue-100 px-1 rounded text-blue-700">UNPAID</code></td>
+                    <td className="px-4 py-2 text-slate-600">Pedido aguardando pagamento</td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-2"><code className="bg-yellow-100 px-1 rounded text-yellow-700">READY_TO_SHIP</code></td>
+                    <td className="px-4 py-2 text-slate-600">Pago, pronto para envio</td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-2"><code className="bg-purple-100 px-1 rounded text-purple-700">SHIPPED</code></td>
+                    <td className="px-4 py-2 text-slate-600">Enviado pela transportadora</td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-2"><code className="bg-green-100 px-1 rounded text-green-700">COMPLETED</code></td>
+                    <td className="px-4 py-2 text-slate-600">Entrega confirmada</td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-2"><code className="bg-red-100 px-1 rounded text-red-700">CANCELLED</code></td>
+                    <td className="px-4 py-2 text-slate-600">Pedido cancelado</td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-2"><code className="bg-orange-100 px-1 rounded text-orange-700">INVOICE_PENDING</code></td>
+                    <td className="px-4 py-2 text-slate-600">Aguardando nota fiscal</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Link para Documentação Oficial */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center">
+            <p className="text-sm text-slate-600">
+              Para mais informações, consulte a documentação oficial:
+            </p>
+            <a
+              href="https://open.shopee.com/developer-guide"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-orange-600 hover:text-orange-800"
+            >
+              <ExternalLink className="h-4 w-4" />
+              open.shopee.com/developer-guide
+            </a>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end border-t border-slate-200 px-6 py-4">
+          <button
+            type="button"
+            onClick={() => setShowShopeeDocs(false)}
             className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
           >
             Fechar
@@ -2204,44 +2636,79 @@ export const ConfiguracoesSection = ({
                 <Link className="h-4 w-4" />
                 Reconectar Shopee
               </button>
+
+              {/* Documentation button */}
+              <button
+                type="button"
+                onClick={() => setShowShopeeDocs(true)}
+                className="
+                  flex w-full items-center justify-center gap-2
+                  rounded-xl border border-orange-200
+                  bg-orange-50 px-4 py-2.5
+                  text-xs font-semibold text-orange-700
+                  transition-all hover:bg-orange-100
+                "
+              >
+                <BookOpen className="h-3.5 w-3.5" />
+                Documentação API
+              </button>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  const response = await fetch(
-                    `${API_BASE_URL}/shopee/auth-url`,
-                    { headers: authHeaders },
-                  );
-                  if (!response.ok) {
-                    throw new Error("Erro ao gerar URL de autenticação.");
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const response = await fetch(
+                      `${API_BASE_URL}/shopee/auth-url`,
+                      { headers: authHeaders },
+                    );
+                    if (!response.ok) {
+                      throw new Error("Erro ao gerar URL de autenticação.");
+                    }
+                    const data = await response.json();
+                    if (data.data?.authUrl) {
+                      window.open(data.data.authUrl, "_blank");
+                    }
+                  } catch (error: unknown) {
+                    console.error(error);
                   }
-                  const data = await response.json();
-                  if (data.data?.authUrl) {
-                    window.open(data.data.authUrl, "_blank");
-                  }
-                } catch (error: unknown) {
-                  console.error(error);
-                }
-              }}
-              className="
-                flex w-full items-center justify-center gap-2
-                rounded-xl border border-orange-300/50
-                bg-orange-50 px-4 py-3
-                text-sm font-semibold text-orange-700
-                transition-all hover:bg-orange-100
-              "
-            >
-              <Link className="h-4 w-4" />
-              Conectar Shopee
-            </button>
+                }}
+                className="
+                  flex w-full items-center justify-center gap-2
+                  rounded-xl border border-orange-300/50
+                  bg-orange-50 px-4 py-3
+                  text-sm font-semibold text-orange-700
+                  transition-all hover:bg-orange-100
+                "
+              >
+                <Link className="h-4 w-4" />
+                Conectar Shopee
+              </button>
+
+              {/* Documentation button */}
+              <button
+                type="button"
+                onClick={() => setShowShopeeDocs(true)}
+                className="
+                  flex w-full items-center justify-center gap-2
+                  rounded-xl border border-orange-200
+                  bg-orange-50 px-4 py-2.5
+                  text-xs font-semibold text-orange-700
+                  transition-all hover:bg-orange-100
+                "
+              >
+                <BookOpen className="h-3.5 w-3.5" />
+                Documentação API
+              </button>
+            </div>
           )}
         </div>
       </aside>
 
       {/* Modals */}
       {mlDocsModal}
+      {shopeeDocsModal}
     </div>
   );
 };
