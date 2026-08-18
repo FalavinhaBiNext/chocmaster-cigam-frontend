@@ -35,17 +35,6 @@ interface UsuarioCigam {
   ativo: boolean;
 }
 
-interface BlingToken {
-  id: string;
-  active: boolean;
-  nome_unidade: string | null;
-  company_id_bling: string | null;
-  client_id: string | null;
-  client_secret: string | null;
-  expires_at: string | null;
-  created_at: string;
-}
-
 interface ConfiguracoesSectionProps {
   API_BASE_URL: string;
   onRefreshGlobal: () => void;
@@ -99,236 +88,6 @@ const isProductionEnvironment = (ambiente: string): boolean => {
   );
 };
 
-interface BlingTokenCardProps {
-  token: BlingToken;
-  onActivate: (tokenId: string) => void;
-  onUpdate: (tokenId: string, nomeUnidade: string, companyIdBling: string, clientId: string, clientSecret: string) => void;
-  onDelete: (tokenId: string) => void;
-  isActivating: boolean;
-  isDeleting: boolean;
-}
-
-const BlingTokenCard = ({
-  token,
-  onActivate,
-  onUpdate,
-  onDelete,
-  isActivating,
-  isDeleting,
-}: BlingTokenCardProps) => {
-  const [editing, setEditing] = useState(false);
-  const [nomeUnidade, setNomeUnidade] = useState(token.nome_unidade || "");
-  const [companyIdBling, setCompanyIdBling] = useState(token.company_id_bling || "");
-  const [clientId, setClientId] = useState(token.client_id || "");
-  const [clientSecret, setClientSecret] = useState(token.client_secret || "");
-
-  const handleSave = () => {
-    onUpdate(token.id, nomeUnidade, companyIdBling, clientId, clientSecret);
-    setEditing(false);
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("pt-BR", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  return (
-    <div
-      className={`
-        rounded-xl border p-4 transition-all
-        ${
-          token.active
-            ? "border-emerald-200 bg-emerald-50/50"
-            : "border-slate-200 bg-slate-50/50"
-        }
-      `}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <div
-            className={`
-              flex h-8 w-8 shrink-0 items-center justify-center rounded-lg
-              ${token.active ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-400"}
-            `}
-          >
-            <Link className="h-4 w-4" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-slate-900">
-              {token.nome_unidade || "Conta Bling"}
-            </p>
-            {token.company_id_bling && (
-              <p className="text-[0.65rem] text-slate-500">
-                Company: {token.company_id_bling}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1">
-          {token.active ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[0.6rem] font-bold text-emerald-700">
-              <CheckCircle2 className="h-2.5 w-2.5" />
-              Ativa
-            </span>
-          ) : (
-            <button
-              type="button"
-              onClick={() => onActivate(token.id)}
-              disabled={isActivating}
-              className="
-                inline-flex items-center gap-1 rounded-full
-                border border-amber-200 bg-amber-50
-                px-2 py-0.5 text-[0.6rem] font-bold
-                text-amber-700 transition-all
-                hover:bg-amber-100
-                disabled:cursor-not-allowed disabled:opacity-50
-              "
-            >
-              {isActivating ? (
-                <span className="h-2.5 w-2.5 animate-spin rounded-full border border-amber-400 border-t-amber-700" />
-              ) : (
-                <Zap className="h-2.5 w-2.5" />
-              )}
-              Ativar
-            </button>
-          )}
-
-          {!token.active && (
-            <button
-              type="button"
-              onClick={() => onDelete(token.id)}
-              disabled={isDeleting}
-              className="
-                inline-flex items-center gap-1 rounded-full
-                border border-red-200 bg-red-50
-                px-2 py-0.5 text-[0.6rem] font-bold
-                text-red-600 transition-all
-                hover:bg-red-100
-                disabled:cursor-not-allowed disabled:opacity-50
-              "
-            >
-              {isDeleting ? (
-                <span className="h-2.5 w-2.5 animate-spin rounded-full border border-red-400 border-t-red-700" />
-              ) : (
-                <Trash2 className="h-2.5 w-2.5" />
-              )}
-              Remover
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-3 border-t border-slate-100 pt-3">
-        {editing ? (
-          <div className="space-y-2">
-            <div>
-              <label className="text-[0.6rem] font-semibold uppercase text-slate-500">
-                Nome da Unidade
-              </label>
-              <input
-                type="text"
-                value={nomeUnidade}
-                onChange={(e) => setNomeUnidade(e.target.value)}
-                placeholder="Ex: Filial SP"
-                className="mt-1 h-8 w-full rounded-lg border border-slate-200 px-2 text-xs focus:border-[#00B0F1] focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="text-[0.6rem] font-semibold uppercase text-slate-500">
-                Company ID Bling
-              </label>
-              <input
-                type="text"
-                value={companyIdBling}
-                onChange={(e) => setCompanyIdBling(e.target.value)}
-                placeholder="Ex: f46afdc1cc617537a402af81c928bd37"
-                className="mt-1 h-8 w-full rounded-lg border border-slate-200 px-2 text-xs focus:border-[#00B0F1] focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="text-[0.6rem] font-semibold uppercase text-slate-500">
-                Client ID
-              </label>
-              <input
-                type="text"
-                value={clientId}
-                onChange={(e) => setClientId(e.target.value)}
-                placeholder="Client ID da aplicação Bling"
-                className="mt-1 h-8 w-full rounded-lg border border-slate-200 px-2 text-xs focus:border-[#00B0F1] focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="text-[0.6rem] font-semibold uppercase text-slate-500">
-                Client Secret
-              </label>
-              <input
-                type="password"
-                value={clientSecret}
-                onChange={(e) => setClientSecret(e.target.value)}
-                placeholder="Client Secret da aplicação Bling"
-                className="mt-1 h-8 w-full rounded-lg border border-slate-200 px-2 text-xs focus:border-[#00B0F1] focus:outline-none"
-              />
-            </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleSave}
-                className="
-                  flex h-7 items-center gap-1 rounded-lg
-                  bg-[#00B0F1] px-3 text-[0.65rem]
-                  font-semibold text-white
-                  hover:bg-[#008FC7]
-                "
-              >
-                <Check className="h-3 w-3" />
-                Salvar
-              </button>
-              <button
-                type="button"
-                onClick={() => setEditing(false)}
-                className="
-                  flex h-7 items-center gap-1 rounded-lg
-                  border border-slate-200 bg-white px-3
-                  text-[0.65rem] font-semibold text-slate-600
-                  hover:bg-slate-50
-                "
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex items-center justify-between">
-            <div className="text-[0.65rem] text-slate-500">
-              <p>Criado: {formatDate(token.created_at)}</p>
-              {token.expires_at && (
-                <p>Expira: {formatDate(token.expires_at)}</p>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              className="
-                text-[0.65rem] font-semibold
-                text-[#008FC7] hover:underline
-              "
-            >
-              Editar
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
 export const ConfiguracoesSection = ({
   API_BASE_URL,
   onRefreshGlobal,
@@ -348,9 +107,7 @@ export const ConfiguracoesSection = ({
   );
 
   const [usuarios, setUsuarios] = useState<UsuarioCigam[]>([]);
-  const [blingTokens, setBlingTokens] = useState<BlingToken[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingBling, setLoadingBling] = useState(true);
   const [envioAutomatico, setEnvioAutomatico] = useState(true);
   const [togglingEnvio, setTogglingEnvio] = useState(false);
 
@@ -358,12 +115,8 @@ export const ConfiguracoesSection = ({
   const [success, setSuccess] = useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(
-    null,
-  );
-  const [activatingId, setActivatingId] = useState<
-    string | null
-  >(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [activatingId, setActivatingId] = useState<string | null>(null);
 
   const [ambiente, setAmbiente] = useState("homologacao");
   const [urlAmbiente, setUrlAmbiente] = useState("");
@@ -414,29 +167,9 @@ export const ConfiguracoesSection = ({
     }
   }, [API_BASE_URL, authHeaders]);
 
-  const fetchBlingTokens = useCallback(async () => {
-    setLoadingBling(true);
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/bling/tokens`,
-        { headers: authHeaders },
-      );
-      if (!response.ok) {
-        throw new Error("Erro ao carregar tokens Bling.");
-      }
-      const data = await response.json();
-      setBlingTokens(data.data || []);
-    } catch (error: unknown) {
-      console.error(error);
-    } finally {
-      setLoadingBling(false);
-    }
-  }, [API_BASE_URL, authHeaders]);
-
   useEffect(() => {
     fetchUsuarios();
-    fetchBlingTokens();
-  }, [fetchUsuarios, fetchBlingTokens]);
+  }, [fetchUsuarios]);
 
   const handleCreate = async (
     event: FormEvent<HTMLFormElement>,
@@ -629,109 +362,6 @@ export const ConfiguracoesSection = ({
       );
     } finally {
       setTogglingEnvio(false);
-    }
-  };
-
-  const handleActivateBlingToken = async (tokenId: string) => {
-    setActivatingId(tokenId);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/bling/tokens/${tokenId}/activate`,
-        {
-          method: "POST",
-          headers: authHeaders,
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error("Erro ao ativar token Bling.");
-      }
-
-      setSuccess("Token Bling ativado com sucesso.");
-      await fetchBlingTokens();
-    } catch (error: unknown) {
-      console.error(error);
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Erro ao ativar token Bling.",
-      );
-    } finally {
-      setActivatingId(null);
-    }
-  };
-
-  const handleUpdateBlingToken = async (tokenId: string, nomeUnidade: string, companyIdBling: string, clientId: string, clientSecret: string) => {
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/bling/tokens/${tokenId}`,
-        {
-          method: "PATCH",
-          headers: authHeaders,
-          body: JSON.stringify({
-            nome_unidade: nomeUnidade || null,
-            company_id_bling: companyIdBling || null,
-            client_id: clientId || null,
-            client_secret: clientSecret || null,
-          }),
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error("Erro ao atualizar token Bling.");
-      }
-
-      setSuccess("Token Bling atualizado com sucesso.");
-      await fetchBlingTokens();
-    } catch (error: unknown) {
-      console.error(error);
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Erro ao atualizar token Bling.",
-      );
-    }
-  };
-
-  const handleDeleteBlingToken = async (tokenId: string) => {
-    if (!window.confirm("Deseja desativar este token Bling?")) {
-      return;
-    }
-
-    setDeletingId(tokenId);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/bling/tokens/${tokenId}`,
-        {
-          method: "DELETE",
-          headers: authHeaders,
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error("Erro ao desativar token Bling.");
-      }
-
-      setSuccess("Token Bling desativado com sucesso.");
-      await fetchBlingTokens();
-    } catch (error: unknown) {
-      console.error(error);
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Erro ao desativar token Bling.",
-      );
-    } finally {
-      setDeletingId(null);
     }
   };
 
@@ -1630,176 +1260,89 @@ export const ConfiguracoesSection = ({
         </aside>
       </div>
 
-      {/* Seção de Contas Bling */}
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <aside
+      {/* Seção de Mercado Livre */}
+      <aside
+        className="
+          relative
+          overflow-hidden
+          rounded-2xl
+          border border-slate-200/80
+          bg-gradient-to-br
+          from-white
+          to-slate-50
+          p-5
+          shadow-[0_14px_35px_-28px_rgba(2,6,23,0.70),inset_0_1px_1px_rgba(255,255,255,0.95)]
+          sm:p-6
+        "
+      >
+        <div
+          aria-hidden="true"
           className="
-            relative
-            overflow-hidden
-            rounded-2xl
-            border border-slate-200/80
-            bg-gradient-to-br
-            from-white
-            to-slate-50
-            p-5
-            shadow-[0_14px_35px_-28px_rgba(2,6,23,0.70),inset_0_1px_1px_rgba(255,255,255,0.95)]
-            sm:p-6
+            pointer-events-none
+            absolute inset-[5px]
+            rounded-[18px]
+            border border-white
           "
-        >
-          <div
-            aria-hidden="true"
-            className="
-              pointer-events-none
-              absolute inset-[5px]
-              rounded-[18px]
-              border border-white
-            "
-          />
+        />
 
-          <div className="relative z-10">
-            <div className="mb-6 flex items-center gap-3">
-              <div
-                className="
-                  flex h-10 w-10 shrink-0
-                  items-center justify-center
-                  rounded-xl
-                  border border-amber-200
-                  bg-amber-50
-                  text-amber-600
-                "
-              >
-                <Link className="h-4 w-4" />
-              </div>
-
-              <div>
-                <h3 className="text-base font-bold text-slate-900">
-                  Contas Bling
-                </h3>
-
-                <p className="mt-0.5 text-xs text-slate-500">
-                  Gerencie as contas Bling conectadas
-                </p>
-              </div>
-            </div>
-
-            {loadingBling ? (
-              <div className="flex items-center justify-center py-8">
-                <span className="h-6 w-6 animate-spin rounded-full border-2 border-[#00B0F1]/30 border-t-[#00B0F1]" />
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Lista de contas Bling conectadas */}
-                {blingTokens.length > 0 && (
-                  <div>
-                    <p className="mb-2 text-[0.6rem] font-semibold uppercase tracking-wider text-slate-500">
-                      Contas conectadas
-                    </p>
-                    <div className="space-y-2">
-                      {blingTokens.map((blingToken) => (
-                        <BlingTokenCard
-                          key={blingToken.id}
-                          token={blingToken}
-                          onActivate={handleActivateBlingToken}
-                          onUpdate={handleUpdateBlingToken}
-                          onDelete={handleDeleteBlingToken}
-                          isActivating={activatingId === blingToken.id}
-                          isDeleting={deletingId === blingToken.id}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-
-              </div>
-            )}
-          </div>
-        </aside>
-
-        {/* Seção de Mercado Livre */}
-        <aside
-          className="
-            relative
-            overflow-hidden
-            rounded-2xl
-            border border-slate-200/80
-            bg-gradient-to-br
-            from-white
-            to-slate-50
-            p-5
-            shadow-[0_14px_35px_-28px_rgba(2,6,23,0.70),inset_0_1px_1px_rgba(255,255,255,0.95)]
-            sm:p-6
-          "
-        >
-          <div
-            aria-hidden="true"
-            className="
-              pointer-events-none
-              absolute inset-[5px]
-              rounded-[18px]
-              border border-white
-            "
-          />
-
-          <div className="relative z-10">
-            <div className="mb-6 flex items-center gap-3">
-              <div
-                className="
-                  flex h-10 w-10 shrink-0
-                  items-center justify-center
-                  rounded-xl
-                  border border-yellow-200
-                  bg-yellow-50
-                  text-yellow-600
-                "
-              >
-                <Package className="h-4 w-4" />
-              </div>
-
-              <div>
-                <h3 className="text-base font-bold text-slate-900">
-                  Mercado Livre
-                </h3>
-
-                <p className="mt-0.5 text-xs text-slate-500">
-                  Conecte sua conta do Mercado Livre
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  const response = await fetch(
-                    `${API_BASE_URL}/mercado-livre/auth-url`,
-                    { headers: authHeaders },
-                  );
-                  if (!response.ok) {
-                    throw new Error("Erro ao gerar URL de autenticação.");
-                  }
-                  const data = await response.json();
-                  if (data.data?.authUrl) {
-                    window.location.href = data.data.authUrl;
-                  }
-                } catch (error: unknown) {
-                  console.error(error);
-                }
-              }}
+        <div className="relative z-10">
+          <div className="mb-6 flex items-center gap-3">
+            <div
               className="
-                flex w-full items-center justify-center gap-2
-                rounded-xl border border-yellow-300/50
-                bg-yellow-50 px-4 py-3
-                text-sm font-semibold text-yellow-700
-                transition-all hover:bg-yellow-100
+                flex h-10 w-10 shrink-0
+                items-center justify-center
+                rounded-xl
+                border border-yellow-200
+                bg-yellow-50
+                text-yellow-600
               "
             >
-              <Link className="h-4 w-4" />
-              Conectar Mercado Livre
-            </button>
+              <Package className="h-4 w-4" />
+            </div>
+
+            <div>
+              <h3 className="text-base font-bold text-slate-900">
+                Mercado Livre
+              </h3>
+
+              <p className="mt-0.5 text-xs text-slate-500">
+                Conecte sua conta do Mercado Livre
+              </p>
+            </div>
           </div>
-        </aside>
-      </div>
+
+          <button
+            type="button"
+            onClick={async () => {
+              try {
+                const response = await fetch(
+                  `${API_BASE_URL}/mercado-livre/auth-url`,
+                  { headers: authHeaders },
+                );
+                if (!response.ok) {
+                  throw new Error("Erro ao gerar URL de autenticação.");
+                }
+                const data = await response.json();
+                if (data.data?.authUrl) {
+                  window.location.href = data.data.authUrl;
+                }
+              } catch (error: unknown) {
+                console.error(error);
+              }
+            }}
+            className="
+              flex w-full items-center justify-center gap-2
+              rounded-xl border border-yellow-300/50
+              bg-yellow-50 px-4 py-3
+              text-sm font-semibold text-yellow-700
+              transition-all hover:bg-yellow-100
+            "
+          >
+            <Link className="h-4 w-4" />
+            Conectar Mercado Livre
+          </button>
+        </div>
+      </aside>
     </div>
   );
 };
