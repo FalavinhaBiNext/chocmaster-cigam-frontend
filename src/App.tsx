@@ -3,11 +3,11 @@ import { Routes, Route } from "react-router-dom";
 import { DeParaSection } from "./components/DeParaSection";
 import { EventsSection } from "./components/EventsSection";
 import { ConfiguracoesSection } from "./components/ConfiguracoesSection";
+import { NotasFiscaisCigamSection } from "./components/NotasFiscaisCigamSection";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { MercadoLivreCallbackPage } from "./pages/MercadoLivreCallbackPage";
-import { MercadoLivreOrdersSection } from "./components/MercadoLivreOrdersSection";
 import { useAuth } from "./contexts/AuthContext";
 import {
   Users,
@@ -22,7 +22,7 @@ import {
   LogOut,
   AlertCircle,
   Building2,
-  Package,
+  FileText,
 } from "lucide-react";
 
 import Logo from './assets/LogoSFundoBlack.png'
@@ -200,7 +200,7 @@ type TabType =
   | "transportadoras"
   | "eventos"
   | "unidades_negocio"
-  | "mercado_livre"
+  | "notas_fiscais"
   | "configuracoes";
 
 interface BlingItem {
@@ -1552,19 +1552,19 @@ export default function App() {
 
                       <button
                         type="button"
-                        onClick={() => setActiveTab("mercado_livre")}
-                        aria-pressed={activeTab === "mercado_livre"}
+                        onClick={() => setActiveTab("notas_fiscais")}
+                        aria-pressed={activeTab === "notas_fiscais"}
                         className={`
                         inline-flex items-center gap-2
                         rounded-xl
                         px-4 py-2.5
                         text-sm font-semibold
                         transition-all duration-200
-                        ${activeTab === "mercado_livre"
+                        ${activeTab === "notas_fiscais"
                             ? `
-                              bg-[#FFE600]/15
-                              text-yellow-700
-                              shadow-[inset_0_0_0_1px_rgba(255,230,0,0.3)]
+                              bg-[#00B0F1]/10
+                              text-[#008FC7]
+                              shadow-[inset_0_0_0_1px_rgba(0,176,241,0.18)]
                             `
                             : `
                               cursor-pointer
@@ -1575,8 +1575,8 @@ export default function App() {
                           }
                       `}
                       >
-                        <Package className="h-4 w-4" />
-                        <span>Mercado Livre</span>
+                        <FileText className="h-4 w-4" />
+                        <span>NF-e CIGAM</span>
                       </button>
 
                       <button
@@ -1736,8 +1736,11 @@ export default function App() {
                       />
                     )}
 
-                    {activeTab === "mercado_livre" && (
-                      <MercadoLivreOrdersSection />
+                    {activeTab === "notas_fiscais" && (
+                      <NotasFiscaisCigamSection
+                        API_BASE_URL={API_BASE_URL}
+                        authHeaders={authHeaders}
+                      />
                     )}
 
                     {activeTab === "configuracoes" && (

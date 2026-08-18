@@ -15,6 +15,7 @@ import {
   Globe,
   Key,
   Link,
+  Package,
   Plus,
   Server,
   Settings,
@@ -370,10 +371,7 @@ export const ConfiguracoesSection = ({
   const [senha, setSenha] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const [showNewBlingForm, setShowNewBlingForm] = useState(false);
-  const [newBlingClientId, setNewBlingClientId] = useState("");
-  const [newBlingClientSecret, setNewBlingClientSecret] = useState("");
-  const [newBlingNomeUnidade, setNewBlingNomeUnidade] = useState("");
+
 
   const fetchUsuarios = useCallback(async () => {
     setLoading(true);
@@ -1712,127 +1710,93 @@ export const ConfiguracoesSection = ({
                   </div>
                 )}
 
-                {/* Formulário para nova conta Bling */}
-                {!showNewBlingForm ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowNewBlingForm(true)}
-                    className="
-                      flex
-                      w-full
-                      items-center
-                      justify-center
-                      gap-2
-                      rounded-xl
-                      border border-dashed
-                      border-[#00B0F1]/30
-                      bg-[#00B0F1]/5
-                      px-4
-                      py-3
-                      text-xs
-                      font-semibold
-                      text-[#008FC7]
-                      transition-all
-                      hover:bg-[#00B0F1]/10
-                    "
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    {blingTokens.length === 0 ? 'Conectar primeira conta' : 'Conectar nova conta'}
-                  </button>
-                ) : (
-                  <div className="rounded-xl border border-[#00B0F1]/20 bg-[#00B0F1]/5 p-4">
-                    <h4 className="text-sm font-semibold text-slate-900">
-                      Nova conta Bling
-                    </h4>
-                    <p className="mt-1 text-xs text-slate-500">
-                      Informe as credenciais da aplicação Bling
-                    </p>
 
-                    <div className="mt-4 space-y-3">
-                      <div>
-                        <label className="text-[0.6rem] font-semibold uppercase text-slate-500">
-                          Nome da Unidade
-                        </label>
-                        <input
-                          type="text"
-                          value={newBlingNomeUnidade}
-                          onChange={(e) => setNewBlingNomeUnidade(e.target.value)}
-                          placeholder="Ex: Filial SP"
-                          className="mt-1 h-8 w-full rounded-lg border border-slate-200 px-2 text-xs focus:border-[#00B0F1] focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[0.6rem] font-semibold uppercase text-slate-500">
-                          Client ID *
-                        </label>
-                        <input
-                          type="text"
-                          value={newBlingClientId}
-                          onChange={(e) => setNewBlingClientId(e.target.value)}
-                          placeholder="Client ID da aplicação Bling"
-                          required
-                          className="mt-1 h-8 w-full rounded-lg border border-slate-200 px-2 text-xs focus:border-[#00B0F1] focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[0.6rem] font-semibold uppercase text-slate-500">
-                          Client Secret *
-                        </label>
-                        <input
-                          type="password"
-                          value={newBlingClientSecret}
-                          onChange={(e) => setNewBlingClientSecret(e.target.value)}
-                          placeholder="Client Secret da aplicação Bling"
-                          required
-                          className="mt-1 h-8 w-full rounded-lg border border-slate-200 px-2 text-xs focus:border-[#00B0F1] focus:outline-none"
-                        />
-                      </div>
-
-                      <div className="flex gap-2 pt-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!newBlingClientId.trim() || !newBlingClientSecret.trim()) {
-                              setError("Por favor, preencha o Client ID e Client Secret.");
-                              return;
-                            }
-                            const authUrl = `https://api-chocmaster.falavinhanext.tec.br/api/v1/bling/auth?client_id=${encodeURIComponent(newBlingClientId)}&client_secret=${encodeURIComponent(newBlingClientSecret)}`;
-                            console.log('Redirecionando para:', authUrl);
-                            window.location.href = authUrl;
-                          }}
-                          className="
-                            flex h-8 items-center gap-1.5 rounded-lg
-                            bg-[#00B0F1] px-4 text-[0.65rem]
-                            font-semibold text-white
-                            hover:bg-[#008FC7]
-                          "
-                        >
-                          <Link className="h-3 w-3" />
-                          Conectar
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setShowNewBlingForm(false);
-                            setNewBlingClientId("");
-                            setNewBlingClientSecret("");
-                            setNewBlingNomeUnidade("");
-                          }}
-                          className="
-                            flex h-8 items-center gap-1 rounded-lg
-                            border border-slate-200 bg-white px-3
-                            text-[0.65rem] font-semibold text-slate-600
-                            hover:bg-slate-50
-                          "
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
+          </div>
+        </aside>
+
+        {/* Seção de Mercado Livre */}
+        <aside
+          className="
+            relative
+            overflow-hidden
+            rounded-2xl
+            border border-slate-200/80
+            bg-gradient-to-br
+            from-white
+            to-slate-50
+            p-5
+            shadow-[0_14px_35px_-28px_rgba(2,6,23,0.70),inset_0_1px_1px_rgba(255,255,255,0.95)]
+            sm:p-6
+          "
+        >
+          <div
+            aria-hidden="true"
+            className="
+              pointer-events-none
+              absolute inset-[5px]
+              rounded-[18px]
+              border border-white
+            "
+          />
+
+          <div className="relative z-10">
+            <div className="mb-6 flex items-center gap-3">
+              <div
+                className="
+                  flex h-10 w-10 shrink-0
+                  items-center justify-center
+                  rounded-xl
+                  border border-yellow-200
+                  bg-yellow-50
+                  text-yellow-600
+                "
+              >
+                <Package className="h-4 w-4" />
+              </div>
+
+              <div>
+                <h3 className="text-base font-bold text-slate-900">
+                  Mercado Livre
+                </h3>
+
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Conecte sua conta do Mercado Livre
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const response = await fetch(
+                    `${API_BASE_URL}/mercado-livre/auth-url`,
+                    { headers: authHeaders },
+                  );
+                  if (!response.ok) {
+                    throw new Error("Erro ao gerar URL de autenticação.");
+                  }
+                  const data = await response.json();
+                  if (data.data?.authUrl) {
+                    window.location.href = data.data.authUrl;
+                  }
+                } catch (error: unknown) {
+                  console.error(error);
+                }
+              }}
+              className="
+                flex w-full items-center justify-center gap-2
+                rounded-xl border border-yellow-300/50
+                bg-yellow-50 px-4 py-3
+                text-sm font-semibold text-yellow-700
+                transition-all hover:bg-yellow-100
+              "
+            >
+              <Link className="h-4 w-4" />
+              Conectar Mercado Livre
+            </button>
           </div>
         </aside>
       </div>
