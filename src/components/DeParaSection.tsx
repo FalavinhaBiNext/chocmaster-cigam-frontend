@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { calculateSimilarity, calculateCodeSimilarity } from '../utils/similarity';
 import { CheckCircle, AlertCircle, ArrowRight, Search, Link2, Sparkles, ChevronDown, RefreshCw, SlidersHorizontal, Download } from 'lucide-react';
@@ -1058,9 +1059,10 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
         </section>
       )}
 
-      {/* Modal de sugestões inteligentes */}
-      {showSmartMatches && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+      {/* Modal de sugestões inteligentes - renderizado via portal */}
+      {showSmartMatches &&
+        createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
           <div
             className="
               flex max-h-[88vh] w-full max-w-5xl
@@ -1394,8 +1396,9 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
               </button>
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+          document.body,
+        )}
 
       {/* Painéis Bling e CIGAM */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
@@ -2754,9 +2757,10 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
         </div>
       </section>
 
-      {/* Modal de detalhes */}
-      {modalItem && modalSource && (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+      {/* Modal de detalhes - renderizado via portal */}
+      {modalItem && modalSource &&
+        createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
           <div
             role="button"
             tabIndex={0}
@@ -3136,8 +3140,9 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
               </p>
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+          document.body,
+        )}
 
       {/* Toast de alerta */}
       {alertConfig?.show && (

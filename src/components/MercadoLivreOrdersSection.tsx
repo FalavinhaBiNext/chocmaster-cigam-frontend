@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   AlertCircle,
   Check,
@@ -530,10 +531,17 @@ export const MercadoLivreOrdersSection = () => {
         </>
       )}
 
-      {/* Order detail modal */}
-      {selectedOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+      {/* Order detail modal - renderizado via portal */}
+      {selectedOrder &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+            onClick={() => setSelectedOrder(null)}
+          >
+            <div
+              className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl animate-scaleIn"
+              onClick={(e) => e.stopPropagation()}
+            >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-lg font-bold text-slate-900">
@@ -657,8 +665,9 @@ export const MercadoLivreOrdersSection = () => {
               </div>
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+          document.body,
+        )}
     </div>
   );
 };
