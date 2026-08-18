@@ -8,6 +8,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { MercadoLivreCallbackPage } from "./pages/MercadoLivreCallbackPage";
+import { ShopeeCallbackPage } from "./pages/ShopeeCallbackPage";
 import { useAuth } from "./contexts/AuthContext";
 import {
   Users,
@@ -712,6 +713,7 @@ export default function App() {
       <Route path="/cadastro" element={<RegisterPage />} />
 
       <Route path="/mercado-livre/callback" element={<MercadoLivreCallbackPage />} />
+      <Route path="/shopee/callback" element={<ShopeeCallbackPage />} />
 
       <Route
         path="/*"
