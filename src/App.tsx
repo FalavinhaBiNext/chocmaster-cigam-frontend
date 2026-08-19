@@ -4,6 +4,7 @@ import { DeParaSection } from "./components/DeParaSection";
 import { EventsSection } from "./components/EventsSection";
 import { ConfiguracoesSection } from "./components/ConfiguracoesSection";
 import { NotasFiscaisCigamSection } from "./components/NotasFiscaisCigamSection";
+import { CanaisVendaSection } from "./components/CanaisVendaSection";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
@@ -24,6 +25,7 @@ import {
   AlertCircle,
   Building2,
   FileText,
+  Store,
 } from "lucide-react";
 
 import Logo from './assets/LogoSFundoBlack.png'
@@ -202,6 +204,7 @@ type TabType =
   | "eventos"
   | "unidades_negocio"
   | "notas_fiscais"
+  | "canais_venda"
   | "configuracoes";
 
 interface BlingItem {
@@ -308,6 +311,9 @@ export default function App() {
   const [unidadesNegocio, setUnidadesNegocio] = useState<any[]>([]);
   const [unidadeNegocioFilter, setUnidadeNegocioFilter] = useState<string>('');
 
+  // Canais de Venda
+  const [canaisVenda, setCanaisVenda] = useState<any[]>([]);
+
   const fetchData = useCallback(async (options?: { silent?: boolean }) => {
     if (!options?.silent) setLoading(true);
     setError(null);
@@ -327,6 +333,7 @@ export default function App() {
         resMapTrans,
         resCigamUsers,
         resUnidadesNegocio,
+        resCanaisVenda,
       ] = await Promise.all([
         fetch(`${API_BASE_URL}/clientes`, { headers: authHeaders() }).then((r) => r.json()),
         fetch(`${API_BASE_URL}/produtos`, { headers: authHeaders() }).then((r) => r.json()),
@@ -342,6 +349,7 @@ export default function App() {
         fetch(`${API_BASE_URL}/depara/transportadoras`, { headers: authHeaders() }).then((r) => r.json()),
         fetch(`${API_BASE_URL}/cigam/usuarios/find-all`, { headers: authHeaders() }).then((r) => r.json()),
         fetch(`${API_BASE_URL}/depara/unidades-negocio`, { headers: authHeaders() }).then((r) => r.json()).catch(() => ({ data: [] })),
+        fetch(`${API_BASE_URL}/canais-venda`, { headers: authHeaders() }).then((r) => r.json()).catch(() => ({ data: [] })),
       ]);
 
       setBlingClientes(
@@ -452,6 +460,7 @@ export default function App() {
       }
 
       setUnidadesNegocio(resUnidadesNegocio.data || []);
+      setCanaisVenda(resCanaisVenda.data || []);
     } catch (err: any) {
       console.error(err);
       setError(
@@ -1583,6 +1592,35 @@ export default function App() {
 
                       <button
                         type="button"
+                        onClick={() => setActiveTab("canais_venda")}
+                        aria-pressed={activeTab === "canais_venda"}
+                        className={`
+                        inline-flex items-center gap-2
+                        rounded-xl
+                        px-4 py-2.5
+                        text-sm font-semibold
+                        transition-all duration-200
+                        ${activeTab === "canais_venda"
+                            ? `
+                              bg-[#00B0F1]/10
+                              text-[#008FC7]
+                              shadow-[inset_0_0_0_1px_rgba(0,176,241,0.18)]
+                            `
+                            : `
+                              cursor-pointer
+                              text-slate-500
+                              hover:bg-slate-100
+                              hover:text-slate-900
+                            `
+                          }
+                      `}
+                      >
+                        <Store className="h-4 w-4" />
+                        <span>Lojas</span>
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={() =>
                           setActiveTab("configuracoes")
                         }
@@ -1742,6 +1780,15 @@ export default function App() {
                       <NotasFiscaisCigamSection
                         API_BASE_URL={API_BASE_URL}
                         authHeaders={authHeaders}
+                      />
+                    )}
+
+                    {activeTab === "canais_venda" && (
+                      <CanaisVendaSection
+                        data={canaisVenda}
+                        API_BASE_URL={API_BASE_URL}
+                        authHeaders={authHeaders}
+                        onRefresh={() => fetchData({ silent: true })}
                       />
                     )}
 
