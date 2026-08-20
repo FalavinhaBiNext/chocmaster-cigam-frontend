@@ -5,6 +5,7 @@ import { EventsSection } from "./components/EventsSection";
 import { ConfiguracoesSection } from "./components/ConfiguracoesSection";
 import { NotasFiscaisCigamSection } from "./components/NotasFiscaisCigamSection";
 import { CanaisVendaSection } from "./components/CanaisVendaSection";
+import { MercadoLivreOrdersSection } from "./components/MercadoLivreOrdersSection";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
@@ -26,6 +27,7 @@ import {
   Building2,
   FileText,
   Store,
+  Tag,
 } from "lucide-react";
 
 import Logo from './assets/LogoSFundoBlack.png'
@@ -205,6 +207,7 @@ type TabType =
   | "unidades_negocio"
   | "notas_fiscais"
   | "canais_venda"
+  | "mercado_livre"
   | "configuracoes";
 
 interface BlingItem {
@@ -1621,6 +1624,35 @@ export default function App() {
 
                       <button
                         type="button"
+                        onClick={() => setActiveTab("mercado_livre")}
+                        aria-pressed={activeTab === "mercado_livre"}
+                        className={`
+                        inline-flex items-center gap-2
+                        rounded-xl
+                        px-4 py-2.5
+                        text-sm font-semibold
+                        transition-all duration-200
+                        ${activeTab === "mercado_livre"
+                            ? `
+                              bg-yellow-50
+                              text-yellow-800
+                              shadow-[inset_0_0_0_1px_rgba(234,179,8,0.25)]
+                            `
+                            : `
+                              cursor-pointer
+                              text-slate-500
+                              hover:bg-slate-100
+                              hover:text-slate-900
+                            `
+                          }
+                      `}
+                      >
+                        <Tag className="h-4 w-4" />
+                        <span>Mercado Livre</span>
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={() =>
                           setActiveTab("configuracoes")
                         }
@@ -1790,6 +1822,10 @@ export default function App() {
                         authHeaders={authHeaders}
                         onRefresh={() => fetchData({ silent: true })}
                       />
+                    )}
+
+                    {activeTab === "mercado_livre" && (
+                      <MercadoLivreOrdersSection />
                     )}
 
                     {activeTab === "configuracoes" && (
