@@ -115,6 +115,13 @@ export const MercadoLivreOrdersSection: FC = () => {
     type: "success" | "error";
   } | null>(null);
 
+  const [shipmentResults, setShipmentResults] = useState<Record<number, {
+    status: string;
+    substatus: string;
+    readyForInvoice: boolean;
+  }>>({});
+  const [checkingShipment, setCheckingShipment] = useState<number | null>(null);
+
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -134,6 +141,30 @@ export const MercadoLivreOrdersSection: FC = () => {
       );
     } finally {
       setLoading(false);
+    }
+  }, [authHeaders]);
+
+  const handleCheckShipment = useCallback(async (shipmentId: number) => {
+    setCheckingShipment(shipmentId);
+    try {
+      const response = await fetch(`${API_BASE_URL}/mercado-livre/shipments/${shipmentId}/status`, {
+        headers: authHeaders,
+      });
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.message || "Erro ao consultar shipment");
+      }
+      setShipmentResults((prev) => ({
+        ...prev,
+        [shipmentId]: data.data,
+      }));
+    } catch (err: unknown) {
+      setToast({
+        message: err instanceof Error ? err.message : "Erro ao verificar envio.",
+        type: "error",
+      });
+    } finally {
+      setCheckingShipment(null);
     }
   }, [authHeaders]);
 
@@ -456,11 +487,50 @@ export const MercadoLivreOrdersSection: FC = () => {
 
                   {/* Envio */}
                   {order.shipping && (
-                    <div className="mt-3 flex items-center gap-2">
-                      <Truck className="h-3.5 w-3.5 text-slate-400" />
-                      <span className="text-xs text-slate-600">
-                        Envio #{order.shipping.id}
-                      </span>
+                    <div className="mt-3">
+                      <div className="flex items-center gap-2">
+                        <Truck className="h-3.5 w-3.5 text-slate-400" />
+                        <span className="text-xs text-slate-600">
+                          Envio #{order.shipping.id}
+                        </span>
+                        <button
+                          type="button"
+                          disabled={checkingShipment === order.shipping.id}
+                          onClick={() => handleCheckShipment(order.shipping!.id)}
+                          className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[0.62rem] font-semibold transition-all duration-200 ${
+                            shipmentResults[order.shipping.id]?.readyForInvoice
+                              ? "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                              : shipmentResults[order.shipping.id]
+                              ? "border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                              : "border-slate-300 bg-white text-slate-600 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700"
+                          } disabled:cursor-not-allowed disabled:opacity-50`}
+                        >
+                          {checkingShipment === order.shipping.id ? (
+                            <>
+                              <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                              Verificando...
+                            </>
+                          ) : shipmentResults[order.shipping.id] ? (
+                            <>
+                              {shipmentResults[order.shipping.id].readyForInvoice ? (
+                                <>
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  XML liberado
+                                </>
+                              ) : (
+                                <>
+                                  <Clock className="h-3 w-3" />
+                                  {shipmentResults[order.shipping.id].substatus
+                                    ? `${shipmentResults[order.shipping.id].status} / ${shipmentResults[order.shipping.id].substatus}`
+                                    : shipmentResults[order.shipping.id].status}
+                                </>
+                              )}
+                            </>
+                          ) : (
+                            "Verificar envio"
+                          )}
+                        </button>
+                      </div>
                     </div>
                   )}
 
