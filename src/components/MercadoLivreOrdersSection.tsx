@@ -18,58 +18,33 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
-interface MLOrder {
-  id: number;
-  status: string;
-  date_created: string;
-  date_closed: string;
-  expiration_date: string;
-  order_cost: number;
-  total_amount: number;
-  paid_amount: number;
-  currency_id: string;
-  buyer: {
-    id: number;
-    nickname: string;
-    first_name: string;
-    last_name: string;
-  };
-  seller: {
-    id: number;
-    nickname: string;
-  };
-  order_items: Array<{
-    item: {
-      id: string;
-      title: string;
-      variation_id: number | null;
-      seller_sku: string | null;
-    };
-    quantity: number;
-    unit_price: number;
-    full_unit_price: number;
-  }>;
-  shipping: {
-    id: number;
-    status: string;
-    logistic_type: string;
-  } | null;
-  payments: Array<{
-    id: number;
-    status: string;
-    payment_type: string;
-    total_paid_amount: number;
-  }>;
-  tags: string[];
-}
-
-interface MLOrdersResponse {
-  results: MLOrder[];
-  paging: {
-    total: number;
-    offset: number;
-    limit: number;
-  };
+interface PedidoLocal {
+  id: string;
+  id_bling: string;
+  codigo_curto: string;
+  numero_loja: string;
+  data_pedido: string;
+  total_produtos: number;
+  total_venda: number;
+  id_cliente_bling: string;
+  nome_cliente: string;
+  documento_cliente: string;
+  tipo_pessoa: string;
+  id_loja: string;
+  desconto: number;
+  quantidade_itens: number;
+  status_venda: string;
+  codigo_transportadora: string;
+  valor_frete: number;
+  nome_transportadora: string;
+  codigo_rastreio: string;
+  unidade_negocio: string | null;
+  data_prevista: string | null;
+  numero_pedido_cigam: string | null;
+  marketplace: string | null;
+  status_nfe: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 const API_BASE_URL = "https://api-chocmaster.falavinhanext.tec.br/api/v1";
@@ -123,7 +98,7 @@ export const MercadoLivreOrdersSection: FC = () => {
     [token],
   );
 
-  const [orders, setOrders] = useState<MLOrder[]>([]);
+  const [orders, setOrders] = useState<PedidoLocal[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -133,33 +108,32 @@ export const MercadoLivreOrdersSection: FC = () => {
     type: "success" | "error";
   } | null>(null);
 
-  const [shipmentResults, setShipmentResults] = useState<Record<number, {
+  const [shipmentResults, setShipmentResults] = useState<Record<string, {
     status: string;
     substatus: string;
     readyForInvoice: boolean;
     substatusHistory: Array<{ date: string; substatus: string; status: string }>;
   }>>({});
-  const [checkingShipment, setCheckingShipment] = useState<number | null>(null);
-  const [expandedShipment, setExpandedShipment] = useState<number | null>(null);
+  const [checkingShipment, setCheckingShipment] = useState<string | null>(null);
+  const [expandedShipment, setExpandedShipment] = useState<string | null>(null);
 
   const [pendingInvoices, setPendingInvoices] = useState<Record<string, { id: string; numero_nf: string | null }>>({});
-  const [sendingInvoice, setSendingInvoice] = useState<number | null>(null);
-  const [sentInvoices, setSentInvoices] = useState<Set<number>>(new Set());
+  const [sendingInvoice, setSendingInvoice] = useState<string | null>(null);
+  const [sentInvoices, setSentInvoices] = useState<Set<string>>(new Set());
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const [ordersResponse, notasResponse] = await Promise.all([
-        fetch(`${API_BASE_URL}/mercado-livre/orders?limit=50`, { headers: authHeaders }),
+        fetch(`${API_BASE_URL}/pedidos/loja/203347320`, { headers: authHeaders }),
         fetch(`${API_BASE_URL}/notas-fiscais-cigam/nao-enviadas`, { headers: authHeaders }),
       ]);
       const data = await ordersResponse.json();
       if (!data.success) {
         throw new Error(data.message || "Erro ao buscar pedidos");
       }
-      const mlResponse = data.data as MLOrdersResponse;
-      setOrders(mlResponse.results || []);
+      setOrders(data.data || []);
 
       // Mapear NF-e pendentes por numero_pedido_marketplace
       try {
@@ -188,7 +162,7 @@ export const MercadoLivreOrdersSection: FC = () => {
     }
   }, [authHeaders]);
 
-  const handleCheckShipment = useCallback(async (shipmentId: number) => {
+  const handleCheckShipment = useCallback(async (shipmentId: string) => {
     setCheckingShipment(shipmentId);
     try {
       const response = await fetch(`${API_BASE_URL}/mercado-livre/shipments/${shipmentId}/status`, {
@@ -212,7 +186,7 @@ export const MercadoLivreOrdersSection: FC = () => {
     }
   }, [authHeaders]);
 
-  const handleSendInvoice = useCallback(async (orderId: number) => {
+  const handleSendInvoice = useCallback(async (orderId: string) => {
     setSendingInvoice(orderId);
     try {
       const response = await fetch(`${API_BASE_URL}/mercado-livre/orders/${orderId}/send-invoice`, {
@@ -226,7 +200,7 @@ export const MercadoLivreOrdersSection: FC = () => {
       setSentInvoices((prev) => new Set(prev).add(orderId));
       setPendingInvoices((prev) => {
         const next = { ...prev };
-        delete next[String(orderId)];
+        delete next[orderId];
         return next;
       });
       setToast({
@@ -275,18 +249,17 @@ export const MercadoLivreOrdersSection: FC = () => {
     let result = orders;
 
     if (statusFilter !== "todos") {
-      result = result.filter((o) => o.status === statusFilter);
+      result = result.filter((o) => o.status_venda === statusFilter);
     }
 
     if (searchTerm.trim()) {
       const term = searchTerm.trim().toLowerCase();
       result = result.filter(
         (o) =>
-          String(o.id).includes(term) ||
-          o.buyer?.nickname?.toLowerCase().includes(term) ||
-          o.order_items?.some((item) =>
-            item.item.title?.toLowerCase().includes(term),
-          ),
+          o.id_bling?.toLowerCase().includes(term) ||
+          o.nome_cliente?.toLowerCase().includes(term) ||
+          o.codigo_curto?.toLowerCase().includes(term) ||
+          o.numero_loja?.toLowerCase().includes(term),
       );
     }
 
@@ -294,17 +267,17 @@ export const MercadoLivreOrdersSection: FC = () => {
   }, [orders, statusFilter, searchTerm]);
 
   const totalValue = useMemo(
-    () => filteredOrders.reduce((sum, o) => sum + Number(o.total_amount || 0), 0),
+    () => filteredOrders.reduce((sum, o) => sum + Number(o.total_venda || 0), 0),
     [filteredOrders],
   );
 
   const paidOrders = useMemo(
-    () => filteredOrders.filter((o) => o.status === "paid" || o.status === "confirmed"),
+    () => filteredOrders.filter((o) => o.status_venda === "paid" || o.status_venda === "confirmed"),
     [filteredOrders],
   );
 
   const shippedOrders = useMemo(
-    () => filteredOrders.filter((o) => o.status === "shipped" || o.status === "delivered"),
+    () => filteredOrders.filter((o) => o.status_venda === "shipped" || o.status_venda === "delivered"),
     [filteredOrders],
   );
 
@@ -509,20 +482,28 @@ export const MercadoLivreOrdersSection: FC = () => {
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="inline-flex max-w-48 truncate rounded-full border border-yellow-300/40 bg-yellow-50 px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-[0.06em] text-yellow-800">
-                        ML #{order.id}
+                        ML #{order.id_bling}
                       </span>
-                      <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[0.62rem] font-bold ${STATUS_COLORS[order.status] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
-                        {STATUS_LABELS[order.status] || order.status}
+                      <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[0.62rem] font-bold ${STATUS_COLORS[order.status_venda] || "bg-slate-50 text-slate-600 border-slate-200"}`}>
+                        {STATUS_LABELS[order.status_venda] || order.status_venda}
                       </span>
-                      {order.status === "cancelled" && (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-[0.62rem] font-bold text-red-700">
-                          <XCircle className="h-3 w-3" />
-                          Cancelado
+                      {order.numero_pedido_cigam && (
+                        <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-[0.62rem] font-bold text-blue-700">
+                          CIGAM #{order.numero_pedido_cigam}
+                        </span>
+                      )}
+                      {order.status_nfe && order.status_nfe !== 'pendente' && (
+                        <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[0.62rem] font-bold ${
+                          order.status_nfe === 'enviada' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' :
+                          order.status_nfe === 'faturada' ? 'border-blue-200 bg-blue-50 text-blue-700' :
+                          'border-slate-200 bg-slate-50 text-slate-600'
+                        }`}>
+                          NF-e: {order.status_nfe === 'enviada' ? 'Enviada' : order.status_nfe === 'faturada' ? 'Faturada' : order.status_nfe}
                         </span>
                       )}
                     </div>
                     <span className="shrink-0 text-[0.62rem] text-slate-400">
-                      {formatDate(order.date_created)}
+                      {formatDate(order.data_pedido)}
                     </span>
                   </div>
 
@@ -530,172 +511,162 @@ export const MercadoLivreOrdersSection: FC = () => {
                   <div className="mt-3 flex items-center gap-2">
                     <User className="h-3.5 w-3.5 text-slate-400" />
                     <span className="text-sm font-semibold text-slate-900">
-                      {order.buyer?.first_name || order.buyer?.last_name
-                        ? `${order.buyer.first_name || ""} ${order.buyer.last_name || ""}`.trim()
-                        : order.buyer?.nickname || "Comprador desconhecido"}
+                      {order.nome_cliente || "Comprador desconhecido"}
                     </span>
-                    {order.buyer?.nickname && order.buyer?.first_name && (
+                    {order.documento_cliente && (
                       <span className="text-xs text-slate-500">
-                        ({order.buyer.nickname})
+                        ({order.documento_cliente})
                       </span>
                     )}
                   </div>
 
-                  {/* Itens */}
-                  {order.order_items && order.order_items.length > 0 && (
-                    <div className="mt-3 space-y-1.5">
-                      {order.order_items.map((item, idx) => (
-                        <div key={idx} className="flex items-start justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2">
-                          <div className="min-w-0">
-                            <p className="truncate text-xs font-medium text-slate-800">{item.item.title}</p>
-                            <p className="text-[0.62rem] text-slate-500">
-                              Qtd: {item.quantity} x {formatCurrency(item.unit_price)}
-                            </p>
-                          </div>
-                          <p className="shrink-0 text-xs font-bold text-slate-900">
-                            {formatCurrency(item.full_unit_price * item.quantity)}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  {/* Info do pedido */}
+                  <div className="mt-2 flex flex-wrap items-center gap-3 text-[0.62rem] text-slate-500">
+                    <span>Pedido #{order.codigo_curto}</span>
+                    {order.numero_loja && <span>Loja: {order.numero_loja}</span>}
+                    <span>{order.quantidade_itens} {order.quantidade_itens === 1 ? 'item' : 'itens'}</span>
+                    {order.nome_transportadora && <span>Transp: {order.nome_transportadora}</span>}
+                    {order.unidade_negocio && (
+                      <span className="inline-flex items-center rounded-full bg-[#00B0F1]/10 px-1.5 py-0.5 text-[0.58rem] font-bold text-[#008FC7]">
+                        {order.unidade_negocio}
+                      </span>
+                    )}
+                  </div>
 
-                  {/* Envio */}
-                  {order.shipping && (
-                    <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2">
-                          <Truck className="h-4 w-4 text-slate-400" />
-                          <div>
-                            <p className="text-xs font-semibold text-slate-700">Envio #{order.shipping.id}</p>
-                            <p className="text-[0.62rem] text-slate-500">Clique para verificar se o XML da NF-e está liberado</p>
-                          </div>
+                  {/* Envio - Verificar shipment via ML */}
+                  <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <Truck className="h-4 w-4 text-slate-400" />
+                        <div>
+                          <p className="text-xs font-semibold text-slate-700">Verificar envio no ML</p>
+                          <p className="text-[0.62rem] text-slate-500">Consulta o shipment do pedido #{order.id_bling} no Mercado Livre</p>
                         </div>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={checkingShipment === order.id_bling}
+                        onClick={() => handleCheckShipment(order.id_bling)}
+                        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                      >
+                        {checkingShipment === order.id_bling ? (
+                          <>
+                            <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" />
+                            Verificando...
+                          </>
+                        ) : (
+                          <>
+                            <Search className="h-3.5 w-3.5" />
+                            Verificar Envio
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Resultado da verificação */}
+                    {shipmentResults[order.id_bling] && (
+                      <div className={`mt-2.5 flex items-center gap-2 rounded-lg border px-3 py-2 ${
+                        shipmentResults[order.id_bling].readyForInvoice
+                          ? "border-emerald-200 bg-emerald-50"
+                          : "border-amber-200 bg-amber-50"
+                      }`}>
+                        {shipmentResults[order.id_bling].readyForInvoice ? (
+                          <>
+                            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                            <div>
+                              <p className="text-xs font-bold text-emerald-800">XML liberado para envio</p>
+                              <p className="text-[0.62rem] text-emerald-600">O envio da NF-e está pendente. Status: ready_to_ship / invoice_pending</p>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <Clock className="h-4 w-4 shrink-0 text-amber-600" />
+                            <div>
+                              <p className="text-xs font-bold text-amber-800">XML não liberado</p>
+                              <p className="text-[0.62rem] text-amber-600">
+                                Status atual: {shipmentResults[order.id_bling].status}
+                                {shipmentResults[order.id_bling].substatus && ` / ${shipmentResults[order.id_bling].substatus}`}
+                              </p>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Timeline do shipment */}
+                    {shipmentResults[order.id_bling]?.substatusHistory?.length > 0 && (
+                      <div className="mt-2">
                         <button
                           type="button"
-                          disabled={checkingShipment === order.shipping.id}
-                          onClick={() => handleCheckShipment(order.shipping!.id)}
-                          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                          onClick={() => setExpandedShipment(
+                            expandedShipment === order.id_bling ? null : order.id_bling
+                          )}
+                          className="inline-flex items-center gap-1.5 text-[0.62rem] font-semibold text-slate-500 hover:text-slate-700 transition-colors"
                         >
-                          {checkingShipment === order.shipping.id ? (
+                          {expandedShipment === order.id_bling ? (
                             <>
-                              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" />
-                              Verificando...
+                              <ChevronUp className="h-3 w-3" />
+                              Ocultar timeline
                             </>
                           ) : (
                             <>
-                              <Search className="h-3.5 w-3.5" />
-                              Verificar Envio
+                              <ChevronDown className="h-3 w-3" />
+                              Ver timeline ({shipmentResults[order.id_bling].substatusHistory.length} eventos)
                             </>
                           )}
                         </button>
-                      </div>
 
-                      {/* Resultado da verificação */}
-                      {shipmentResults[order.shipping.id] && (
-                        <div className={`mt-2.5 flex items-center gap-2 rounded-lg border px-3 py-2 ${
-                          shipmentResults[order.shipping.id].readyForInvoice
-                            ? "border-emerald-200 bg-emerald-50"
-                            : "border-amber-200 bg-amber-50"
-                        }`}>
-                          {shipmentResults[order.shipping.id].readyForInvoice ? (
-                            <>
-                              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
-                              <div>
-                                <p className="text-xs font-bold text-emerald-800">XML liberado para envio</p>
-                                <p className="text-[0.62rem] text-emerald-600">O envio da NF-e está pendente. Status: ready_to_ship / invoice_pending</p>
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <Clock className="h-4 w-4 shrink-0 text-amber-600" />
-                              <div>
-                                <p className="text-xs font-bold text-amber-800">XML não liberado</p>
-                                <p className="text-[0.62rem] text-amber-600">
-                                  Status atual: {shipmentResults[order.shipping.id].status}
-                                  {shipmentResults[order.shipping.id].substatus && ` / ${shipmentResults[order.shipping.id].substatus}`}
-                                </p>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Timeline do shipment */}
-                      {shipmentResults[order.shipping.id]?.substatusHistory?.length > 0 && (
-                        <div className="mt-2">
-                          <button
-                            type="button"
-                            onClick={() => setExpandedShipment(
-                              expandedShipment === order.shipping!.id ? null : order.shipping!.id
-                            )}
-                            className="inline-flex items-center gap-1.5 text-[0.62rem] font-semibold text-slate-500 hover:text-slate-700 transition-colors"
-                          >
-                            {expandedShipment === order.shipping.id ? (
-                              <>
-                                <ChevronUp className="h-3 w-3" />
-                                Ocultar timeline
-                              </>
-                            ) : (
-                              <>
-                                <ChevronDown className="h-3 w-3" />
-                                Ver timeline ({shipmentResults[order.shipping.id].substatusHistory.length} eventos)
-                              </>
-                            )}
-                          </button>
-
-                          {expandedShipment === order.shipping.id && (
-                            <div className="mt-2 space-y-0">
-                              {shipmentResults[order.shipping.id].substatusHistory
-                                .slice()
-                                .reverse()
-                                .map((entry, idx, arr) => {
-                                  const isLatest = idx === 0;
-                                  const entryDate = new Date(entry.date);
-                                  const formattedDate = entryDate.toLocaleString("pt-BR", {
-                                    day: "2-digit",
-                                    month: "2-digit",
-                                    year: "numeric",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                  });
-                                  return (
-                                    <div key={idx} className="flex gap-3">
-                                      <div className="flex flex-col items-center">
-                                        <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${
-                                          isLatest ? "bg-blue-500 ring-2 ring-blue-200" : "bg-slate-300"
-                                        }`} />
-                                        {idx < arr.length - 1 && (
-                                          <div className="w-px flex-1 bg-slate-200" />
-                                        )}
-                                      </div>
-                                      <div className={`pb-3 ${isLatest ? "" : "opacity-70"}`}>
-                                        <p className={`text-[0.62rem] font-bold ${isLatest ? "text-blue-800" : "text-slate-700"}`}>
-                                          {SUBSTATUS_LABELS[entry.substatus] || entry.substatus}
-                                        </p>
-                                        <p className="text-[0.58rem] text-slate-500">
-                                          {formattedDate}
-                                        </p>
-                                      </div>
+                        {expandedShipment === order.id_bling && (
+                          <div className="mt-2 space-y-0">
+                            {shipmentResults[order.id_bling].substatusHistory
+                              .slice()
+                              .reverse()
+                              .map((entry, idx, arr) => {
+                                const isLatest = idx === 0;
+                                const entryDate = new Date(entry.date);
+                                const formattedDate = entryDate.toLocaleString("pt-BR", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                });
+                                return (
+                                  <div key={idx} className="flex gap-3">
+                                    <div className="flex flex-col items-center">
+                                      <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${
+                                        isLatest ? "bg-blue-500 ring-2 ring-blue-200" : "bg-slate-300"
+                                      }`} />
+                                      {idx < arr.length - 1 && (
+                                        <div className="w-px flex-1 bg-slate-200" />
+                                      )}
                                     </div>
-                                  );
-                                })}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                                    <div className={`pb-3 ${isLatest ? "" : "opacity-70"}`}>
+                                      <p className={`text-[0.62rem] font-bold ${isLatest ? "text-blue-800" : "text-slate-700"}`}>
+                                        {SUBSTATUS_LABELS[entry.substatus] || entry.substatus}
+                                      </p>
+                                      <p className="text-[0.58rem] text-slate-500">
+                                        {formattedDate}
+                                      </p>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
 
                   {/* NF-e pendente */}
-                  {(pendingInvoices[String(order.id)] || sentInvoices.has(order.id)) && (
+                  {(pendingInvoices[order.id_bling] || sentInvoices.has(order.id_bling)) && (
                     <div className={`mt-2.5 flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 ${
-                      sentInvoices.has(order.id)
+                      sentInvoices.has(order.id_bling)
                         ? "border-emerald-200 bg-emerald-50"
                         : "border-blue-200 bg-blue-50"
                     }`}>
                       <div className="flex items-center gap-2">
-                        {sentInvoices.has(order.id) ? (
+                        {sentInvoices.has(order.id_bling) ? (
                           <>
                             <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
                             <div>
@@ -710,20 +681,20 @@ export const MercadoLivreOrdersSection: FC = () => {
                               <p className="text-xs font-bold text-blue-800">NF-e aguardando envio</p>
                               <p className="text-[0.62rem] text-blue-600">
                                 XML do CIGAM vinculado
-                                {pendingInvoices[String(order.id)]?.numero_nf && ` — NF ${pendingInvoices[String(order.id)].numero_nf}`}
+                                {pendingInvoices[order.id_bling]?.numero_nf && ` — NF ${pendingInvoices[order.id_bling].numero_nf}`}
                               </p>
                             </div>
                           </>
                         )}
                       </div>
-                      {!sentInvoices.has(order.id) && (
+                      {!sentInvoices.has(order.id_bling) && (
                         <button
                           type="button"
-                          disabled={sendingInvoice === order.id}
-                          onClick={() => handleSendInvoice(order.id)}
+                          disabled={sendingInvoice === order.id_bling}
+                          onClick={() => handleSendInvoice(order.id_bling)}
                           className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-blue-300 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-500 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
                         >
-                          {sendingInvoice === order.id ? (
+                          {sendingInvoice === order.id_bling ? (
                             <>
                               <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-blue-400 border-t-transparent" />
                               Enviando...
@@ -739,47 +710,27 @@ export const MercadoLivreOrdersSection: FC = () => {
                     </div>
                   )}
 
-                  {/* Tags */}
-                  {order.tags && order.tags.length > 0 && (
-                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                      {order.tags.map((tag) => (
-                        <span
-                          key={tag}
-                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[0.58rem] font-bold ${
-                            tag === "paid"
-                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                              : tag === "delivered"
-                              ? "border-blue-200 bg-blue-50 text-blue-700"
-                              : tag === "cancelled"
-                              ? "border-red-200 bg-red-50 text-red-700"
-                              : tag === "order_has_discount"
-                              ? "border-purple-200 bg-purple-50 text-purple-700"
-                              : "border-slate-200 bg-slate-50 text-slate-600"
-                          }`}
-                        >
-                          {tag === "paid" ? "Pago" :
-                           tag === "delivered" ? "Entregue" :
-                           tag === "cancelled" ? "Cancelado" :
-                           tag === "order_has_discount" ? "Com desconto" :
-                           tag === "not_delivered" ? "Não entregue" :
-                           tag === "pack_order" ? "Empacotado" :
-                           tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
                   {/* Totais */}
                   <div className="mt-4 flex items-end justify-between gap-3 border-t border-slate-100 pt-3">
                     <div className="flex items-center gap-2">
                       <Clock className="h-3.5 w-3.5 text-slate-400" />
                       <span className="text-xs text-slate-500">
-                        {order.paid_amount > 0 ? `Pago: ${formatCurrency(order.paid_amount)}` : "Não pago"}
+                        {order.total_venda > 0 ? `Total: ${formatCurrency(order.total_venda)}` : "Sem valor"}
                       </span>
+                      {order.desconto > 0 && (
+                        <span className="text-[0.62rem] text-purple-600">
+                          Desc: {formatCurrency(order.desconto)}
+                        </span>
+                      )}
+                      {order.valor_frete > 0 && (
+                        <span className="text-[0.62rem] text-slate-500">
+                          Frete: {formatCurrency(order.valor_frete)}
+                        </span>
+                      )}
                     </div>
                     <div className="text-right">
                       <p className="text-[0.62rem] font-semibold uppercase tracking-wider text-slate-400">Total</p>
-                      <p className="mt-1 text-lg font-bold text-yellow-700">{formatCurrency(order.total_amount)}</p>
+                      <p className="mt-1 text-lg font-bold text-yellow-700">{formatCurrency(order.total_venda)}</p>
                     </div>
                   </div>
                 </div>
