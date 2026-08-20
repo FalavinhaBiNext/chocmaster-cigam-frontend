@@ -3,6 +3,8 @@ import { createPortal } from "react-dom";
 import {
   AlertCircle,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Clock,
   DollarSign,
   FileText,
@@ -95,6 +97,21 @@ const STATUS_COLORS: Record<string, string> = {
   closed: "bg-slate-50 text-slate-600 border-slate-200",
 };
 
+const SUBSTATUS_LABELS: Record<string, string> = {
+  shipment_paid: "Pagamento confirmado",
+  invoice_pending: "Aguardando NF-e",
+  waiting_for_carrier_authorization: "Aguardando autorização da transportadora",
+  ready_to_print: "Pronto para impressão",
+  picked_up: "Coletado",
+  in_hub: "No hub de distribuição",
+  in_packing_list: "Na lista de embalagem",
+  out_for_delivery: "Saiu para entrega",
+  delivered: "Entregue",
+  not_delivered: "Não entregue",
+  route_assigned: "Rota atribuída",
+  delay: "Atrasado",
+};
+
 export const MercadoLivreOrdersSection: FC = () => {
   const { token } = useAuth();
 
@@ -120,8 +137,10 @@ export const MercadoLivreOrdersSection: FC = () => {
     status: string;
     substatus: string;
     readyForInvoice: boolean;
+    substatusHistory: Array<{ date: string; substatus: string; status: string }>;
   }>>({});
   const [checkingShipment, setCheckingShipment] = useState<number | null>(null);
+  const [expandedShipment, setExpandedShipment] = useState<number | null>(null);
 
   const [pendingInvoices, setPendingInvoices] = useState<Record<string, { id: string; numero_nf: string | null }>>({});
   const [sendingInvoice, setSendingInvoice] = useState<number | null>(null);
@@ -598,6 +617,70 @@ export const MercadoLivreOrdersSection: FC = () => {
                                 </p>
                               </div>
                             </>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Timeline do shipment */}
+                      {shipmentResults[order.shipping.id]?.substatusHistory?.length > 0 && (
+                        <div className="mt-2">
+                          <button
+                            type="button"
+                            onClick={() => setExpandedShipment(
+                              expandedShipment === order.shipping!.id ? null : order.shipping!.id
+                            )}
+                            className="inline-flex items-center gap-1.5 text-[0.62rem] font-semibold text-slate-500 hover:text-slate-700 transition-colors"
+                          >
+                            {expandedShipment === order.shipping.id ? (
+                              <>
+                                <ChevronUp className="h-3 w-3" />
+                                Ocultar timeline
+                              </>
+                            ) : (
+                              <>
+                                <ChevronDown className="h-3 w-3" />
+                                Ver timeline ({shipmentResults[order.shipping.id].substatusHistory.length} eventos)
+                              </>
+                            )}
+                          </button>
+
+                          {expandedShipment === order.shipping.id && (
+                            <div className="mt-2 space-y-0">
+                              {shipmentResults[order.shipping.id].substatusHistory
+                                .slice()
+                                .reverse()
+                                .map((entry, idx, arr) => {
+                                  const isLatest = idx === 0;
+                                  const entryDate = new Date(entry.date);
+                                  const formattedDate = entryDate.toLocaleString("pt-BR", {
+                                    day: "2-digit",
+                                    month: "2-digit",
+                                    year: "numeric",
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                  });
+                                  return (
+                                    <div key={idx} className="flex gap-3">
+                                      <div className="flex flex-col items-center">
+                                        <div className={`h-2.5 w-2.5 rounded-full shrink-0 ${
+                                          isLatest ? "bg-blue-500 ring-2 ring-blue-200" : "bg-slate-300"
+                                        }`} />
+                                        {idx < arr.length - 1 && (
+                                          <div className="w-px flex-1 bg-slate-200" />
+                                        )}
+                                      </div>
+                                      <div className={`pb-3 ${isLatest ? "" : "opacity-70"}`}>
+                                        <p className={`text-[0.62rem] font-bold ${isLatest ? "text-blue-800" : "text-slate-700"}`}>
+                                          {SUBSTATUS_LABELS[entry.substatus] || entry.substatus}
+                                        </p>
+                                        <p className="text-[0.58rem] text-slate-500">
+                                          {formattedDate}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                            </div>
                           )}
                         </div>
                       )}
