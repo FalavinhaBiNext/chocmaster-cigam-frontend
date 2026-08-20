@@ -57,6 +57,7 @@ interface MLOrder {
     payment_type: string;
     total_paid_amount: number;
   }>;
+  tags: string[];
 }
 
 interface MLOrdersResponse {
@@ -423,11 +424,13 @@ export const MercadoLivreOrdersSection: FC = () => {
                   <div className="mt-3 flex items-center gap-2">
                     <User className="h-3.5 w-3.5 text-slate-400" />
                     <span className="text-sm font-semibold text-slate-900">
-                      {order.buyer?.nickname || "Comprador desconhecido"}
+                      {order.buyer?.first_name || order.buyer?.last_name
+                        ? `${order.buyer.first_name || ""} ${order.buyer.last_name || ""}`.trim()
+                        : order.buyer?.nickname || "Comprador desconhecido"}
                     </span>
-                    {order.buyer?.first_name && (
+                    {order.buyer?.nickname && order.buyer?.first_name && (
                       <span className="text-xs text-slate-500">
-                        ({order.buyer.first_name} {order.buyer.last_name})
+                        ({order.buyer.nickname})
                       </span>
                     )}
                   </div>
@@ -456,9 +459,38 @@ export const MercadoLivreOrdersSection: FC = () => {
                     <div className="mt-3 flex items-center gap-2">
                       <Truck className="h-3.5 w-3.5 text-slate-400" />
                       <span className="text-xs text-slate-600">
-                        Envio: {STATUS_LABELS[order.shipping.status] || order.shipping.status}
-                        {order.shipping.logistic_type && ` (${order.shipping.logistic_type})`}
+                        Envio #{order.shipping.id}
                       </span>
+                    </div>
+                  )}
+
+                  {/* Tags */}
+                  {order.tags && order.tags.length > 0 && (
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      {order.tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[0.58rem] font-bold ${
+                            tag === "paid"
+                              ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                              : tag === "delivered"
+                              ? "border-blue-200 bg-blue-50 text-blue-700"
+                              : tag === "cancelled"
+                              ? "border-red-200 bg-red-50 text-red-700"
+                              : tag === "order_has_discount"
+                              ? "border-purple-200 bg-purple-50 text-purple-700"
+                              : "border-slate-200 bg-slate-50 text-slate-600"
+                          }`}
+                        >
+                          {tag === "paid" ? "Pago" :
+                           tag === "delivered" ? "Entregue" :
+                           tag === "cancelled" ? "Cancelado" :
+                           tag === "order_has_discount" ? "Com desconto" :
+                           tag === "not_delivered" ? "Não entregue" :
+                           tag === "pack_order" ? "Empacotado" :
+                           tag}
+                        </span>
+                      ))}
                     </div>
                   )}
 
