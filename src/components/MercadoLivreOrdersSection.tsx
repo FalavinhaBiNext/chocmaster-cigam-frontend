@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   Clock,
   DollarSign,
+  FileText,
   Package,
   RefreshCw,
   Search,
@@ -122,19 +123,43 @@ export const MercadoLivreOrdersSection: FC = () => {
   }>>({});
   const [checkingShipment, setCheckingShipment] = useState<number | null>(null);
 
+  const [pendingInvoices, setPendingInvoices] = useState<Record<string, { id: string; numero_nf: string | null }>>({});
+  const [sendingInvoice, setSendingInvoice] = useState<number | null>(null);
+  const [sentInvoices, setSentInvoices] = useState<Set<number>>(new Set());
+
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/mercado-livre/orders?limit=50`, {
-        headers: authHeaders,
-      });
-      const data = await response.json();
+      const [ordersResponse, notasResponse] = await Promise.all([
+        fetch(`${API_BASE_URL}/mercado-livre/orders?limit=50`, { headers: authHeaders }),
+        fetch(`${API_BASE_URL}/notas-fiscais-cigam/nao-enviadas`, { headers: authHeaders }),
+      ]);
+      const data = await ordersResponse.json();
       if (!data.success) {
         throw new Error(data.message || "Erro ao buscar pedidos");
       }
       const mlResponse = data.data as MLOrdersResponse;
       setOrders(mlResponse.results || []);
+
+      // Mapear NF-e pendentes por numero_pedido_marketplace
+      try {
+        const notasData = await notasResponse.json();
+        if (notasData.success && notasData.data) {
+          const pending: Record<string, { id: string; numero_nf: string | null }> = {};
+          for (const nota of notasData.data) {
+            if (nota.numero_pedido_marketplace) {
+              pending[nota.numero_pedido_marketplace] = {
+                id: nota.id,
+                numero_nf: nota.numero_nf,
+              };
+            }
+          }
+          setPendingInvoices(pending);
+        }
+      } catch {
+        // Ignorar erro ao buscar NF-e pendentes
+      }
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : "Falha ao carregar pedidos do Mercado Livre.",
@@ -165,6 +190,37 @@ export const MercadoLivreOrdersSection: FC = () => {
       });
     } finally {
       setCheckingShipment(null);
+    }
+  }, [authHeaders]);
+
+  const handleSendInvoice = useCallback(async (orderId: number) => {
+    setSendingInvoice(orderId);
+    try {
+      const response = await fetch(`${API_BASE_URL}/mercado-livre/orders/${orderId}/send-invoice`, {
+        method: "POST",
+        headers: authHeaders,
+      });
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.message || "Erro ao enviar NF-e");
+      }
+      setSentInvoices((prev) => new Set(prev).add(orderId));
+      setPendingInvoices((prev) => {
+        const next = { ...prev };
+        delete next[String(orderId)];
+        return next;
+      });
+      setToast({
+        message: `NF-e enviada com sucesso ao Mercado Livre!`,
+        type: "success",
+      });
+    } catch (err: unknown) {
+      setToast({
+        message: err instanceof Error ? err.message : "Erro ao enviar NF-e.",
+        type: "error",
+      });
+    } finally {
+      setSendingInvoice(null);
     }
   }, [authHeaders]);
 
@@ -487,50 +543,116 @@ export const MercadoLivreOrdersSection: FC = () => {
 
                   {/* Envio */}
                   {order.shipping && (
-                    <div className="mt-3">
-                      <div className="flex items-center gap-2">
-                        <Truck className="h-3.5 w-3.5 text-slate-400" />
-                        <span className="text-xs text-slate-600">
-                          Envio #{order.shipping.id}
-                        </span>
+                    <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <Truck className="h-4 w-4 text-slate-400" />
+                          <div>
+                            <p className="text-xs font-semibold text-slate-700">Envio #{order.shipping.id}</p>
+                            <p className="text-[0.62rem] text-slate-500">Clique para verificar se o XML da NF-e está liberado</p>
+                          </div>
+                        </div>
                         <button
                           type="button"
                           disabled={checkingShipment === order.shipping.id}
                           onClick={() => handleCheckShipment(order.shipping!.id)}
-                          className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[0.62rem] font-semibold transition-all duration-200 ${
-                            shipmentResults[order.shipping.id]?.readyForInvoice
-                              ? "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                              : shipmentResults[order.shipping.id]
-                              ? "border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100"
-                              : "border-slate-300 bg-white text-slate-600 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700"
-                          } disabled:cursor-not-allowed disabled:opacity-50`}
+                          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
                         >
                           {checkingShipment === order.shipping.id ? (
                             <>
-                              <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" />
                               Verificando...
                             </>
-                          ) : shipmentResults[order.shipping.id] ? (
-                            <>
-                              {shipmentResults[order.shipping.id].readyForInvoice ? (
-                                <>
-                                  <CheckCircle2 className="h-3 w-3" />
-                                  XML liberado
-                                </>
-                              ) : (
-                                <>
-                                  <Clock className="h-3 w-3" />
-                                  {shipmentResults[order.shipping.id].substatus
-                                    ? `${shipmentResults[order.shipping.id].status} / ${shipmentResults[order.shipping.id].substatus}`
-                                    : shipmentResults[order.shipping.id].status}
-                                </>
-                              )}
-                            </>
                           ) : (
-                            "Verificar envio"
+                            <>
+                              <Search className="h-3.5 w-3.5" />
+                              Verificar Envio
+                            </>
                           )}
                         </button>
                       </div>
+
+                      {/* Resultado da verificação */}
+                      {shipmentResults[order.shipping.id] && (
+                        <div className={`mt-2.5 flex items-center gap-2 rounded-lg border px-3 py-2 ${
+                          shipmentResults[order.shipping.id].readyForInvoice
+                            ? "border-emerald-200 bg-emerald-50"
+                            : "border-amber-200 bg-amber-50"
+                        }`}>
+                          {shipmentResults[order.shipping.id].readyForInvoice ? (
+                            <>
+                              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                              <div>
+                                <p className="text-xs font-bold text-emerald-800">XML liberado para envio</p>
+                                <p className="text-[0.62rem] text-emerald-600">O envio da NF-e está pendente. Status: ready_to_ship / invoice_pending</p>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <Clock className="h-4 w-4 shrink-0 text-amber-600" />
+                              <div>
+                                <p className="text-xs font-bold text-amber-800">XML não liberado</p>
+                                <p className="text-[0.62rem] text-amber-600">
+                                  Status atual: {shipmentResults[order.shipping.id].status}
+                                  {shipmentResults[order.shipping.id].substatus && ` / ${shipmentResults[order.shipping.id].substatus}`}
+                                </p>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* NF-e pendente */}
+                  {(pendingInvoices[String(order.id)] || sentInvoices.has(order.id)) && (
+                    <div className={`mt-2.5 flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 ${
+                      sentInvoices.has(order.id)
+                        ? "border-emerald-200 bg-emerald-50"
+                        : "border-blue-200 bg-blue-50"
+                    }`}>
+                      <div className="flex items-center gap-2">
+                        {sentInvoices.has(order.id) ? (
+                          <>
+                            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                            <div>
+                              <p className="text-xs font-bold text-emerald-800">NF-e enviada ao ML</p>
+                              <p className="text-[0.62rem] text-emerald-600">XML enviado com sucesso</p>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <FileText className="h-4 w-4 shrink-0 text-blue-600" />
+                            <div>
+                              <p className="text-xs font-bold text-blue-800">NF-e aguardando envio</p>
+                              <p className="text-[0.62rem] text-blue-600">
+                                XML do CIGAM vinculado
+                                {pendingInvoices[String(order.id)]?.numero_nf && ` — NF ${pendingInvoices[String(order.id)].numero_nf}`}
+                              </p>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      {!sentInvoices.has(order.id) && (
+                        <button
+                          type="button"
+                          disabled={sendingInvoice === order.id}
+                          onClick={() => handleSendInvoice(order.id)}
+                          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-blue-300 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-500 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                        >
+                          {sendingInvoice === order.id ? (
+                            <>
+                              <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-blue-400 border-t-transparent" />
+                              Enviando...
+                            </>
+                          ) : (
+                            <>
+                              <FileText className="h-3.5 w-3.5" />
+                              Enviar XML
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
                   )}
 
