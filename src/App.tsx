@@ -840,6 +840,33 @@ export default function App() {
 
                       <button
                         type="button"
+                        onClick={() => setActiveTab("configuracoes")}
+                        title="Configurações"
+                        aria-label="Configurações"
+                        className="
+                        inline-flex h-10 w-10 shrink-0
+                        cursor-pointer
+                        items-center justify-center
+                        rounded-xl
+                        border border-slate-200
+                        bg-white/80
+                        text-slate-500
+                        shadow-sm
+                        transition-all duration-200
+                        hover:-translate-y-0.5
+                        hover:border-[#00B0F1]/40
+                        hover:bg-[#00B0F1]/10
+                        hover:text-[#008FC7]
+                        focus:outline-none
+                        focus:ring-4
+                        focus:ring-[#00B0F1]/15
+                      "
+                      >
+                        <Settings className="h-4 w-4" />
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={logout}
                         title="Sair"
                         aria-label="Sair do sistema"
@@ -1185,7 +1212,7 @@ export default function App() {
                   aria-label="Seções do integrador"
                   className="
                   relative
-                  overflow-hidden
+                  overflow-visible
                   rounded-2xl
                   border border-white/70
                   bg-white/[0.94]
@@ -1442,39 +1469,6 @@ export default function App() {
                             {pendingNfeCount}
                           </span>
                         )}
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setActiveTab("configuracoes")
-                        }
-                        aria-pressed={
-                          activeTab === "configuracoes"
-                        }
-                        className={`
-                        inline-flex items-center gap-2
-                        rounded-xl
-                        px-4 py-2.5
-                        text-sm font-semibold
-                        transition-all duration-200
-                        ${activeTab === "configuracoes"
-                            ? `
-                              bg-[#00B0F1]/10
-                              text-[#008FC7]
-                              shadow-[inset_0_0_0_1px_rgba(0,176,241,0.18)]
-                            `
-                            : `
-                              cursor-pointer
-                              text-slate-500
-                              hover:bg-slate-100
-                              hover:text-slate-900
-                            `
-                          }
-                      `}
-                      >
-                        <Settings className="h-4 w-4" />
-                        <span>Configurações</span>
                       </button>
                     </div>
                   </div>
