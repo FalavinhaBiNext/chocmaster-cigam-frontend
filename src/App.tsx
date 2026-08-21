@@ -146,12 +146,11 @@ export default function App() {
     transportadoras: [],
   });
 
-  // Unidades de Negócio
-  const [unidadesNegocio, setUnidadesNegocio] = useState<any[]>([]);
-  const [unidadeNegocioFilter, setUnidadeNegocioFilter] = useState<string>('');
-
   // Canais de Venda
   const [canaisVenda, setCanaisVenda] = useState<any[]>([]);
+
+  // NF-e pendentes
+  const [pendingNfeCount, setPendingNfeCount] = useState(0);
 
   const fetchData = useCallback(async (options?: { silent?: boolean }) => {
     if (!options?.silent) setLoading(true);
@@ -171,7 +170,6 @@ export default function App() {
         resMapPay,
         resMapTrans,
         resCigamUsers,
-        resUnidadesNegocio,
         resCanaisVenda,
       ] = await Promise.all([
         fetch(`${API_BASE_URL}/clientes`, { headers: authHeaders() }).then((r) => r.json()),
@@ -187,7 +185,6 @@ export default function App() {
         fetch(`${API_BASE_URL}/depara/formas_pagamento`, { headers: authHeaders() }).then((r) => r.json()),
         fetch(`${API_BASE_URL}/depara/transportadoras`, { headers: authHeaders() }).then((r) => r.json()),
         fetch(`${API_BASE_URL}/cigam/usuarios/find-all`, { headers: authHeaders() }).then((r) => r.json()),
-        fetch(`${API_BASE_URL}/depara/unidades-negocio`, { headers: authHeaders() }).then((r) => r.json()).catch(() => ({ data: [] })),
         fetch(`${API_BASE_URL}/canais-venda`, { headers: authHeaders() }).then((r) => r.json()).catch(() => ({ data: [] })),
       ]);
 
@@ -298,8 +295,18 @@ export default function App() {
         setActiveEnv(activeUser.ambiente.toLowerCase());
       }
 
-      setUnidadesNegocio(resUnidadesNegocio.data || []);
       setCanaisVenda(resCanaisVenda.data || []);
+
+      // Buscar NF-e pendentes
+      try {
+        const resNotasPendentes = await fetch(`${API_BASE_URL}/notas-fiscais-cigam/nao-enviadas`, { headers: authHeaders() });
+        if (resNotasPendentes.ok) {
+          const notasData = await resNotasPendentes.json();
+          setPendingNfeCount(notasData.data?.length || 0);
+        }
+      } catch {
+        // Ignorar erro
+      }
     } catch (err: any) {
       console.error(err);
       setError(
@@ -767,35 +774,6 @@ export default function App() {
                         Produção
                       </button>
                     </div>
-
-                    {/* Filtro Unidade de Negócio */}
-                    {unidadesNegocio.length > 0 && (
-                      <select
-                        value={unidadeNegocioFilter}
-                        onChange={(e) => setUnidadeNegocioFilter(e.target.value)}
-                        className="
-                        shrink-0
-                        rounded-xl
-                        border border-slate-200
-                        bg-white/80
-                        px-3 py-2
-                        text-xs font-semibold
-                        text-slate-700
-                        shadow-sm
-                        focus:border-[#00B0F1]
-                          focus:outline-none
-                          focus:ring-2
-                          focus:ring-[#00B0F1]/20
-                        "
-                      >
-                        <option value="">Todas as unidades</option>
-                        {unidadesNegocio.map((u: any) => (
-                          <option key={u.id} value={u.unidade_negocio}>
-                            {u.nome} ({u.unidade_negocio})
-                          </option>
-                        ))}
-                      </select>
-                    )}
 
                     {/* Sincronizar */}
                     {/* <button
@@ -1434,7 +1412,7 @@ export default function App() {
                         onClick={() => setActiveTab("mercado_livre")}
                         aria-pressed={activeTab === "mercado_livre"}
                         className={`
-                        inline-flex items-center gap-2
+                        relative inline-flex items-center gap-2
                         rounded-xl
                         px-4 py-2.5
                         text-sm font-semibold
@@ -1456,6 +1434,14 @@ export default function App() {
                       >
                         <Tag className="h-4 w-4" />
                         <span>Mercado Livre</span>
+                        {pendingNfeCount > 0 && (
+                          <span
+                            title={`${pendingNfeCount} NF-e aguardando envio`}
+                            className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[0.6rem] font-bold text-white shadow-lg ring-2 ring-white animate-pulse"
+                          >
+                            {pendingNfeCount}
+                          </span>
+                        )}
                       </button>
 
                       <button
@@ -1556,7 +1542,6 @@ export default function App() {
                         onRefresh={() =>
                           fetchData({ silent: true })
                         }
-                        unidadeNegocioFilter={unidadeNegocioFilter}
                       />
                     )}
 
@@ -1603,7 +1588,7 @@ export default function App() {
                     )}
 
                     {activeTab === "eventos" && (
-                      <EventsSection unidadeNegocioFilter={unidadeNegocioFilter} />
+                      <EventsSection />
                     )}
 
                     {activeTab === "notas_fiscais" && (
@@ -1822,6 +1807,28 @@ export default function App() {
                     </div>
                   </div>
                 </aside>
+              )}
+
+              {/* Toast de NF-e pendente (visível em qualquer aba exceto mercado_livre) */}
+              {pendingNfeCount > 0 && activeTab !== 'mercado_livre' && (
+                <div className="fixed bottom-4 right-4 z-[9998] flex items-center gap-3 rounded-2xl border-2 border-red-300 bg-gradient-to-r from-red-50 to-orange-50 px-4 py-3.5 shadow-[0_14px_35px_-15px_rgba(220,38,38,0.50)] backdrop-blur-sm">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-red-200 bg-red-100">
+                    <AlertCircle className="h-5 w-5 text-red-600 animate-pulse" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-red-900">
+                      {pendingNfeCount} {pendingNfeCount === 1 ? 'NF-e aguardando envio' : 'NF-e aguardando envio'}
+                    </p>
+                    <p className="text-xs text-red-700">Clique para enviar ao marketplace</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('mercado_livre')}
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-red-300 bg-red-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-red-700"
+                  >
+                    Ver agora
+                  </button>
+                </div>
               )}
 
               {/* Footer */}
