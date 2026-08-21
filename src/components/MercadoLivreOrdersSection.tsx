@@ -415,6 +415,40 @@ export const MercadoLivreOrdersSection: FC = () => {
         </div>
       </header>
 
+      {/* Alerta de NF-e pendente */}
+      {Object.keys(pendingInvoices).length > 0 && (
+        <div
+          role="alert"
+          className="relative overflow-hidden rounded-2xl border-2 border-red-300 bg-gradient-to-r from-red-50 via-orange-50 to-red-50 px-5 py-4 shadow-[0_14px_35px_-22px_rgba(220,38,38,0.50),inset_0_1px_1px_rgba(255,255,255,0.90)]"
+        >
+          {/* Efeito de brilho animado */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 animate-pulse bg-gradient-to-r from-transparent via-red-100/30 to-transparent"
+          />
+
+          <div className="relative flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-red-200 bg-red-100 shadow-[inset_0_1px_1px_rgba(255,255,255,0.80)]">
+              <AlertCircle className="h-6 w-6 text-red-600 animate-pulse" />
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-base font-bold text-red-900">
+                  {Object.keys(pendingInvoices).length} {Object.keys(pendingInvoices).length === 1 ? 'NF-e aguardando envio' : 'NF-e aguardando envio'}
+                </p>
+                <span className="inline-flex items-center rounded-full bg-red-600 px-2.5 py-0.5 text-[0.65rem] font-bold text-white shadow-sm">
+                  Ação necessária
+                </span>
+              </div>
+              <p className="mt-1 text-sm text-red-700">
+                Existem notas fiscais faturadas pelo CIGAM que ainda não foram enviadas ao marketplace. Clique em <strong>"Enviar XML"</strong> no pedido correspondente para enviar.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Indicadores */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <article className="rounded-2xl border border-slate-200/80 bg-white/95 p-4 shadow-[0_14px_35px_-28px_rgba(2,6,23,0.70),inset_0_1px_1px_rgba(255,255,255,0.95)]">
