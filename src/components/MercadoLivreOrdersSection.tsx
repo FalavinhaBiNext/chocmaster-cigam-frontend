@@ -116,6 +116,9 @@ export const MercadoLivreOrdersSection: FC = () => {
     substatus: string | null;
     readyForInvoice: boolean;
     substatusHistory: Array<{ date: string; substatus: string; status: string }>;
+    logisticStatus?: string;
+    shippingCarrier?: string;
+    trackingNumber?: string;
   }>>({});
   const [checkingShipment, setCheckingShipment] = useState<string | null>(null);
   const [expandedShipment, setExpandedShipment] = useState<string | null>(null);
@@ -213,6 +216,61 @@ export const MercadoLivreOrdersSection: FC = () => {
     } catch (err: unknown) {
       setToast({
         message: err instanceof Error ? err.message : "Erro ao enviar NF-e.",
+        type: "error",
+      });
+    } finally {
+      setSendingInvoice(null);
+    }
+  }, [authHeaders]);
+
+  const handleCheckShipmentShopee = useCallback(async (orderSn: string) => {
+    setCheckingShipment(orderSn);
+    try {
+      const response = await fetch(`${API_BASE_URL}/shopee/orders/${orderSn}/shipment-status`, {
+        headers: authHeaders,
+      });
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.message || "Erro ao consultar shipment Shopee");
+      }
+      setShipmentResults((prev) => ({
+        ...prev,
+        [orderSn]: data.data,
+      }));
+    } catch (err: unknown) {
+      setToast({
+        message: err instanceof Error ? err.message : "Erro ao verificar envio Shopee.",
+        type: "error",
+      });
+    } finally {
+      setCheckingShipment(null);
+    }
+  }, [authHeaders]);
+
+  const handleSendInvoiceShopee = useCallback(async (orderSn: string) => {
+    setSendingInvoice(orderSn);
+    try {
+      const response = await fetch(`${API_BASE_URL}/shopee/orders/${orderSn}/send-invoice`, {
+        method: "POST",
+        headers: authHeaders,
+      });
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.message || "Erro ao enviar NF-e Shopee");
+      }
+      setSentInvoices((prev) => new Set(prev).add(orderSn));
+      setPendingInvoices((prev) => {
+        const next = { ...prev };
+        delete next[orderSn];
+        return next;
+      });
+      setToast({
+        message: `NF-e enviada com sucesso à Shopee!`,
+        type: "success",
+      });
+    } catch (err: unknown) {
+      setToast({
+        message: err instanceof Error ? err.message : "Erro ao enviar NF-e Shopee.",
         type: "error",
       });
     } finally {
@@ -792,19 +850,91 @@ export const MercadoLivreOrdersSection: FC = () => {
                   </div>
                   )}
 
-                  {/* NF-e pendente */}
-                  {(pendingInvoices[order.id_bling] || sentInvoices.has(order.id_bling)) && (
-                    <div className={`mt-2.5 flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 ${
-                      sentInvoices.has(order.id_bling)
-                        ? "border-emerald-200 bg-emerald-50"
-                        : "border-blue-200 bg-blue-50"
-                    }`}>
+                  {/* Envio - Verificar shipment via Shopee (apenas pedidos da Shopee) */}
+                  {order.marketplace === 'shopee' && (
+                  <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
-                        {sentInvoices.has(order.id_bling) ? (
+                        <Truck className="h-4 w-4 text-orange-400" />
+                        <div>
+                          <p className="text-xs font-semibold text-slate-700">Verificar envio na Shopee</p>
+                          <p className="text-[0.62rem] text-slate-500">
+                            Consulta o shipment do pedido #{order.numero_loja} na Shopee
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={checkingShipment === order.numero_loja}
+                        onClick={() => handleCheckShipmentShopee(order.numero_loja)}
+                        className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-orange-300 bg-white px-3 py-1.5 text-xs font-semibold text-orange-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-orange-400 hover:bg-orange-50 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                      >
+                        {checkingShipment === order.numero_loja ? (
+                          <>
+                            <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-orange-400 border-t-transparent" />
+                            Verificando...
+                          </>
+                        ) : (
+                          <>
+                            <Search className="h-3.5 w-3.5" />
+                            Verificar Envio
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Resultado da verificação Shopee */}
+                    {shipmentResults[order.numero_loja] && (
+                      <div className={`mt-2.5 flex items-center gap-2 rounded-lg border px-3 py-2 ${
+                        shipmentResults[order.numero_loja].readyForInvoice
+                          ? "border-emerald-200 bg-emerald-50"
+                          : "border-amber-200 bg-amber-50"
+                      }`}>
+                        {shipmentResults[order.numero_loja].readyForInvoice ? (
                           <>
                             <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
                             <div>
-                              <p className="text-xs font-bold text-emerald-800">NF-e enviada ao ML</p>
+                              <p className="text-xs font-bold text-emerald-800">Pronto para envio</p>
+                              <p className="text-[0.62rem] text-emerald-600">
+                                Status: {shipmentResults[order.numero_loja].status} — {shipmentResults[order.numero_loja].logisticStatus}
+                              </p>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <Clock className="h-4 w-4 shrink-0 text-amber-600" />
+                            <div>
+                              <p className="text-xs font-bold text-amber-800">Aguardando processamento</p>
+                              <p className="text-[0.62rem] text-amber-600">
+                                Status: {shipmentResults[order.numero_loja].status}
+                                {shipmentResults[order.numero_loja].logisticStatus && ` — ${shipmentResults[order.numero_loja].logisticStatus}`}
+                              </p>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  )}
+
+                  {/* NF-e pendente */}
+                  {(() => {
+                    const nfKey = order.marketplace === 'shopee' ? order.numero_loja : order.id_bling;
+                    const isPending = pendingInvoices[nfKey] || sentInvoices.has(nfKey);
+                    if (!isPending) return null;
+                    const sendHandler = order.marketplace === 'shopee' ? handleSendInvoiceShopee : handleSendInvoice;
+                    const marketLabel = order.marketplace === 'shopee' ? 'Shopee' : 'Mercado Livre';
+                    const borderSent = order.marketplace === 'shopee' ? 'border-orange-200 bg-orange-50' : 'border-emerald-200 bg-emerald-50';
+                    return (
+                    <div className={`mt-2.5 flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 ${
+                      sentInvoices.has(nfKey) ? borderSent : "border-blue-200 bg-blue-50"
+                    }`}>
+                      <div className="flex items-center gap-2">
+                        {sentInvoices.has(nfKey) ? (
+                          <>
+                            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+                            <div>
+                              <p className="text-xs font-bold text-emerald-800">NF-e enviada à {marketLabel}</p>
                               <p className="text-[0.62rem] text-emerald-600">XML enviado com sucesso</p>
                             </div>
                           </>
@@ -815,20 +945,20 @@ export const MercadoLivreOrdersSection: FC = () => {
                               <p className="text-xs font-bold text-blue-800">NF-e aguardando envio</p>
                               <p className="text-[0.62rem] text-blue-600">
                                 XML do CIGAM vinculado
-                                {pendingInvoices[order.id_bling]?.numero_nf && ` — NF ${pendingInvoices[order.id_bling].numero_nf}`}
+                                {pendingInvoices[nfKey]?.numero_nf && ` — NF ${pendingInvoices[nfKey].numero_nf}`}
                               </p>
                             </div>
                           </>
                         )}
                       </div>
-                      {!sentInvoices.has(order.id_bling) && (
+                      {!sentInvoices.has(nfKey) && (
                         <button
                           type="button"
-                          disabled={sendingInvoice === order.id_bling}
-                          onClick={() => handleSendInvoice(order.id_bling)}
+                          disabled={sendingInvoice === nfKey}
+                          onClick={() => sendHandler(nfKey)}
                           className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-blue-300 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-500 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
                         >
-                          {sendingInvoice === order.id_bling ? (
+                          {sendingInvoice === nfKey ? (
                             <>
                               <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-blue-400 border-t-transparent" />
                               Enviando...
@@ -842,7 +972,8 @@ export const MercadoLivreOrdersSection: FC = () => {
                         </button>
                       )}
                     </div>
-                  )}
+                    );
+                  })()}
 
                   {/* Totais */}
                   <div className="mt-4 flex items-end justify-between gap-3 border-t border-slate-100 pt-3">
