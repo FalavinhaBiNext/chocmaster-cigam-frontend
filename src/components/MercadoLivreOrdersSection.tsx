@@ -628,7 +628,8 @@ export const MercadoLivreOrdersSection: FC = () => {
                     )}
                   </div>
 
-                  {/* Envio - Verificar shipment via ML */}
+                  {/* Envio - Verificar shipment via ML (apenas pedidos do Mercado Livre) */}
+                  {order.marketplace === 'mercado_livre' && (
                   <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
@@ -781,6 +782,7 @@ export const MercadoLivreOrdersSection: FC = () => {
                       </>
                     )}
                   </div>
+                  )}
 
                   {/* NF-e pendente */}
                   {(pendingInvoices[order.id_bling] || sentInvoices.has(order.id_bling)) && (
