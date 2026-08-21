@@ -43,6 +43,7 @@ interface PedidoLocal {
   numero_pedido_cigam: string | null;
   marketplace: string | null;
   status_nfe: string | null;
+  shipping_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -541,7 +542,11 @@ export const MercadoLivreOrdersSection: FC = () => {
                         <Truck className="h-4 w-4 text-slate-400" />
                         <div>
                           <p className="text-xs font-semibold text-slate-700">Verificar envio no ML</p>
-                          <p className="text-[0.62rem] text-slate-500">Consulta o shipment do pedido #{order.numero_loja} no Mercado Livre</p>
+                          <p className="text-[0.62rem] text-slate-500">
+                            {order.shipping_id
+                              ? `Shipment #${order.shipping_id} — Pedido #${order.numero_loja}`
+                              : `Consulta o shipment do pedido #${order.numero_loja} no Mercado Livre`}
+                          </p>
                         </div>
                       </div>
                       <button
