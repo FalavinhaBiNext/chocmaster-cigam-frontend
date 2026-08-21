@@ -104,6 +104,7 @@ export const MercadoLivreOrdersSection: FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
+  const [marketplaceFilter, setMarketplaceFilter] = useState<string>("todos");
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "error";
@@ -128,7 +129,7 @@ export const MercadoLivreOrdersSection: FC = () => {
     setError(null);
     try {
       const [ordersResponse, notasResponse] = await Promise.all([
-        fetch(`${API_BASE_URL}/pedidos/loja/203347320`, { headers: authHeaders }),
+        fetch(`${API_BASE_URL}/pedidos`, { headers: authHeaders }),
         fetch(`${API_BASE_URL}/notas-fiscais-cigam/nao-enviadas`, { headers: authHeaders }),
       ]);
       const data = await ordersResponse.json();
@@ -254,6 +255,10 @@ export const MercadoLivreOrdersSection: FC = () => {
       result = result.filter((o) => o.status_venda === statusFilter);
     }
 
+    if (marketplaceFilter !== "todos") {
+      result = result.filter((o) => o.marketplace === marketplaceFilter);
+    }
+
     if (searchTerm.trim()) {
       const term = searchTerm.trim().toLowerCase();
       result = result.filter(
@@ -266,7 +271,7 @@ export const MercadoLivreOrdersSection: FC = () => {
     }
 
     return result;
-  }, [orders, statusFilter, searchTerm]);
+  }, [orders, statusFilter, marketplaceFilter, searchTerm]);
 
   const totalValue = useMemo(
     () => filteredOrders.reduce((sum, o) => sum + Number(o.total_venda || 0), 0),
@@ -332,10 +337,10 @@ export const MercadoLivreOrdersSection: FC = () => {
             </div>
             <div>
               <h2 className="text-xl font-bold tracking-tight text-slate-900">
-                Pedidos Mercado Livre
+                Pedidos Marketplace
               </h2>
               <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
-                Visualize os 50 pedidos mais recentes da sua conta no Mercado Livre.
+                Visualize os pedidos sincronizados via Bling, filtrados por marketplace. Use "Verificar Envio" para consultar shipments no Mercado Livre.
               </p>
             </div>
           </div>
@@ -439,6 +444,34 @@ export const MercadoLivreOrdersSection: FC = () => {
               </button>
             ))}
           </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {[
+              { key: "todos", label: "Todos" },
+              { key: "mercado_livre", label: "Mercado Livre" },
+              { key: "shopee", label: "Shopee" },
+              { key: "AMAZON", label: "Amazon" },
+              { key: "MAGAZINE LUIZA", label: "Magalu" },
+              { key: "LOJA VIRTUAL", label: "Loja Virtual" },
+              { key: "PARTICULAR", label: "Particular" },
+            ].map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setMarketplaceFilter(f.key)}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                  marketplaceFilter === f.key
+                    ? f.key === "mercado_livre" ? "border border-yellow-300 bg-yellow-100 text-yellow-800" :
+                      f.key === "shopee" ? "border border-orange-300 bg-orange-100 text-orange-800" :
+                      f.key === "AMAZON" ? "border border-amber-300 bg-amber-100 text-amber-800" :
+                      f.key === "MAGAZINE LUIZA" ? "border border-blue-300 bg-blue-100 text-blue-800" :
+                      "border border-slate-300 bg-slate-200 text-slate-700"
+                    : "border border-transparent bg-slate-100 text-slate-500 hover:bg-slate-200"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -446,8 +479,8 @@ export const MercadoLivreOrdersSection: FC = () => {
       {loading ? (
         <div className="flex min-h-80 flex-col items-center justify-center rounded-[24px] border border-slate-200/80 bg-white/95 px-6 py-12 shadow-[0_20px_50px_-34px_rgba(2,6,23,0.70),inset_0_1px_1px_rgba(255,255,255,0.95)]">
           <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-yellow-400/20 border-t-yellow-500" />
-          <p className="mt-4 text-sm font-semibold text-slate-700">Buscando pedidos do Mercado Livre</p>
-          <p className="mt-1 text-xs text-slate-400">Aguarde enquanto consultamos a API...</p>
+          <p className="mt-4 text-sm font-semibold text-slate-700">Buscando pedidos</p>
+          <p className="mt-1 text-xs text-slate-400">Aguarde enquanto consultamos o banco de dados...</p>
         </div>
       ) : error ? (
         <div role="alert" className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50/95 p-4 text-red-800 shadow-[0_12px_28px_-24px_rgba(127,29,29,0.60),inset_0_1px_1px_rgba(255,255,255,0.85)]">
@@ -501,6 +534,19 @@ export const MercadoLivreOrdersSection: FC = () => {
                           'border-slate-200 bg-slate-50 text-slate-600'
                         }`}>
                           NF-e: {order.status_nfe === 'enviada' ? 'Enviada' : order.status_nfe === 'faturada' ? 'Faturada' : order.status_nfe}
+                        </span>
+                      )}
+                      {order.marketplace && (
+                        <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[0.62rem] font-bold ${
+                          order.marketplace === 'mercado_livre' ? 'border-yellow-300 bg-yellow-50 text-yellow-800' :
+                          order.marketplace === 'shopee' ? 'border-orange-300 bg-orange-50 text-orange-700' :
+                          order.marketplace === 'AMAZON' ? 'border-amber-300 bg-amber-50 text-amber-800' :
+                          order.marketplace === 'MAGAZINE LUIZA' ? 'border-blue-300 bg-blue-50 text-blue-700' :
+                          'border-slate-300 bg-slate-50 text-slate-600'
+                        }`}>
+                          {order.marketplace === 'mercado_livre' ? 'Mercado Livre' :
+                           order.marketplace === 'shopee' ? 'Shopee' :
+                           order.marketplace}
                         </span>
                       )}
                     </div>
