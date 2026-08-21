@@ -410,67 +410,114 @@ export const MercadoLivreOrdersSection: FC = () => {
 
       {/* Filtros e busca */}
       <div className={panelClassName}>
-        <div className="relative z-10 flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+        <div className="relative z-10 p-5">
+          {/* Barra de pesquisa */}
+          <div className="relative mb-4">
+            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Buscar por ID, comprador ou produto..."
+              placeholder="Buscar por ID do pedido, nome do cliente, número da loja..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="h-9 w-64 rounded-lg border border-slate-200 bg-white pl-9 pr-3 text-xs text-slate-700 placeholder:text-slate-400 focus:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-500/20"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 text-sm text-slate-700 shadow-sm placeholder:text-slate-400 focus:border-yellow-500 focus:outline-none focus:ring-2 focus:ring-yellow-500/20 transition-all"
             />
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {[
-              { key: "todos", label: "Todos" },
-              { key: "confirmed", label: "Confirmados" },
-              { key: "paid", label: "Pagos" },
-              { key: "shipped", label: "Enviados" },
-              { key: "delivered", label: "Entregues" },
-              { key: "cancelled", label: "Cancelados" },
-            ].map((f) => (
-              <button
-                key={f.key}
-                type="button"
-                onClick={() => setStatusFilter(f.key)}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-                  statusFilter === f.key
-                    ? "border border-yellow-300 bg-yellow-100 text-yellow-800"
-                    : "border border-transparent bg-slate-100 text-slate-500 hover:bg-slate-200"
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
+
+          {/* Linha divisória */}
+          <div className="mb-4 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
+
+          {/* Filtros */}
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-6">
+            {/* Status do pedido */}
+            <div className="flex-1">
+              <p className="mb-2.5 text-[0.68rem] font-bold uppercase tracking-[0.1em] text-slate-400">Status do pedido</p>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { key: "todos", label: "Todos", color: "slate" },
+                  { key: "confirmed", label: "Confirmados", color: "blue" },
+                  { key: "paid", label: "Pagos", color: "emerald" },
+                  { key: "shipped", label: "Enviados", color: "indigo" },
+                  { key: "delivered", label: "Entregues", color: "green" },
+                  { key: "cancelled", label: "Cancelados", color: "red" },
+                ].map((f) => {
+                  const isActive = statusFilter === f.key;
+                  const colorMap: Record<string, string> = {
+                    slate: isActive ? "bg-slate-800 text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+                    blue: isActive ? "bg-blue-600 text-white shadow-sm" : "bg-blue-50 text-blue-700 hover:bg-blue-100",
+                    emerald: isActive ? "bg-emerald-600 text-white shadow-sm" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
+                    indigo: isActive ? "bg-indigo-600 text-white shadow-sm" : "bg-indigo-50 text-indigo-700 hover:bg-indigo-100",
+                    green: isActive ? "bg-green-600 text-white shadow-sm" : "bg-green-50 text-green-700 hover:bg-green-100",
+                    red: isActive ? "bg-red-600 text-white shadow-sm" : "bg-red-50 text-red-700 hover:bg-red-100",
+                  };
+                  return (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => setStatusFilter(f.key)}
+                      className={`inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${colorMap[f.color]}`}
+                    >
+                      {f.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Separador vertical */}
+            <div className="hidden h-auto w-px bg-slate-200 lg:block" />
+
+            {/* Canal de venda */}
+            <div className="flex-1">
+              <p className="mb-2.5 text-[0.68rem] font-bold uppercase tracking-[0.1em] text-slate-400">Canal de venda</p>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { key: "todos", label: "Todos", color: "slate" },
+                  { key: "mercado_livre", label: "Mercado Livre", color: "yellow" },
+                  { key: "shopee", label: "Shopee", color: "orange" },
+                  { key: "AMAZON", label: "Amazon", color: "amber" },
+                  { key: "MAGAZINE LUIZA", label: "Magalu", color: "sky" },
+                  { key: "LOJA VIRTUAL", label: "Loja Virtual", color: "violet" },
+                  { key: "PARTICULAR", label: "Particular", color: "stone" },
+                ].map((f) => {
+                  const isActive = marketplaceFilter === f.key;
+                  const colorMap: Record<string, string> = {
+                    slate: isActive ? "bg-slate-800 text-white shadow-sm" : "bg-slate-100 text-slate-600 hover:bg-slate-200",
+                    yellow: isActive ? "bg-yellow-500 text-white shadow-sm" : "bg-yellow-50 text-yellow-800 hover:bg-yellow-100",
+                    orange: isActive ? "bg-orange-500 text-white shadow-sm" : "bg-orange-50 text-orange-700 hover:bg-orange-100",
+                    amber: isActive ? "bg-amber-600 text-white shadow-sm" : "bg-amber-50 text-amber-800 hover:bg-amber-100",
+                    sky: isActive ? "bg-sky-600 text-white shadow-sm" : "bg-sky-50 text-sky-700 hover:bg-sky-100",
+                    violet: isActive ? "bg-violet-600 text-white shadow-sm" : "bg-violet-50 text-violet-700 hover:bg-violet-100",
+                    stone: isActive ? "bg-stone-600 text-white shadow-sm" : "bg-stone-100 text-stone-600 hover:bg-stone-200",
+                  };
+                  return (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => setMarketplaceFilter(f.key)}
+                      className={`inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-200 ${colorMap[f.color]}`}
+                    >
+                      {f.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {[
-              { key: "todos", label: "Todos" },
-              { key: "mercado_livre", label: "Mercado Livre" },
-              { key: "shopee", label: "Shopee" },
-              { key: "AMAZON", label: "Amazon" },
-              { key: "MAGAZINE LUIZA", label: "Magalu" },
-              { key: "LOJA VIRTUAL", label: "Loja Virtual" },
-              { key: "PARTICULAR", label: "Particular" },
-            ].map((f) => (
+
+          {/* Contador de resultados */}
+          <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
+            <p className="text-xs text-slate-500">
+              <span className="font-bold text-slate-700">{filteredOrders.length}</span> de {orders.length} pedidos
+            </p>
+            {(statusFilter !== "todos" || marketplaceFilter !== "todos" || searchTerm.trim()) && (
               <button
-                key={f.key}
                 type="button"
-                onClick={() => setMarketplaceFilter(f.key)}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-                  marketplaceFilter === f.key
-                    ? f.key === "mercado_livre" ? "border border-yellow-300 bg-yellow-100 text-yellow-800" :
-                      f.key === "shopee" ? "border border-orange-300 bg-orange-100 text-orange-800" :
-                      f.key === "AMAZON" ? "border border-amber-300 bg-amber-100 text-amber-800" :
-                      f.key === "MAGAZINE LUIZA" ? "border border-blue-300 bg-blue-100 text-blue-800" :
-                      "border border-slate-300 bg-slate-200 text-slate-700"
-                    : "border border-transparent bg-slate-100 text-slate-500 hover:bg-slate-200"
-                }`}
+                onClick={() => { setStatusFilter("todos"); setMarketplaceFilter("todos"); setSearchTerm(""); }}
+                className="text-xs font-semibold text-yellow-700 hover:text-yellow-900 transition-colors"
               >
-                {f.label}
+                Limpar filtros
               </button>
-            ))}
+            )}
           </div>
         </div>
       </div>
@@ -493,7 +540,7 @@ export const MercadoLivreOrdersSection: FC = () => {
           </div>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           {filteredOrders.length === 0 ? (
             <div className="flex min-h-64 flex-col items-center justify-center rounded-[24px] border border-slate-200/80 bg-white/95 px-6 py-12 text-center shadow-[0_20px_50px_-34px_rgba(2,6,23,0.70),inset_0_1px_1px_rgba(255,255,255,0.95)]">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-400">
