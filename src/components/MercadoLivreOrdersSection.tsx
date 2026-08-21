@@ -162,10 +162,10 @@ export const MercadoLivreOrdersSection: FC = () => {
     }
   }, [authHeaders]);
 
-  const handleCheckShipment = useCallback(async (shipmentId: string) => {
-    setCheckingShipment(shipmentId);
+  const handleCheckShipment = useCallback(async (orderId: string) => {
+    setCheckingShipment(orderId);
     try {
-      const response = await fetch(`${API_BASE_URL}/mercado-livre/shipments/${shipmentId}/status`, {
+      const response = await fetch(`${API_BASE_URL}/mercado-livre/orders/${orderId}/shipment-status`, {
         headers: authHeaders,
       });
       const data = await response.json();
@@ -174,7 +174,7 @@ export const MercadoLivreOrdersSection: FC = () => {
       }
       setShipmentResults((prev) => ({
         ...prev,
-        [shipmentId]: data.data,
+        [orderId]: data.data,
       }));
     } catch (err: unknown) {
       setToast({
@@ -540,16 +540,16 @@ export const MercadoLivreOrdersSection: FC = () => {
                         <Truck className="h-4 w-4 text-slate-400" />
                         <div>
                           <p className="text-xs font-semibold text-slate-700">Verificar envio no ML</p>
-                          <p className="text-[0.62rem] text-slate-500">Consulta o shipment do pedido #{order.id_bling} no Mercado Livre</p>
+                          <p className="text-[0.62rem] text-slate-500">Consulta o shipment do pedido #{order.numero_loja} no Mercado Livre</p>
                         </div>
                       </div>
                       <button
                         type="button"
-                        disabled={checkingShipment === order.id_bling}
-                        onClick={() => handleCheckShipment(order.id_bling)}
+                        disabled={checkingShipment === order.numero_loja}
+                        onClick={() => handleCheckShipment(order.numero_loja)}
                         className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
                       >
-                        {checkingShipment === order.id_bling ? (
+                        {checkingShipment === order.numero_loja ? (
                           <>
                             <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" />
                             Verificando...
@@ -564,13 +564,13 @@ export const MercadoLivreOrdersSection: FC = () => {
                     </div>
 
                     {/* Resultado da verificação */}
-                    {shipmentResults[order.id_bling] && (
+                    {shipmentResults[order.numero_loja] && (
                       <div className={`mt-2.5 flex items-center gap-2 rounded-lg border px-3 py-2 ${
-                        shipmentResults[order.id_bling].readyForInvoice
+                        shipmentResults[order.numero_loja].readyForInvoice
                           ? "border-emerald-200 bg-emerald-50"
                           : "border-amber-200 bg-amber-50"
                       }`}>
-                        {shipmentResults[order.id_bling].readyForInvoice ? (
+                        {shipmentResults[order.numero_loja].readyForInvoice ? (
                           <>
                             <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
                             <div>
@@ -584,8 +584,8 @@ export const MercadoLivreOrdersSection: FC = () => {
                             <div>
                               <p className="text-xs font-bold text-amber-800">XML não liberado</p>
                               <p className="text-[0.62rem] text-amber-600">
-                                Status atual: {shipmentResults[order.id_bling].status}
-                                {shipmentResults[order.id_bling].substatus && ` / ${shipmentResults[order.id_bling].substatus}`}
+                                Status atual: {shipmentResults[order.numero_loja].status}
+                                {shipmentResults[order.numero_loja].substatus && ` / ${shipmentResults[order.numero_loja].substatus}`}
                               </p>
                             </div>
                           </>
@@ -594,16 +594,16 @@ export const MercadoLivreOrdersSection: FC = () => {
                     )}
 
                     {/* Timeline do shipment */}
-                    {shipmentResults[order.id_bling]?.substatusHistory?.length > 0 && (
+                    {shipmentResults[order.numero_loja]?.substatusHistory?.length > 0 && (
                       <div className="mt-2">
                         <button
                           type="button"
                           onClick={() => setExpandedShipment(
-                            expandedShipment === order.id_bling ? null : order.id_bling
+                            expandedShipment === order.numero_loja ? null : order.numero_loja
                           )}
                           className="inline-flex items-center gap-1.5 text-[0.62rem] font-semibold text-slate-500 hover:text-slate-700 transition-colors"
                         >
-                          {expandedShipment === order.id_bling ? (
+                          {expandedShipment === order.numero_loja ? (
                             <>
                               <ChevronUp className="h-3 w-3" />
                               Ocultar timeline
@@ -611,14 +611,14 @@ export const MercadoLivreOrdersSection: FC = () => {
                           ) : (
                             <>
                               <ChevronDown className="h-3 w-3" />
-                              Ver timeline ({shipmentResults[order.id_bling].substatusHistory.length} eventos)
+                              Ver timeline ({shipmentResults[order.numero_loja].substatusHistory.length} eventos)
                             </>
                           )}
                         </button>
 
-                        {expandedShipment === order.id_bling && (
+                        {expandedShipment === order.numero_loja && (
                           <div className="mt-2 space-y-0">
-                            {shipmentResults[order.id_bling].substatusHistory
+                            {shipmentResults[order.numero_loja].substatusHistory
                               .slice()
                               .reverse()
                               .map((entry, idx, arr) => {
