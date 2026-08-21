@@ -554,10 +554,18 @@ export const MercadoLivreOrdersSection: FC = () => {
               </p>
             </div>
           ) : (
-            filteredOrders.map((order) => (
+            filteredOrders.map((order) => {
+              const borderColor = order.marketplace === 'mercado_livre' ? 'border-l-yellow-500' :
+                order.marketplace === 'shopee' ? 'border-l-orange-500' :
+                order.marketplace === 'AMAZON' ? 'border-l-amber-600' :
+                order.marketplace === 'MAGAZINE LUIZA' ? 'border-l-sky-500' :
+                order.marketplace === 'LOJA VIRTUAL' ? 'border-l-violet-500' :
+                order.marketplace === 'PARTICULAR' ? 'border-l-stone-400' :
+                'border-l-slate-300';
+              return (
               <div
                 key={order.id}
-                className={`${panelClassName} p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_24px_50px_-25px_rgba(2,6,23,0.85),inset_0_1px_1px_rgba(255,255,255,0.95)]`}
+                className={`${panelClassName} border-l-4 ${borderColor} p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_24px_50px_-25px_rgba(2,6,23,0.85),inset_0_1px_1px_rgba(255,255,255,0.95)]`}
               >
                 <div className="relative z-10">
                   {/* Cabeçalho do pedido */}
@@ -861,7 +869,7 @@ export const MercadoLivreOrdersSection: FC = () => {
                   </div>
                 </div>
               </div>
-            ))
+            )})
           )}
         </div>
       )}
