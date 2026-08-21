@@ -1439,7 +1439,7 @@ export default function App() {
                         onClick={() => setActiveTab("mercado_livre")}
                         aria-pressed={activeTab === "mercado_livre"}
                         className={`
-                        relative inline-flex items-center gap-2
+                        inline-flex items-center gap-2
                         rounded-xl
                         px-4 py-2.5
                         text-sm font-semibold
@@ -1461,14 +1461,6 @@ export default function App() {
                       >
                         <Tag className="h-4 w-4" />
                         <span>Mercado Livre</span>
-                        {pendingNfeCount > 0 && (
-                          <span
-                            title={`${pendingNfeCount} NF-e aguardando envio`}
-                            className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[0.6rem] font-bold text-white shadow-lg ring-2 ring-white animate-pulse"
-                          >
-                            {pendingNfeCount}
-                          </span>
-                        )}
                       </button>
                     </div>
                   </div>
