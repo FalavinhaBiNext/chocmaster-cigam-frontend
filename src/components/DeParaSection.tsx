@@ -55,7 +55,6 @@ interface DeParaSectionProps {
   cigamData: CigamItem[];
   mappings: Mapping[];
   onSaveMapping: (idBling: string, idCigam: string, name: string) => Promise<void>;
-  onDeleteMapping?: (idBling: string) => Promise<void>;
   loading: boolean;
   onSync?: () => Promise<void>;
   syncing?: boolean;
@@ -71,7 +70,6 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
   cigamData,
   mappings,
   onSaveMapping,
-  onDeleteMapping,
   loading,
   onSync,
   syncing,
@@ -93,7 +91,6 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
   const [isBulkSaving, setIsBulkSaving] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [exportingPaymentSource, setExportingPaymentSource] = useState<'bling' | 'cigam' | null>(null);
-  const [mappingsPage, setMappingsPage] = useState(1);
   const [isSyncingCigam, setIsSyncingCigam] = useState(false);
 
   // Modal state for product details
@@ -136,7 +133,6 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
     setBlingFilter('all');
     setCigamFilter('all');
     setSelectedSuggestions(new Set());
-    setMappingsPage(1);
     if (entity === 'produtos') {
       setActiveTags(['unmapped', 'valid_sku']);
     } else {
@@ -157,13 +153,6 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
   // Set of mapped Bling IDs
   const mappedBlingIds = useMemo(() => new Set(mappings.map((m) => m.id_bling)), [mappings]);
 
-  const itemsPerPage = 40;
-  const totalMappingsPages = Math.ceil(mappings.length / itemsPerPage);
-
-  const displayedMappings = useMemo(() => {
-    const start = (mappingsPage - 1) * itemsPerPage;
-    return mappings.slice(start, start + itemsPerPage);
-  }, [mappings, mappingsPage]);
   // Map of Bling ID -> CIGAM ID
   const blingToCigamMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -392,20 +381,6 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
     } catch (error) {
       console.error(error);
       showAlert('Erro ao Associar', 'Não foi possível salvar a associação manual.', 'error');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleDelete = async (idBling: string) => {
-    if (!onDeleteMapping) return;
-    setIsSaving(true);
-    try {
-      await onDeleteMapping(idBling);
-      showAlert('Associação Excluída', 'O mapeamento De-Para foi excluído com sucesso.', 'success');
-    } catch (error) {
-      console.error(error);
-      showAlert('Erro ao Excluir', 'Não foi possível excluir a associação.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -2461,299 +2436,6 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
               </>
             )}
           </button>
-        </div>
-      </section>
-
-      {/* Associações existentes */}
-      <section className={panelClassName}>
-        <div
-          aria-hidden="true"
-          className="
-            pointer-events-none
-            absolute inset-[5px]
-            rounded-[18px]
-            border border-white
-          "
-        />
-
-        <div className="relative z-10">
-          <div className="flex flex-col gap-3 border-b border-slate-200/80 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <div>
-              <h3 className="text-base font-bold text-slate-900">
-                Associações ativas
-              </h3>
-
-              <p className="mt-1 text-xs text-slate-500">
-                Consulte ou remova os mapeamentos já cadastrados.
-              </p>
-            </div>
-
-            <span
-              className="
-                inline-flex w-fit
-                items-center gap-1.5
-                rounded-full
-                border border-emerald-200
-                bg-emerald-50
-                px-3 py-1.5
-                text-xs font-semibold
-                text-emerald-700
-              "
-            >
-              <CheckCircle className="h-3.5 w-3.5" />
-              {mappings.length} associações
-            </span>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left">
-              <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/80">
-                  <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 sm:px-6">
-                    Registro Bling
-                  </th>
-
-                  <th className="px-5 py-3.5 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
-                    Registro CIGAM
-                  </th>
-
-                  {onDeleteMapping && (
-                    <th className="px-5 py-3.5 text-right text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 sm:px-6">
-                      Ações
-                    </th>
-                  )}
-                </tr>
-              </thead>
-
-              <tbody className="divide-y divide-slate-200">
-                {displayedMappings.map((mapping) => {
-                  const blingItem = blingData.find(
-                    (item) =>
-                      item.id === mapping.id_bling,
-                  );
-
-                  const blingItemName =
-                    blingItem?.name || mapping.nome;
-
-                  const cigamItemName =
-                    cigamData.find(
-                      (item) =>
-                        item.id.trim() === mapping.id_cigam.trim(),
-                    )?.name || "Cadastro não localizado";
-
-                  return (
-                    <tr
-                      key={`${mapping.id_bling}-${mapping.id_cigam}`}
-                      className="transition-colors hover:bg-slate-50/80"
-                    >
-                      <td className="px-5 py-4 sm:px-6">
-                        <p className="text-sm font-semibold text-slate-900">
-                          {blingItemName}
-                          {blingItem?.unidade_negocio && (
-                            <span className="ml-2 inline-flex items-center rounded-full bg-[#00B0F1]/10 px-1.5 py-0.5 text-[0.6rem] font-bold text-[#008FC7]">
-                              {blingItem.unidade_negocio}
-                            </span>
-                          )}
-                        </p>
-
-                        <p className="mt-1 font-mono text-xs text-amber-700">
-                          ID: {mapping.id_bling}
-                          {blingItem?.codigo &&
-                            ` • Cód: ${blingItem.codigo}`}
-                          {blingItem?.temVariacoes &&
-                            " • Possui variações"}
-                        </p>
-                      </td>
-
-                      <td className="px-5 py-4">
-                        <p className="text-sm font-semibold text-slate-900">
-                          {cigamItemName}
-                        </p>
-
-                        <p className="mt-1 font-mono text-xs text-[#008FC7]">
-                          Código CIGAM: {mapping.id_cigam}
-                        </p>
-                      </td>
-
-                      {onDeleteMapping && (
-                        <td className="px-5 py-4 text-right sm:px-6">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              handleDelete(mapping.id_bling)
-                            }
-                            disabled={isSaving}
-                            className="
-                              inline-flex h-9
-                              items-center justify-center
-                              rounded-xl
-                              border border-red-200
-                              bg-red-50
-                              px-3.5
-                              text-xs font-semibold
-                              text-red-600
-                              transition
-                              hover:-translate-y-0.5
-                              hover:border-red-300
-                              hover:bg-red-100
-                              disabled:cursor-not-allowed
-                              disabled:opacity-45
-                            "
-                          >
-                            Excluir
-                          </button>
-                        </td>
-                      )}
-                    </tr>
-                  );
-                })}
-
-                {mappings.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={onDeleteMapping ? 3 : 2}
-                      className="px-6 py-12 text-center"
-                    >
-                      <CheckCircle className="mx-auto h-7 w-7 text-slate-300" />
-
-                      <p className="mt-3 text-sm font-semibold text-slate-600">
-                        Nenhuma associação ativa
-                      </p>
-
-                      <p className="mt-1 text-xs text-slate-400">
-                        Selecione um registro do Bling e um registro
-                        do CIGAM para criar o primeiro mapeamento.
-                      </p>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {totalMappingsPages > 1 && (
-            <div className="flex flex-col gap-4 border-t border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-              <p className="text-xs text-slate-500">
-                Mostrando{" "}
-                <span className="font-semibold text-slate-700">
-                  {Math.min(
-                    mappings.length,
-                    (mappingsPage - 1) *
-                    itemsPerPage +
-                    1,
-                  )}
-                </span>{" "}
-                a{" "}
-                <span className="font-semibold text-slate-700">
-                  {Math.min(
-                    mappings.length,
-                    mappingsPage * itemsPerPage,
-                  )}
-                </span>{" "}
-                de{" "}
-                <span className="font-semibold text-slate-700">
-                  {mappings.length}
-                </span>
-              </p>
-
-              <div className="flex flex-wrap items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setMappingsPage((current) =>
-                      Math.max(1, current - 1),
-                    )
-                  }
-                  disabled={mappingsPage === 1}
-                  className={secondaryButtonClassName}
-                >
-                  Anterior
-                </button>
-
-                {Array.from(
-                  { length: totalMappingsPages },
-                  (_, index) => index + 1,
-                ).map((pageNumber) => {
-                  if (
-                    pageNumber === 1 ||
-                    pageNumber === totalMappingsPages ||
-                    (pageNumber >= mappingsPage - 1 &&
-                      pageNumber <= mappingsPage + 1)
-                  ) {
-                    return (
-                      <button
-                        key={pageNumber}
-                        type="button"
-                        onClick={() =>
-                          setMappingsPage(pageNumber)
-                        }
-                        className={`
-                          flex h-9 w-9
-                          items-center justify-center
-                          rounded-xl
-                          border
-                          text-xs font-semibold
-                          transition
-                          ${mappingsPage === pageNumber
-                            ? `
-                                border-[#00B0F1]
-                                bg-[#00B0F1]
-                                text-white
-                                shadow-sm
-                              `
-                            : `
-                                border-slate-200
-                                bg-white
-                                text-slate-600
-                                hover:border-slate-300
-                                hover:bg-slate-50
-                              `
-                          }
-                        `}
-                      >
-                        {pageNumber}
-                      </button>
-                    );
-                  }
-
-                  if (
-                    pageNumber === 2 ||
-                    pageNumber ===
-                    totalMappingsPages - 1
-                  ) {
-                    return (
-                      <span
-                        key={pageNumber}
-                        className="px-1 text-xs text-slate-400"
-                      >
-                        …
-                      </span>
-                    );
-                  }
-
-                  return null;
-                })}
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    setMappingsPage((current) =>
-                      Math.min(
-                        totalMappingsPages,
-                        current + 1,
-                      ),
-                    )
-                  }
-                  disabled={
-                    mappingsPage === totalMappingsPages
-                  }
-                  className={secondaryButtonClassName}
-                >
-                  Próxima
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </section>
 

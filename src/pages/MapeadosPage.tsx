@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Users, ShoppingBag, CreditCard, Truck, Store } from "lucide-react";
 import { MapeadosSection } from "../components/MapeadosSection";
 import { useApp } from "../contexts/AppContext";
+import type { EntityType } from "../contexts/AppContext";
 
 type MapeadosTab = "clientes" | "produtos" | "formas_pagamento" | "transportadoras" | "lojas";
 
@@ -15,7 +16,7 @@ const tabs: { key: MapeadosTab; label: string; icon: typeof Users }[] = [
 
 export function MapeadosPage() {
   const [activeTab, setActiveTab] = useState<MapeadosTab>("clientes");
-  const { mappings, canaisVenda, loading } = useApp();
+  const { mappings, canaisVenda, loading, handleDeleteMapping } = useApp();
 
   const getMappingsForTab = () => {
     if (activeTab === "lojas") {
@@ -72,6 +73,11 @@ export function MapeadosPage() {
             title={getTitleForTab()}
             mappings={getMappingsForTab()}
             loading={loading}
+            onDeleteMapping={
+              activeTab === "lojas"
+                ? undefined
+                : (idBling) => handleDeleteMapping(activeTab as EntityType, idBling)
+            }
           />
         </div>
       </section>

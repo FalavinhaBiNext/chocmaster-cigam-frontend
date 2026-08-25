@@ -24,7 +24,7 @@ export function DeParaPage() {
     blingTransportadoras, cigamTransportadoras,
     canaisVenda,
     loading, syncing, syncLogs,
-    handleSaveMapping, handleDeleteMapping, handleSyncEntity, fetchData,
+    handleSaveMapping, handleSyncEntity, fetchData,
     authHeaders,
   } = useApp();
 
@@ -71,7 +71,6 @@ export function DeParaPage() {
               cigamData={cigamClientes}
               mappings={mappings.clientes}
               onSaveMapping={(idBling, idCigam, name) => handleSaveMapping("clientes", idBling, idCigam, name)}
-              onDeleteMapping={(idBling) => handleDeleteMapping("clientes", idBling)}
               loading={loading}
               onRefresh={() => fetchData({ silent: true })}
             />
@@ -84,7 +83,6 @@ export function DeParaPage() {
               cigamData={cigamProdutos}
               mappings={mappings.produtos}
               onSaveMapping={(idBling, idCigam, name) => handleSaveMapping("produtos", idBling, idCigam, name)}
-              onDeleteMapping={(idBling) => handleDeleteMapping("produtos", idBling)}
               loading={loading}
               onSync={() => handleSyncEntity("produtos")}
               syncing={syncing}
@@ -100,7 +98,6 @@ export function DeParaPage() {
               cigamData={cigamFormasPagamento}
               mappings={mappings.formas_pagamento}
               onSaveMapping={(idBling, idCigam, name) => handleSaveMapping("formas_pagamento", idBling, idCigam, name)}
-              onDeleteMapping={(idBling) => handleDeleteMapping("formas_pagamento", idBling)}
               loading={loading}
               onSync={() => handleSyncEntity("formas_pagamento")}
               syncing={syncing}
@@ -116,7 +113,6 @@ export function DeParaPage() {
               cigamData={cigamTransportadoras}
               mappings={mappings.transportadoras}
               onSaveMapping={(idBling, idCigam, name) => handleSaveMapping("transportadoras", idBling, idCigam, name)}
-              onDeleteMapping={(idBling) => handleDeleteMapping("transportadoras", idBling)}
               loading={loading}
               onSync={() => handleSyncEntity("transportadoras")}
               syncing={syncing}
