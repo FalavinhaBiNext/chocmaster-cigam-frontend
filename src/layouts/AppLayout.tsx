@@ -1,10 +1,20 @@
 import { Outlet } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Sidebar } from "../components/Sidebar";
 import { useApp } from "../contexts/AppContext";
 import { Terminal, X, AlertCircle } from "lucide-react";
 
+const SIDEBAR_COLLAPSED_STORAGE_KEY = "chocmaster:sidebar-collapsed";
+
 export function AppLayout() {
   const { syncing, syncLogs, showLogs, setShowLogs, syncProgress, pendingNfeCount, error, setError } = useApp();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === "true"
+  );
+
+  useEffect(() => {
+    localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, String(sidebarCollapsed));
+  }, [sidebarCollapsed]);
 
   return (
     <div className="relative isolate flex min-h-screen min-h-dvh flex-col overflow-x-hidden bg-slate-100 font-sans text-slate-900">
@@ -32,10 +42,14 @@ export function AppLayout() {
         }}
       />
 
-      <Sidebar />
+      <Sidebar collapsed={sidebarCollapsed} onToggleCollapsed={() => setSidebarCollapsed((v) => !v)} />
 
       {/* Main content */}
-      <main className="ml-0 flex flex-1 flex-col gap-6 px-4 py-6 pt-16 sm:px-6 sm:py-8 lg:ml-[260px] lg:px-8 lg:pt-8">
+      <main
+        className={`ml-0 flex flex-1 flex-col gap-6 px-4 py-6 pt-16 transition-[margin] duration-300 sm:px-6 sm:py-8 lg:px-8 lg:pt-8 ${
+          sidebarCollapsed ? "lg:ml-[76px]" : "lg:ml-[260px]"
+        }`}
+      >
         {/* Error alert */}
         {error && (
           <div
@@ -69,7 +83,11 @@ export function AppLayout() {
           aria-label="Logs da sincronização"
           className="fixed inset-x-0 bottom-0 z-[60] border-t border-white/70 bg-white/[0.96] shadow-[0_-24px_60px_-30px_rgba(2,6,23,0.75)] backdrop-blur-xl"
         >
-          <div className="mx-auto w-full max-w-[1440px] px-4 py-4 sm:px-6 lg:pl-[276px] lg:pr-8">
+          <div
+            className={`mx-auto w-full max-w-[1440px] px-4 py-4 transition-[padding] duration-300 sm:px-6 lg:pr-8 ${
+              sidebarCollapsed ? "lg:pl-[92px]" : "lg:pl-[276px]"
+            }`}
+          >
             <div className="mb-3 flex items-center justify-between gap-4">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#00B0F1]/20 bg-[#00B0F1]/10 text-[#008FC7]">
@@ -164,7 +182,11 @@ export function AppLayout() {
       )}
 
       {/* Footer */}
-      <footer className="ml-0 mt-auto border-t border-white/10 bg-white/30 px-4 py-6 text-center backdrop-blur-sm lg:ml-[260px]">
+      <footer
+        className={`ml-0 mt-auto border-t border-white/10 bg-white/30 px-4 py-6 text-center backdrop-blur-sm transition-[margin] duration-300 ${
+          sidebarCollapsed ? "lg:ml-[76px]" : "lg:ml-[260px]"
+        }`}
+      >
         <p className="text-xs text-slate-400">© 2026 Chocmaster. Todos os direitos reservados.</p>
         <p className="mt-1 text-[0.65rem] text-slate-500">
           Integração Bling <span className="font-mono font-semibold text-[#00B0F1]">{"< >"}</span> ERP CIGAM

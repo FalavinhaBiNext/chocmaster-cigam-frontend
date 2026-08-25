@@ -10,6 +10,8 @@ import {
   LogOut,
   Menu,
   X,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
@@ -27,28 +29,33 @@ const navItems = [
   { to: "/configuracoes", label: "Configurações", icon: Settings },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
+}
+
+export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
   const { user, logout } = useAuth();
   const { activeEnv, handleSelectEnvironment } = useApp();
-  const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
     <>
       {/* Mobile hamburger */}
       <button
         type="button"
-        onClick={() => setCollapsed(!collapsed)}
+        onClick={() => setMobileOpen(!mobileOpen)}
         className="fixed top-4 left-4 z-[70] flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white/90 text-slate-600 shadow-sm backdrop-blur-xl transition hover:bg-slate-100 lg:hidden"
-        aria-label={collapsed ? "Fechar menu" : "Abrir menu"}
+        aria-label={mobileOpen ? "Fechar menu" : "Abrir menu"}
       >
-        {collapsed ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
 
       {/* Overlay for mobile */}
-      {collapsed && (
+      {mobileOpen && (
         <div
           className="fixed inset-0 z-[55] bg-black/30 backdrop-blur-sm lg:hidden"
-          onClick={() => setCollapsed(false)}
+          onClick={() => setMobileOpen(false)}
         />
       )}
 
@@ -61,14 +68,25 @@ export function Sidebar() {
           shadow-[10px_0_35px_-20px_rgba(2,6,23,0.45)]
           backdrop-blur-xl
           transition-all duration-300
-          ${collapsed ? "w-[260px] translate-x-0" : "-translate-x-full w-[260px]"}
-          lg:translate-x-0 lg:w-[260px]
+          ${mobileOpen ? "w-[260px] translate-x-0" : "-translate-x-full w-[260px]"}
+          lg:translate-x-0
+          ${collapsed ? "lg:w-[76px]" : "lg:w-[260px]"}
         `}
       >
+        {/* Desktop collapse toggle */}
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
+          className="absolute top-8 -right-3 z-[61] hidden h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-800 lg:flex"
+        >
+          {collapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
+        </button>
+
         {/* Logo */}
-        <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-5">
-          <img src={Logo} alt="Logo" className="h-10 w-auto" />
-          <div className="min-w-0">
+        <div className={`flex items-center gap-3 border-b border-slate-100 px-5 py-5 ${collapsed ? "lg:justify-center lg:px-0" : ""}`}>
+          <img src={Logo} alt="Logo" className="h-10 w-auto shrink-0" />
+          <div className={`min-w-0 ${collapsed ? "lg:hidden" : ""}`}>
             <h1 className="truncate text-sm font-bold tracking-tight text-slate-900">
               CHOCMASTER
               <span className="mx-1.5 font-light text-slate-300">|</span>
@@ -81,7 +99,11 @@ export function Sidebar() {
         </div>
 
         {/* Environment selector */}
-        <div className="mx-4 mt-4 flex items-center rounded-xl border border-slate-200 bg-slate-100/80 p-1 shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)]">
+        <div
+          className={`mx-4 mt-4 flex items-center rounded-xl border border-slate-200 bg-slate-100/80 p-1 shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)] ${
+            collapsed ? "lg:hidden" : ""
+          }`}
+        >
           <button
             type="button"
             onClick={() => handleSelectEnvironment("homologacao")}
@@ -114,9 +136,12 @@ export function Sidebar() {
             <NavLink
               key={item.to}
               to={item.to}
-              onClick={() => setCollapsed(false)}
+              onClick={() => setMobileOpen(false)}
+              title={collapsed ? item.label : undefined}
               className={({ isActive }) =>
                 `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
+                  collapsed ? "lg:justify-center lg:px-0" : ""
+                } ${
                   isActive
                     ? "bg-[#00B0F1]/10 text-[#008FC7] shadow-[inset_0_0_0_1px_rgba(0,176,241,0.18)]"
                     : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
@@ -124,18 +149,18 @@ export function Sidebar() {
               }
             >
               <item.icon className="h-4.5 w-4.5 shrink-0" />
-              <span>{item.label}</span>
+              <span className={collapsed ? "lg:hidden" : ""}>{item.label}</span>
             </NavLink>
           ))}
         </nav>
 
         {/* User + Logout */}
         <div className="border-t border-slate-100 p-4">
-          <div className="mb-3 flex items-center gap-3">
+          <div className={`mb-3 flex items-center gap-3 ${collapsed ? "lg:justify-center" : ""}`}>
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#00B0F1]/10 text-[0.65rem] font-bold text-[#008FC7]">
               {user?.nome?.charAt(0)?.toUpperCase() || "U"}
             </div>
-            <div className="min-w-0">
+            <div className={`min-w-0 ${collapsed ? "lg:hidden" : ""}`}>
               <p className="truncate text-sm font-semibold text-slate-900">
                 {user?.nome || "Usuário"}
               </p>
@@ -147,10 +172,13 @@ export function Sidebar() {
           <button
             type="button"
             onClick={logout}
-            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium text-slate-500 transition-all duration-200 hover:bg-red-50 hover:text-red-600"
+            title={collapsed ? "Sair" : undefined}
+            className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm font-medium text-slate-500 transition-all duration-200 hover:bg-red-50 hover:text-red-600 ${
+              collapsed ? "lg:justify-center" : ""
+            }`}
           >
-            <LogOut className="h-4 w-4" />
-            <span>Sair</span>
+            <LogOut className="h-4 w-4 shrink-0" />
+            <span className={collapsed ? "lg:hidden" : ""}>Sair</span>
           </button>
         </div>
       </aside>
