@@ -25,6 +25,8 @@ import {
 
 import { useAuth } from "../contexts/AuthContext";
 
+type SyncStatus = "pendente" | "sincronizado" | "falha";
+
 interface EventItem {
   id: string;
   event: string;
@@ -35,6 +37,9 @@ interface EventItem {
   total_pedido: number;
   cigam_sincronizado: boolean;
   cigam_pedido_id: string | null;
+  sync_status: SyncStatus;
+  error_message: string | null;
+  retry_count: number;
   created_at: string;
 }
 
@@ -161,7 +166,7 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
   const [searchPedido, setSearchPedido] = useState("");
 
   const [filtroSincronizacao, setFiltroSincronizacao] = useState<
-    "pendentes" | "sincronizados" | "todos"
+    "pendentes" | "sincronizados" | "falhas" | "todos"
   >("pendentes");
 
   const filteredEvents = useMemo(() => {
@@ -172,6 +177,8 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
       result = result.filter((event) => !event.cigam_sincronizado);
     } else if (filtroSincronizacao === "sincronizados") {
       result = result.filter((event) => event.cigam_sincronizado);
+    } else if (filtroSincronizacao === "falhas") {
+      result = result.filter((event) => event.sync_status === "falha");
     }
 
     if (unidadeNegocioFilter) {
@@ -422,6 +429,8 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                   ...e,
                   cigam_sincronizado: true,
                   cigam_pedido_id: result.data?.cigamPedidoId || null,
+                  sync_status: "sincronizado",
+                  error_message: null,
                 }
               : e,
           ),
@@ -434,6 +443,8 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                   ...prev,
                   cigam_sincronizado: true,
                   cigam_pedido_id: result.data?.cigamPedidoId || null,
+                  sync_status: "sincronizado",
+                  error_message: null,
                 }
               : prev,
           );
@@ -451,6 +462,10 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
         message: `Falha ao sincronizar o pedido #${event.numero_pedido} no CIGAM.`,
         type: "error",
       });
+
+      // O backend já persistiu sync_status/error_message no catch do retry-cigam.
+      // Recarrega para refletir o motivo real da falha em vez de deixar o card desatualizado.
+      fetchEventsAndProducts();
     } finally {
       setRetryingEventId(null);
     }
@@ -921,6 +936,25 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
 
                 <button
                   type="button"
+                  onClick={() => setFiltroSincronizacao("falhas")}
+                  className={`
+                    inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all
+                    ${
+                      filtroSincronizacao === "falhas"
+                        ? "border border-red-300 bg-red-100 text-red-700"
+                        : "border border-transparent bg-slate-100 text-slate-500 hover:bg-slate-200"
+                    }
+                  `}
+                >
+                  <ShieldAlert className="h-3 w-3" />
+                  Falhas
+                  <span className="ml-0.5 rounded-full bg-red-200 px-1.5 py-0.5 text-[0.6rem] font-bold text-red-800">
+                    {events.filter((e) => e.sync_status === "falha").length}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => setFiltroSincronizacao("todos")}
                   className={`
                     inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all
@@ -993,7 +1027,7 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                             {event.event}
                           </span>
 
-                          {event.cigam_sincronizado ? (
+                          {event.sync_status === "sincronizado" ? (
                             <span
                               className="
                                 inline-flex items-center gap-1
@@ -1007,6 +1041,22 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                             >
                               <CheckCircle2 className="h-3 w-3" />
                               CIGAM sincronizado
+                            </span>
+                          ) : event.sync_status === "falha" ? (
+                            <span
+                              className="
+                                inline-flex items-center gap-1
+                                rounded-full
+                                border border-red-200
+                                bg-red-50
+                                px-2.5 py-1
+                                text-[0.62rem] font-bold
+                                text-red-700
+                              "
+                            >
+                              <ShieldAlert className="h-3 w-3" />
+                              Falha na sincronização
+                              {event.retry_count > 0 && ` (${event.retry_count}x)`}
                             </span>
                           ) : (
                             <span
@@ -1156,6 +1206,12 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                         {event.cigam_pedido_id && (
                           <p className="mt-1 text-xs font-medium text-emerald-600">
                             CIGAM: {event.cigam_pedido_id}
+                          </p>
+                        )}
+
+                        {event.sync_status === "falha" && event.error_message && (
+                          <p className="mt-1 truncate text-xs font-medium text-red-600" title={event.error_message}>
+                            Erro: {event.error_message}
                           </p>
                         )}
 
@@ -1333,7 +1389,7 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                             Detalhes do pedido
                           </span>
 
-                          {selectedEvent.cigam_sincronizado ? (
+                          {selectedEvent.sync_status === "sincronizado" ? (
                             <span
                               className="
                                 inline-flex items-center gap-1
@@ -1347,6 +1403,21 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                             >
                               <CheckCircle2 className="h-3 w-3" />
                               Sincronizado
+                            </span>
+                          ) : selectedEvent.sync_status === "falha" ? (
+                            <span
+                              className="
+                                inline-flex items-center gap-1
+                                rounded-full
+                                border border-red-200
+                                bg-red-50
+                                px-2.5 py-1
+                                text-[0.62rem] font-bold
+                                text-red-700
+                              "
+                            >
+                              <ShieldAlert className="h-3 w-3" />
+                              Falha ({selectedEvent.retry_count}x)
                             </span>
                           ) : (
                             <span
@@ -1365,6 +1436,12 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                             </span>
                           )}
                         </div>
+
+                        {selectedEvent.sync_status === "falha" && selectedEvent.error_message && (
+                          <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+                            Erro na última tentativa: {selectedEvent.error_message}
+                          </p>
+                        )}
 
                         <h3 className="mt-3 flex flex-wrap items-center gap-2 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
                           Pedido #{orderDetails.codigo_curto}
