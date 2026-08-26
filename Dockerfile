@@ -4,7 +4,7 @@ ARG NGINX_VERSION=alpine
 # ---- Build stage ----
 FROM node:${NODE_VERSION} AS build
 
-ARG VITE_API_URL=/api/v1
+ARG VITE_API_URL=https://api-chocmaster.falavinhanext.tec.br/api/v1
 
 WORKDIR /app
 
