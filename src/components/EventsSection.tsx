@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "../contexts/AuthContext";
+import { API_BASE_URL } from "../config/api";
 
 type SyncStatus = "pendente" | "sincronizado" | "falha";
 
@@ -85,9 +86,6 @@ interface ApiResponse<T> {
   data?: T;
   message?: string;
 }
-
-const API_BASE_URL =
-  "https://api-chocmaster.falavinhanext.tec.br/api/v1";
 
 const parseApiResponse = async <T,>(
   response: Response,

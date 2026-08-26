@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
-
-const API_BASE_URL = "https://api-chocmaster.falavinhanext.tec.br/api/v1";
+import { API_BASE_URL } from "../config/api";
 
 export function MercadoLivreCallbackPage() {
   const [searchParams] = useSearchParams();

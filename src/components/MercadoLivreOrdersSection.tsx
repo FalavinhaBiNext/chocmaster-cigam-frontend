@@ -17,6 +17,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { API_BASE_URL } from "../config/api";
 
 interface PedidoLocal {
   id: string;
@@ -47,8 +48,6 @@ interface PedidoLocal {
   created_at: string;
   updated_at: string;
 }
-
-const API_BASE_URL = "https://api-chocmaster.falavinhanext.tec.br/api/v1";
 
 const STATUS_LABELS: Record<string, string> = {
   confirmed: "Confirmado",

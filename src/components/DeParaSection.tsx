@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { API_BASE_URL } from '../config/api';
 import { calculateSimilarity, calculateCodeSimilarity } from '../utils/similarity';
 import { CheckCircle, AlertCircle, ArrowRight, Search, Link2, Sparkles, ChevronDown, RefreshCw, SlidersHorizontal, Download } from 'lucide-react';
 
@@ -452,7 +453,7 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
   const handleExportExcel = async () => {
     setIsExporting(true);
     try {
-      const response = await fetch(`https://api-chocmaster.falavinhanext.tec.br/api/v1/produtos/export-excel`);
+      const response = await fetch(`${API_BASE_URL}/produtos/export-excel`);
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
@@ -484,7 +485,7 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
     setExportingPaymentSource(source);
     try {
       const response = await fetch(
-        `https://api-chocmaster.falavinhanext.tec.br/api/v1/depara/formas-pagamento/export-excel?source=${source}&association=${filter}`,
+        `${API_BASE_URL}/depara/formas-pagamento/export-excel?source=${source}&association=${filter}`,
       );
 
       if (!response.ok) {
@@ -529,7 +530,7 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
     setIsSyncingCigam(true);
     try {
       // 1. Dispara o sync (retorna imediatamente com jobId)
-      const startResponse = await fetch(`https://api-chocmaster.falavinhanext.tec.br/api/v1/cigam/sync/${endpoint}`, {
+      const startResponse = await fetch(`${API_BASE_URL}/cigam/sync/${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -557,7 +558,7 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
         await new Promise((resolve) => setTimeout(resolve, pollInterval));
 
-        const statusResponse = await fetch(`https://api-chocmaster.falavinhanext.tec.br/api/v1/cigam/sync/status/${jobId}`, {
+        const statusResponse = await fetch(`${API_BASE_URL}/cigam/sync/status/${jobId}`, {
           headers: {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },

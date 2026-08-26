@@ -4,6 +4,7 @@ import { DeParaSection } from "../components/DeParaSection";
 import { CanaisVendaSection } from "../components/CanaisVendaSection";
 import { useApp } from "../contexts/AppContext";
 import type { EntityType } from "../contexts/AppContext";
+import { API_BASE_URL } from "../config/api";
 
 type DeParaTab = EntityType | "lojas";
 
@@ -123,7 +124,7 @@ export function DeParaPage() {
           {activeTab === "lojas" && (
             <CanaisVendaSection
               data={canaisVenda}
-              API_BASE_URL="https://api-chocmaster.falavinhanext.tec.br/api/v1"
+              API_BASE_URL={API_BASE_URL}
               authHeaders={authHeaders}
               onRefresh={() => fetchData({ silent: true })}
             />

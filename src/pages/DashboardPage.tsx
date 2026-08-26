@@ -3,8 +3,7 @@ import { useApp } from "../contexts/AppContext";
 import { useAuth } from "../contexts/AuthContext";
 import { CheckCircle2, Users, ShoppingBag, CreditCard, Truck, FileText, Activity, PackageCheck, Send, AlertTriangle, Inbox, Clock, AlertCircle } from "lucide-react";
 import { IntegrationHealthSection } from "../components/IntegrationHealthSection";
-
-const API_BASE_URL = "https://api-chocmaster.falavinhanext.tec.br/api/v1";
+import { API_BASE_URL } from "../config/api";
 
 interface SyncPipelineSummary {
   recebidos: number;

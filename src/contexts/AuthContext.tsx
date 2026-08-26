@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
-
-const API_BASE_URL = "https://api-chocmaster.falavinhanext.tec.br/api/v1";
+import { API_BASE_URL } from "../config/api";
 
 interface User {
   id: string;

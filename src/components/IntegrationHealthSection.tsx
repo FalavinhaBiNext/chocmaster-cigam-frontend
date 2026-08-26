@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FC } from "react";
 import { AlertCircle, CheckCircle2, Clock, Link2Off, RefreshCw, ShieldAlert } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { API_BASE_URL } from "../config/api";
 
 type IntegrationName = "bling" | "mercado_livre" | "shopee" | "tray";
 type IntegrationTokenStatus = "ok" | "expiring_soon" | "expired";
@@ -19,8 +20,6 @@ interface ApiResponse<T> {
   data?: T;
   message?: string;
 }
-
-const API_BASE_URL = "https://api-chocmaster.falavinhanext.tec.br/api/v1";
 
 const INTEGRATION_NAMES: Record<IntegrationName, string> = {
   bling: "Bling",
