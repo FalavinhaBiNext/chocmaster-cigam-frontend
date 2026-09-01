@@ -17,10 +17,13 @@ import {
   ExternalLink,
   Globe,
   Key,
+  LayoutDashboard,
   Link,
+  Lock,
   Plus,
   Server,
   Settings,
+  Store,
   Trash2,
   User,
   X,
@@ -48,6 +51,19 @@ interface SistemaUsuario {
   ativo: boolean;
   created_at: string;
 }
+
+type ConfiguracoesTab = "resumo" | "usuarios" | "cigam" | "marketplace";
+
+const CONFIGURACOES_TABS: Array<{
+  id: ConfiguracoesTab;
+  label: string;
+  icon: typeof LayoutDashboard;
+}> = [
+  { id: "resumo", label: "Resumo", icon: LayoutDashboard },
+  { id: "usuarios", label: "Usuários", icon: User },
+  { id: "cigam", label: "Configurações CIGAM", icon: Server },
+  { id: "marketplace", label: "Conexões Marketplace", icon: Store },
+];
 
 interface ConfiguracoesSectionProps {
   API_BASE_URL: string;
@@ -84,6 +100,39 @@ const labelClassName = `
   text-slate-600
 `;
 
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  accentClassName,
+}: {
+  icon: typeof Settings;
+  label: string;
+  value: string | number;
+  accentClassName: string;
+}) {
+  return (
+    <div
+      className="
+        flex items-center gap-4
+        rounded-2xl
+        border border-slate-200/80
+        bg-white/95
+        p-5
+        shadow-[0_14px_32px_-26px_rgba(2,6,23,0.65),inset_0_1px_1px_rgba(255,255,255,0.90)]
+      "
+    >
+      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${accentClassName}`}>
+        <Icon className="h-5 w-5" />
+      </div>
+      <div className="min-w-0">
+        <p className="text-2xl font-bold text-slate-900">{value}</p>
+        <p className="truncate text-xs font-medium text-slate-500">{label}</p>
+      </div>
+    </div>
+  );
+}
+
 const getErrorMessage = (
   error: unknown,
   fallbackMessage: string,
@@ -106,7 +155,7 @@ export const ConfiguracoesSection = ({
   API_BASE_URL,
   onRefreshGlobal,
 }: ConfiguracoesSectionProps) => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
 
   const authHeaders = useMemo<HeadersInit>(
     () => ({
@@ -119,6 +168,8 @@ export const ConfiguracoesSection = ({
     }),
     [token],
   );
+
+  const [activeTab, setActiveTab] = useState<ConfiguracoesTab>("resumo");
 
   const [usuarios, setUsuarios] = useState<UsuarioCigam[]>([]);
   const [loading, setLoading] = useState(true);
@@ -153,6 +204,7 @@ export const ConfiguracoesSection = ({
   // Usuários do sistema
   const [sistemaUsuarios, setSistemaUsuarios] = useState<SistemaUsuario[]>([]);
   const [loadingSistemaUsuarios, setLoadingSistemaUsuarios] = useState(true);
+  const [togglingUsuarioId, setTogglingUsuarioId] = useState<string | null>(null);
 
   // Criação de usuário do sistema
   const [showCreateUsuarioDrawer, setShowCreateUsuarioDrawer] = useState(false);
@@ -263,6 +315,32 @@ export const ConfiguracoesSection = ({
       setLoadingSistemaUsuarios(false);
     }
   }, [API_BASE_URL, authHeaders]);
+
+  const handleToggleUsuarioSistemaAtivo = async (id: string) => {
+    if (id === user?.id) return;
+
+    setTogglingUsuarioId(id);
+    setError(null);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/users/${id}/alter-ativo`, {
+        method: "PATCH",
+        headers: authHeaders,
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(data?.error?.message || "Erro ao alterar status do usuário.");
+      }
+
+      await fetchSistemaUsuarios();
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, "Erro ao alterar status do usuário."));
+    } finally {
+      setTogglingUsuarioId(null);
+    }
+  };
 
   useEffect(() => {
     fetchUsuarios();
@@ -1802,7 +1880,153 @@ export const ConfiguracoesSection = ({
         </div>
       )}
 
-      {/* Usuários do Sistema */}
+      {/* Navegação por abas */}
+      <nav
+        className="
+          flex flex-wrap gap-2
+          rounded-2xl
+          border border-slate-200/80
+          bg-white/80
+          p-1.5
+          shadow-sm
+        "
+      >
+        {CONFIGURACOES_TABS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTab(tab.id)}
+            className={`
+              flex items-center gap-2
+              rounded-xl px-4 py-2.5
+              text-sm font-semibold
+              transition-all duration-200
+              ${
+                activeTab === tab.id
+                  ? "bg-[#00B0F1] text-white shadow-[0_8px_20px_-10px_rgba(0,176,241,0.65)]"
+                  : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+              }
+            `}
+          >
+            <tab.icon className="h-4 w-4" />
+            {tab.label}
+          </button>
+        ))}
+      </nav>
+
+      {/* Aba: Resumo */}
+      {activeTab === "resumo" && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <StatCard
+              icon={User}
+              label="Usuários cadastrados"
+              value={sistemaUsuarios.length}
+              accentClassName="border border-[#00B0F1]/20 bg-[#00B0F1]/10 text-[#008FC7]"
+            />
+            <StatCard
+              icon={Server}
+              label="Ambientes CIGAM cadastrados"
+              value={usuarios.length}
+              accentClassName="border border-amber-200 bg-amber-50 text-[#E66F00]"
+            />
+            <StatCard
+              icon={Store}
+              label="Marketplaces conectados"
+              value={`${(activeMlToken ? 1 : 0) + (shopeeTokens.some((t) => t.active) ? 1 : 0)}/2`}
+              accentClassName="border border-emerald-200 bg-emerald-50 text-emerald-600"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            {/* Status dos marketplaces */}
+            <section
+              className="
+                rounded-[24px]
+                border border-slate-200/80
+                bg-white/95
+                p-5
+                shadow-[0_20px_50px_-34px_rgba(2,6,23,0.75),inset_0_1px_1px_rgba(255,255,255,0.95)]
+                sm:p-6
+              "
+            >
+              <h3 className="text-base font-bold text-slate-900">Marketplaces</h3>
+              <p className="mt-1 text-xs text-slate-500">Status das conexões configuradas.</p>
+
+              <div className="mt-4 space-y-3">
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <img src={logoMercadoLivre} alt="Mercado Livre" className="h-7 w-7 object-contain" />
+                    <span className="text-sm font-semibold text-slate-800">Mercado Livre</span>
+                  </div>
+                  <span
+                    className={`inline-flex items-center rounded-full px-2.5 py-1 text-[0.65rem] font-bold uppercase tracking-[0.06em] ${
+                      activeMlToken
+                        ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                        : "border border-slate-200 bg-slate-100 text-slate-500"
+                    }`}
+                  >
+                    {activeMlToken ? "Conectado" : "Desconectado"}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <img src={logoShopee} alt="Shopee" className="h-7 w-7 object-contain" />
+                    <span className="text-sm font-semibold text-slate-800">Shopee</span>
+                  </div>
+                  <span
+                    className={`inline-flex items-center rounded-full px-2.5 py-1 text-[0.65rem] font-bold uppercase tracking-[0.06em] ${
+                      shopeeTokens.some((t) => t.active)
+                        ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                        : "border border-slate-200 bg-slate-100 text-slate-500"
+                    }`}
+                  >
+                    {shopeeTokens.some((t) => t.active) ? "Conectado" : "Desconectado"}
+                  </span>
+                </div>
+              </div>
+            </section>
+
+            {/* Usuário logado */}
+            <section
+              className="
+                rounded-[24px]
+                border border-slate-200/80
+                bg-white/95
+                p-5
+                shadow-[0_20px_50px_-34px_rgba(2,6,23,0.75),inset_0_1px_1px_rgba(255,255,255,0.95)]
+                sm:p-6
+              "
+            >
+              <h3 className="text-base font-bold text-slate-900">Seu usuário</h3>
+              <p className="mt-1 text-xs text-slate-500">Informações da sua conta.</p>
+
+              <div className="mt-4 flex items-center gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#00B0F1]/10 text-lg font-bold text-[#008FC7]">
+                  {user?.nome?.charAt(0)?.toUpperCase() || "U"}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-slate-900">{user?.nome || "Usuário"}</p>
+                  <p className="truncate text-xs text-slate-500">{user?.email || ""}</p>
+                  <span
+                    className={`mt-1.5 inline-flex items-center rounded-full px-2.5 py-1 text-[0.65rem] font-bold uppercase tracking-[0.06em] ${
+                      user?.role === "admin"
+                        ? "border border-[#00B0F1]/30 bg-[#00B0F1]/10 text-[#008FC7]"
+                        : "border border-slate-200 bg-slate-100 text-slate-600"
+                    }`}
+                  >
+                    {user?.role === "admin" ? "Administrador" : "Usuário"}
+                  </span>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      )}
+
+      {/* Aba: Usuários */}
+      {activeTab === "usuarios" && (
       <div
         className="
           relative
@@ -1871,52 +2095,98 @@ export const ConfiguracoesSection = ({
             </p>
           ) : (
             <div className="space-y-2">
-              {sistemaUsuarios.map((sistemaUsuario) => (
-                <div
-                  key={sistemaUsuario.id}
-                  className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#00B0F1]/10 text-xs font-bold text-[#008FC7]">
-                      {sistemaUsuario.nome.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-slate-900">
-                        {sistemaUsuario.nome}
-                      </p>
-                      <p className="truncate text-xs text-slate-500">
-                        {sistemaUsuario.email}
-                      </p>
-                    </div>
-                  </div>
+              {sistemaUsuarios.map((sistemaUsuario) => {
+                const isSelf = sistemaUsuario.id === user?.id;
+                const isToggling = togglingUsuarioId === sistemaUsuario.id;
 
-                  <div className="flex shrink-0 items-center gap-2">
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[0.65rem] font-bold uppercase tracking-[0.06em] ${
-                        sistemaUsuario.role === "admin"
-                          ? "border border-[#00B0F1]/30 bg-[#00B0F1]/10 text-[#008FC7]"
-                          : "border border-slate-200 bg-slate-100 text-slate-600"
-                      }`}
-                    >
-                      {sistemaUsuario.role === "admin" ? "Admin" : "Usuário"}
-                    </span>
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[0.65rem] font-bold uppercase tracking-[0.06em] ${
-                        sistemaUsuario.ativo
-                          ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-                          : "border border-slate-200 bg-slate-100 text-slate-500"
-                      }`}
-                    >
-                      {sistemaUsuario.ativo ? "Ativo" : "Inativo"}
-                    </span>
+                return (
+                  <div
+                    key={sistemaUsuario.id}
+                    className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#00B0F1]/10 text-xs font-bold text-[#008FC7]">
+                        {sistemaUsuario.nome.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-slate-900">
+                          {sistemaUsuario.nome}
+                          {isSelf && (
+                            <span className="ml-1.5 text-xs font-normal text-slate-400">(você)</span>
+                          )}
+                        </p>
+                        <p className="truncate text-xs text-slate-500">
+                          {sistemaUsuario.email}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-3">
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-1 text-[0.65rem] font-bold uppercase tracking-[0.06em] ${
+                          sistemaUsuario.role === "admin"
+                            ? "border border-[#00B0F1]/30 bg-[#00B0F1]/10 text-[#008FC7]"
+                            : "border border-slate-200 bg-slate-100 text-slate-600"
+                        }`}
+                      >
+                        {sistemaUsuario.role === "admin" ? "Admin" : "Usuário"}
+                      </span>
+
+                      <span
+                        className={`text-[0.65rem] font-bold uppercase tracking-[0.06em] ${
+                          sistemaUsuario.ativo ? "text-emerald-600" : "text-slate-400"
+                        }`}
+                      >
+                        {sistemaUsuario.ativo ? "Ativo" : "Inativo"}
+                      </span>
+
+                      {isSelf ? (
+                        <span
+                          title="Você não pode ativar ou desativar seu próprio usuário."
+                          className="flex h-6 w-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-100 text-slate-400"
+                        >
+                          <Lock className="h-3 w-3" />
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => handleToggleUsuarioSistemaAtivo(sistemaUsuario.id)}
+                          disabled={isToggling}
+                          title={sistemaUsuario.ativo ? "Clique para desativar" : "Clique para ativar"}
+                          className={`
+                            relative inline-flex h-6 w-11 shrink-0 cursor-pointer
+                            items-center rounded-full
+                            border-2 border-transparent
+                            transition-colors duration-200 ease-in-out
+                            focus:outline-none focus:ring-4 focus:ring-[#00B0F1]/20
+                            disabled:cursor-not-allowed disabled:opacity-50
+                            ${sistemaUsuario.ativo ? "bg-emerald-500" : "bg-slate-300"}
+                          `}
+                        >
+                          <span
+                            className={`
+                              inline-block h-5 w-5 transform
+                              rounded-full bg-white
+                              shadow
+                              transition-transform duration-200 ease-in-out
+                              ${sistemaUsuario.ativo ? "translate-x-5" : "translate-x-0.5"}
+                            `}
+                          />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
       </div>
+      )}
 
+      {/* Aba: CIGAM */}
+      {activeTab === "cigam" && (
+      <div className="space-y-6">
       {/* Envio Automático CIGAM */}
       <div
         className="
@@ -2669,7 +2939,12 @@ export const ConfiguracoesSection = ({
           </div>
         </aside>
       </div>
+      </div>
+      )}
 
+      {/* Aba: Marketplace */}
+      {activeTab === "marketplace" && (
+      <div className="space-y-6">
       {/* Seção de Mercado Livre */}
       <aside
         className="
@@ -3075,6 +3350,8 @@ export const ConfiguracoesSection = ({
           )}
         </div>
       </aside>
+      </div>
+      )}
 
       {/* Modals */}
       {mlDocsModal}
