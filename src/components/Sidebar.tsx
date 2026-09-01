@@ -21,12 +21,12 @@ import Logo from "../assets/LogoSFundoBlack.png";
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/de-para", label: "De Para", icon: ArrowLeftRight },
+  { to: "/de-para", label: "De Para", icon: ArrowLeftRight, adminOnly: true },
   { to: "/mapeados", label: "Mapeados", icon: Link2 },
   { to: "/eventos", label: "Eventos", icon: Activity },
   { to: "/nfe", label: "NF-e CIGAM", icon: FileText },
   { to: "/pedidos", label: "Pedidos", icon: ShoppingCart },
-  { to: "/configuracoes", label: "Configurações", icon: Settings },
+  { to: "/configuracoes", label: "Configurações", icon: Settings, adminOnly: true },
 ];
 
 interface SidebarProps {
@@ -38,6 +38,9 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
   const { user, logout } = useAuth();
   const { activeEnv, handleSelectEnvironment } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const isAdmin = user?.role === "admin";
+  const visibleNavItems = navItems.filter((item) => !item.adminOnly || isAdmin);
 
   return (
     <>
@@ -132,7 +135,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
 
         {/* Navigation */}
         <nav className="mt-4 flex-1 space-y-1 px-3">
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

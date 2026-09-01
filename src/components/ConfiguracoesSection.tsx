@@ -40,6 +40,15 @@ interface UsuarioCigam {
   ativo: boolean;
 }
 
+interface SistemaUsuario {
+  id: string;
+  nome: string;
+  email: string;
+  role: string;
+  ativo: boolean;
+  created_at: string;
+}
+
 interface ConfiguracoesSectionProps {
   API_BASE_URL: string;
   onRefreshGlobal: () => void;
@@ -141,11 +150,16 @@ export const ConfiguracoesSection = ({
   const [shopeeAuthSuccess, setShopeeAuthSuccess] = useState(false);
   const [showShopeeDocs, setShowShopeeDocs] = useState(false);
 
+  // Usuários do sistema
+  const [sistemaUsuarios, setSistemaUsuarios] = useState<SistemaUsuario[]>([]);
+  const [loadingSistemaUsuarios, setLoadingSistemaUsuarios] = useState(true);
+
   // Criação de usuário do sistema
   const [showCreateUsuarioDrawer, setShowCreateUsuarioDrawer] = useState(false);
   const [novoUsuarioNome, setNovoUsuarioNome] = useState("");
   const [novoUsuarioEmail, setNovoUsuarioEmail] = useState("");
   const [novoUsuarioSenha, setNovoUsuarioSenha] = useState("");
+  const [novoUsuarioRole, setNovoUsuarioRole] = useState("usuario");
   const [showNovoUsuarioSenha, setShowNovoUsuarioSenha] = useState(false);
   const [creatingUsuarioSistema, setCreatingUsuarioSistema] = useState(false);
   const [usuarioSistemaError, setUsuarioSistemaError] = useState<string | null>(null);
@@ -229,10 +243,32 @@ export const ConfiguracoesSection = ({
     }
   }, [API_BASE_URL, authHeaders]);
 
+  const fetchSistemaUsuarios = useCallback(async () => {
+    setLoadingSistemaUsuarios(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/users`, {
+        headers: authHeaders,
+      });
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(data?.error?.message || "Erro ao carregar usuários do sistema.");
+      }
+
+      setSistemaUsuarios(data.data || []);
+    } catch (error: unknown) {
+      console.error(error);
+    } finally {
+      setLoadingSistemaUsuarios(false);
+    }
+  }, [API_BASE_URL, authHeaders]);
+
   useEffect(() => {
     fetchUsuarios();
     fetchMlTokens();
     fetchShopeeTokens();
+    fetchSistemaUsuarios();
 
     // Check if returning from ML auth
     const urlParams = new URLSearchParams(window.location.search);
@@ -250,7 +286,7 @@ export const ConfiguracoesSection = ({
       window.history.replaceState({}, "", window.location.pathname);
       setTimeout(() => setShopeeAuthSuccess(false), 5000);
     }
-  }, [fetchUsuarios, fetchMlTokens, fetchShopeeTokens]);
+  }, [fetchUsuarios, fetchMlTokens, fetchShopeeTokens, fetchSistemaUsuarios]);
 
   // Listen for messages from auth popups
   useEffect(() => {
@@ -1222,6 +1258,7 @@ export const ConfiguracoesSection = ({
     setNovoUsuarioNome("");
     setNovoUsuarioEmail("");
     setNovoUsuarioSenha("");
+    setNovoUsuarioRole("usuario");
     setShowNovoUsuarioSenha(false);
     setUsuarioSistemaError(null);
   };
@@ -1255,6 +1292,7 @@ export const ConfiguracoesSection = ({
           nome: novoUsuarioNome.trim(),
           email: novoUsuarioEmail.trim(),
           senha: novoUsuarioSenha,
+          role: novoUsuarioRole,
         }),
       });
 
@@ -1268,6 +1306,7 @@ export const ConfiguracoesSection = ({
       setSuccess(`Usuário "${data?.data?.nome || novoUsuarioNome.trim()}" criado com sucesso.`);
       setShowCreateUsuarioDrawer(false);
       resetNovoUsuarioForm();
+      await fetchSistemaUsuarios();
     } catch (error: unknown) {
       setUsuarioSistemaError(
         getErrorMessage(error, "Ocorreu um erro ao criar o usuário."),
@@ -1375,6 +1414,23 @@ export const ConfiguracoesSection = ({
                   )}
                 </button>
               </div>
+            </div>
+
+            <div>
+              <label className={labelClassName}>Nível de acesso (role) *</label>
+              <select
+                className={inputClassName}
+                value={novoUsuarioRole}
+                onChange={(e) => setNovoUsuarioRole(e.target.value)}
+                required
+                disabled={creatingUsuarioSistema}
+              >
+                <option value="usuario">Usuário</option>
+                <option value="admin">Administrador</option>
+              </select>
+              <p className="mt-1.5 text-xs text-slate-400">
+                Administradores têm acesso total ao sistema. Usuários não visualizam as telas de De Para e Configurações.
+              </p>
             </div>
           </div>
 
@@ -1802,6 +1858,62 @@ export const ConfiguracoesSection = ({
             <Plus className="h-4 w-4" />
             Criar Usuário
           </button>
+        </div>
+
+        <div className="mt-5 border-t border-slate-100 pt-5">
+          {loadingSistemaUsuarios ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="h-6 w-6 animate-spin rounded-full border-[3px] border-[#00B0F1]/20 border-t-[#00B0F1]" />
+            </div>
+          ) : sistemaUsuarios.length === 0 ? (
+            <p className="py-6 text-center text-sm text-slate-400">
+              Nenhum usuário cadastrado ainda.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {sistemaUsuarios.map((sistemaUsuario) => (
+                <div
+                  key={sistemaUsuario.id}
+                  className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#00B0F1]/10 text-xs font-bold text-[#008FC7]">
+                      {sistemaUsuario.nome.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-slate-900">
+                        {sistemaUsuario.nome}
+                      </p>
+                      <p className="truncate text-xs text-slate-500">
+                        {sistemaUsuario.email}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span
+                      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[0.65rem] font-bold uppercase tracking-[0.06em] ${
+                        sistemaUsuario.role === "admin"
+                          ? "border border-[#00B0F1]/30 bg-[#00B0F1]/10 text-[#008FC7]"
+                          : "border border-slate-200 bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      {sistemaUsuario.role === "admin" ? "Admin" : "Usuário"}
+                    </span>
+                    <span
+                      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[0.65rem] font-bold uppercase tracking-[0.06em] ${
+                        sistemaUsuario.ativo
+                          ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                          : "border border-slate-200 bg-slate-100 text-slate-500"
+                      }`}
+                    >
+                      {sistemaUsuario.ativo ? "Ativo" : "Inativo"}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { AdminRoute } from "./components/AdminRoute";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { MercadoLivreCallbackPage } from "./pages/MercadoLivreCallbackPage";
@@ -34,12 +35,26 @@ export default function App() {
       >
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
-        <Route path="de-para" element={<DeParaPage />} />
+        <Route
+          path="de-para"
+          element={
+            <AdminRoute>
+              <DeParaPage />
+            </AdminRoute>
+          }
+        />
         <Route path="mapeados" element={<MapeadosPage />} />
         <Route path="eventos" element={<EventosPage />} />
         <Route path="nfe" element={<NfePage />} />
         <Route path="pedidos" element={<PedidosPage />} />
-        <Route path="configuracoes" element={<ConfiguracoesPage />} />
+        <Route
+          path="configuracoes"
+          element={
+            <AdminRoute>
+              <ConfiguracoesPage />
+            </AdminRoute>
+          }
+        />
       </Route>
     </Routes>
   );
