@@ -141,7 +141,14 @@ export const ConfiguracoesSection = ({
   const [shopeeAuthSuccess, setShopeeAuthSuccess] = useState(false);
   const [showShopeeDocs, setShowShopeeDocs] = useState(false);
 
-
+  // Criação de usuário do sistema
+  const [showCreateUsuarioDrawer, setShowCreateUsuarioDrawer] = useState(false);
+  const [novoUsuarioNome, setNovoUsuarioNome] = useState("");
+  const [novoUsuarioEmail, setNovoUsuarioEmail] = useState("");
+  const [novoUsuarioSenha, setNovoUsuarioSenha] = useState("");
+  const [showNovoUsuarioSenha, setShowNovoUsuarioSenha] = useState(false);
+  const [creatingUsuarioSistema, setCreatingUsuarioSistema] = useState(false);
+  const [usuarioSistemaError, setUsuarioSistemaError] = useState<string | null>(null);
 
   const fetchUsuarios = useCallback(async () => {
     setLoading(true);
@@ -1211,6 +1218,198 @@ export const ConfiguracoesSection = ({
     document.body
   );
 
+  const resetNovoUsuarioForm = () => {
+    setNovoUsuarioNome("");
+    setNovoUsuarioEmail("");
+    setNovoUsuarioSenha("");
+    setShowNovoUsuarioSenha(false);
+    setUsuarioSistemaError(null);
+  };
+
+  const handleCloseCreateUsuarioDrawer = () => {
+    if (creatingUsuarioSistema) return;
+    setShowCreateUsuarioDrawer(false);
+    resetNovoUsuarioForm();
+  };
+
+  const handleCreateUsuarioSistema = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setUsuarioSistemaError(null);
+
+    if (novoUsuarioNome.trim().length < 2) {
+      setUsuarioSistemaError("Nome deve ter pelo menos 2 caracteres.");
+      return;
+    }
+    if (novoUsuarioSenha.length < 6) {
+      setUsuarioSistemaError("Senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
+
+    setCreatingUsuarioSistema(true);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({
+          nome: novoUsuarioNome.trim(),
+          email: novoUsuarioEmail.trim(),
+          senha: novoUsuarioSenha,
+        }),
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(data?.error?.message || "Erro ao criar usuário.");
+      }
+
+      setError(null);
+      setSuccess(`Usuário "${data?.data?.nome || novoUsuarioNome.trim()}" criado com sucesso.`);
+      setShowCreateUsuarioDrawer(false);
+      resetNovoUsuarioForm();
+    } catch (error: unknown) {
+      setUsuarioSistemaError(
+        getErrorMessage(error, "Ocorreu um erro ao criar o usuário."),
+      );
+    } finally {
+      setCreatingUsuarioSistema(false);
+    }
+  };
+
+  // Drawer de criação de usuário do sistema
+  const createUsuarioDrawer = showCreateUsuarioDrawer && createPortal(
+    <div
+      className="fixed inset-0 z-[100] flex justify-end bg-black/50 backdrop-blur-sm"
+      onClick={handleCloseCreateUsuarioDrawer}
+    >
+      <div
+        className="flex h-full w-full max-w-md flex-col bg-white shadow-2xl animate-slideIn"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+          <div>
+            <h3 className="text-lg font-bold text-slate-900">Criar Usuário</h3>
+            <p className="mt-0.5 text-xs text-slate-500">
+              Cadastre um novo usuário com acesso ao painel.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleCloseCreateUsuarioDrawer}
+            disabled={creatingUsuarioSistema}
+            className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <form
+          onSubmit={handleCreateUsuarioSistema}
+          className="flex flex-1 flex-col overflow-hidden"
+        >
+          <div className="flex-1 space-y-5 overflow-y-auto px-6 py-6">
+            {usuarioSistemaError && (
+              <div
+                role="alert"
+                className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+              >
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{usuarioSistemaError}</span>
+              </div>
+            )}
+
+            <div>
+              <label className={labelClassName}>Nome *</label>
+              <input
+                type="text"
+                className={inputClassName}
+                value={novoUsuarioNome}
+                onChange={(e) => setNovoUsuarioNome(e.target.value)}
+                placeholder="Nome completo"
+                minLength={2}
+                required
+                disabled={creatingUsuarioSistema}
+                autoFocus
+              />
+            </div>
+
+            <div>
+              <label className={labelClassName}>E-mail *</label>
+              <input
+                type="email"
+                className={inputClassName}
+                value={novoUsuarioEmail}
+                onChange={(e) => setNovoUsuarioEmail(e.target.value)}
+                placeholder="usuario@exemplo.com"
+                required
+                disabled={creatingUsuarioSistema}
+              />
+            </div>
+
+            <div>
+              <label className={labelClassName}>Senha *</label>
+              <div className="relative">
+                <input
+                  type={showNovoUsuarioSenha ? "text" : "password"}
+                  className={`${inputClassName} pr-11`}
+                  value={novoUsuarioSenha}
+                  onChange={(e) => setNovoUsuarioSenha(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
+                  minLength={6}
+                  required
+                  disabled={creatingUsuarioSistema}
+                />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setShowNovoUsuarioSenha((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  {showNovoUsuarioSenha ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-end gap-3 border-t border-slate-200 px-6 py-4">
+            <button
+              type="button"
+              onClick={handleCloseCreateUsuarioDrawer}
+              disabled={creatingUsuarioSistema}
+              className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={creatingUsuarioSistema}
+              className="
+                inline-flex items-center gap-2
+                rounded-xl bg-[#00B0F1] px-4 py-2.5
+                text-sm font-semibold text-white
+                shadow-sm transition-all
+                hover:bg-[#008FC7]
+                focus:outline-none focus:ring-4 focus:ring-[#00B0F1]/20
+                disabled:cursor-not-allowed disabled:opacity-60
+              "
+            >
+              {creatingUsuarioSistema ? "Salvando..." : "Salvar"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>,
+    document.body
+  );
+
   const handleCreate = async (
     event: FormEvent<HTMLFormElement>,
   ) => {
@@ -1546,6 +1745,65 @@ export const ConfiguracoesSection = ({
           </div>
         </div>
       )}
+
+      {/* Usuários do Sistema */}
+      <div
+        className="
+          relative
+          overflow-hidden
+          rounded-[24px]
+          border border-slate-200/80
+          bg-white/95
+          p-5
+          shadow-[0_20px_50px_-34px_rgba(2,6,23,0.75),inset_0_1px_1px_rgba(255,255,255,0.95)]
+          sm:p-6
+        "
+      >
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-4">
+            <div
+              className="
+                flex h-12 w-12 shrink-0
+                items-center justify-center
+                rounded-2xl
+                border border-[#00B0F1]/20
+                bg-[#00B0F1]/10
+                text-[#008FC7]
+                shadow-[inset_0_1px_1px_rgba(255,255,255,0.85)]
+              "
+            >
+              <User className="h-5 w-5" />
+            </div>
+
+            <div>
+              <h3 className="text-base font-bold text-slate-900">
+                Usuários do Sistema
+              </h3>
+              <p className="mt-1 max-w-2xl text-xs leading-5 text-slate-500">
+                Crie novos usuários com acesso ao painel do Chocmaster.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowCreateUsuarioDrawer(true)}
+            className="
+              inline-flex shrink-0 items-center justify-center gap-2
+              rounded-xl
+              bg-[#00B0F1] px-4 py-2.5
+              text-sm font-semibold text-white
+              shadow-sm
+              transition-all
+              hover:bg-[#008FC7]
+              focus:outline-none focus:ring-4 focus:ring-[#00B0F1]/20
+            "
+          >
+            <Plus className="h-4 w-4" />
+            Criar Usuário
+          </button>
+        </div>
+      </div>
 
       {/* Envio Automático CIGAM */}
       <div
@@ -2709,6 +2967,7 @@ export const ConfiguracoesSection = ({
       {/* Modals */}
       {mlDocsModal}
       {shopeeDocsModal}
+      {createUsuarioDrawer}
     </div>
   );
 };
