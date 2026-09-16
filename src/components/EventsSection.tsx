@@ -242,6 +242,24 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
     });
   };
 
+  // Para campos DATEONLY do banco (ex.: data_pedido, data_prevista) — vêm como
+  // "aaaa-mm-dd", sem horário. `new Date("aaaa-mm-dd")` interpreta como UTC meia-noite,
+  // e ao converter pro fuso local (BR, UTC-3) isso "volta" pro dia anterior às 21h.
+  // Por isso montamos a data como horário local explícito e exibimos só dia/mês/ano.
+  const formatDateOnly = (dateString: string) => {
+    const date = new Date(`${dateString}T00:00:00`);
+
+    if (Number.isNaN(date.getTime())) {
+      return "Data indisponível";
+    }
+
+    return date.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
   const fetchEventsAndProducts = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -1227,7 +1245,7 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                           </p>
 
                           <p className="mt-1 text-xs font-medium text-slate-600">
-                            {formatDate(event.data_pedido)}
+                            {formatDateOnly(event.data_pedido)}
                           </p>
                         </div>
 
@@ -1455,14 +1473,14 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                           {orderDetails.numero_loja &&
                             ` • Loja: ${orderDetails.numero_loja}`}
                           {orderDetails.data_pedido &&
-                            ` • ${formatDate(
+                            ` • ${formatDateOnly(
                               orderDetails.data_pedido,
                             )}`}
                         </p>
 
                         {orderDetails.data_prevista && (
                           <p className="mt-0.5 text-xs font-medium text-[#008FC7]">
-                            Previsão faturamento/etiqueta: {formatDate(orderDetails.data_prevista)}
+                            Previsão faturamento/etiqueta: {formatDateOnly(orderDetails.data_prevista)}
                           </p>
                         )}
                       </div>
