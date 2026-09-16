@@ -201,6 +201,12 @@ export const ConfiguracoesSection = ({
   const [shopeeAuthSuccess, setShopeeAuthSuccess] = useState(false);
   const [showShopeeDocs, setShowShopeeDocs] = useState(false);
 
+  // Tray state
+  const [trayTokens, setTrayTokens] = useState<any[]>([]);
+  const [loadingTray, setLoadingTray] = useState(true);
+  const [trayStoreDomain, setTrayStoreDomain] = useState("");
+  const [trayConnectError, setTrayConnectError] = useState<string | null>(null);
+
   // Usuários do sistema
   const [sistemaUsuarios, setSistemaUsuarios] = useState<SistemaUsuario[]>([]);
   const [loadingSistemaUsuarios, setLoadingSistemaUsuarios] = useState(true);
@@ -316,6 +322,52 @@ export const ConfiguracoesSection = ({
     }
   }, [API_BASE_URL, authHeaders]);
 
+  const fetchTrayTokens = useCallback(async () => {
+    setLoadingTray(true);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/tray/tokens`,
+        { headers: authHeaders },
+      );
+      if (!response.ok) {
+        throw new Error("Erro ao carregar tokens Tray.");
+      }
+      const data = await response.json();
+      setTrayTokens(data.data || []);
+    } catch (error: unknown) {
+      console.error(error);
+    } finally {
+      setLoadingTray(false);
+    }
+  }, [API_BASE_URL, authHeaders]);
+
+  const handleConnectTray = async () => {
+    setTrayConnectError(null);
+
+    if (!trayStoreDomain.trim()) {
+      setTrayConnectError("Informe o domínio da loja Tray (ex.: minhaloja.commercesuite.com.br).");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/tray/auth-url?store_domain=${encodeURIComponent(trayStoreDomain.trim())}`,
+        { headers: authHeaders },
+      );
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(data?.error?.message || "Erro ao gerar URL de autenticação.");
+      }
+
+      if (data?.data?.authUrl) {
+        window.open(data.data.authUrl, "_blank");
+      }
+    } catch (error: unknown) {
+      setTrayConnectError(getErrorMessage(error, "Erro ao gerar URL de autenticação."));
+    }
+  };
+
   const handleToggleUsuarioSistemaAtivo = async (id: string) => {
     if (id === user?.id) return;
 
@@ -347,6 +399,7 @@ export const ConfiguracoesSection = ({
     fetchMlTokens();
     fetchShopeeTokens();
     fetchSistemaUsuarios();
+    fetchTrayTokens();
 
     // Check if returning from ML auth
     const urlParams = new URLSearchParams(window.location.search);
@@ -364,7 +417,16 @@ export const ConfiguracoesSection = ({
       window.history.replaceState({}, "", window.location.pathname);
       setTimeout(() => setShopeeAuthSuccess(false), 5000);
     }
-  }, [fetchUsuarios, fetchMlTokens, fetchShopeeTokens, fetchSistemaUsuarios]);
+  }, [fetchUsuarios, fetchMlTokens, fetchShopeeTokens, fetchSistemaUsuarios, fetchTrayTokens]);
+
+  // A Tray não tem página de callback no frontend (o redirect vai direto pro backend),
+  // então não há postMessage de sucesso — atualiza os tokens quando o usuário volta
+  // pra aba após autorizar em uma nova janela.
+  useEffect(() => {
+    const handleFocus = () => fetchTrayTokens();
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [fetchTrayTokens]);
 
   // Listen for messages from auth popups
   useEffect(() => {
@@ -3345,6 +3407,161 @@ export const ConfiguracoesSection = ({
               >
                 <BookOpen className="h-3.5 w-3.5" />
                 Documentação API
+              </button>
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {/* Seção de Tray */}
+      <aside
+        className="
+          relative
+          overflow-hidden
+          rounded-2xl
+          border border-slate-200/80
+          bg-gradient-to-br
+          from-white
+          to-slate-50
+          p-5
+          shadow-[0_14px_35px_-28px_rgba(2,6,23,0.70),inset_0_1px_1px_rgba(255,255,255,0.95)]
+          sm:p-6
+        "
+      >
+        <div
+          aria-hidden="true"
+          className="
+            pointer-events-none
+            absolute inset-[5px]
+            rounded-[18px]
+            border border-white
+          "
+        />
+
+        <div className="relative z-10">
+          <div className="mb-6 flex items-center gap-3">
+            <div
+              className="
+                flex h-14 w-14 shrink-0
+                items-center justify-center
+                rounded-xl
+                border border-amber-200
+                bg-amber-50
+                p-1.5
+                text-[#E66F00]
+              "
+            >
+              <Store className="h-full w-full" />
+            </div>
+
+            <div>
+              <h3 className="text-base font-bold text-slate-900">
+                Tray
+              </h3>
+
+              <p className="mt-0.5 text-xs text-slate-500">
+                Conecte sua loja Tray
+              </p>
+            </div>
+          </div>
+
+          {trayConnectError && (
+            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3">
+              <p className="text-xs font-semibold text-red-700">{trayConnectError}</p>
+            </div>
+          )}
+
+          {loadingTray ? (
+            <div className="flex items-center justify-center py-8">
+              <span className="h-6 w-6 animate-spin rounded-full border-2 border-amber-300 border-t-amber-600" />
+            </div>
+          ) : trayTokens.length > 0 ? (
+            <div className="space-y-4">
+              {/* Connected store info */}
+              {trayTokens.filter((t) => t.active).map((token) => (
+                <div key={token.id} className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100">
+                        <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">
+                          Loja ID: {token.store_id}
+                        </p>
+                        <p className="text-xs text-emerald-600">Conexão ativa</p>
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[0.65rem] font-semibold text-emerald-700">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Ativo
+                    </span>
+                  </div>
+
+                  {token.date_expiration_access_token && (
+                    <div className="mt-3 border-t border-emerald-200 pt-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-slate-500">Validade do token:</p>
+                        <p className="text-xs font-semibold text-slate-700">
+                          {getTimeRemaining(token.date_expiration_access_token)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {/* Reconnect */}
+              <div>
+                <label className={labelClassName}>Domínio da loja</label>
+                <input
+                  type="text"
+                  className={inputClassName}
+                  value={trayStoreDomain}
+                  onChange={(e) => setTrayStoreDomain(e.target.value)}
+                  placeholder="minhaloja.commercesuite.com.br"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleConnectTray}
+                className="
+                  flex w-full items-center justify-center gap-2
+                  rounded-xl border border-slate-200
+                  bg-white px-4 py-3
+                  text-sm font-semibold text-slate-600
+                  transition-all hover:bg-slate-50
+                "
+              >
+                <Link className="h-4 w-4" />
+                Reconectar Tray
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div>
+                <label className={labelClassName}>Domínio da loja</label>
+                <input
+                  type="text"
+                  className={inputClassName}
+                  value={trayStoreDomain}
+                  onChange={(e) => setTrayStoreDomain(e.target.value)}
+                  placeholder="minhaloja.commercesuite.com.br"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleConnectTray}
+                className="
+                  flex w-full items-center justify-center gap-2
+                  rounded-xl border border-amber-300/50
+                  bg-amber-50 px-4 py-3
+                  text-sm font-semibold text-[#E66F00]
+                  transition-all hover:bg-amber-100
+                "
+              >
+                <Link className="h-4 w-4" />
+                Conectar Tray
               </button>
             </div>
           )}

@@ -13,7 +13,10 @@ import {
   Calendar,
   Filter,
   Package,
+  Trash2,
+  AlertTriangle,
 } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 
 interface NotaFiscalCigam {
   id: string;
@@ -50,6 +53,9 @@ export const NotasFiscaisCigamSection = ({
   API_BASE_URL,
   authHeaders,
 }: NotasFiscaisCigamSectionProps) => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
   const [notas, setNotas] = useState<NotaFiscalCigam[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +70,10 @@ export const NotasFiscaisCigamSection = ({
     useState<NotaFiscalCigam | null>(null);
   const [showXmlModal, setShowXmlModal] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [notaParaExcluir, setNotaParaExcluir] =
+    useState<NotaFiscalCigam | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const fetchNotas = useCallback(async () => {
     setLoading(true);
@@ -92,6 +102,35 @@ export const NotasFiscaisCigamSection = ({
   useEffect(() => {
     fetchNotas();
   }, [fetchNotas]);
+
+  const handleDeleteNota = async () => {
+    if (!notaParaExcluir) return;
+
+    setDeletingId(notaParaExcluir.id);
+    setDeleteError(null);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/notas-fiscais-cigam/${notaParaExcluir.id}`,
+        { method: "DELETE", headers: authHeaders() },
+      );
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(data?.error?.message || "Erro ao excluir a nota fiscal.");
+      }
+
+      setNotas((prev) => prev.filter((n) => n.id !== notaParaExcluir.id));
+      setNotaParaExcluir(null);
+    } catch (error: unknown) {
+      setDeleteError(
+        error instanceof Error ? error.message : "Erro ao excluir a nota fiscal.",
+      );
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   // Obter lista única de marketplaces presentes nos dados
   const marketplacesUnicos = Array.from(
