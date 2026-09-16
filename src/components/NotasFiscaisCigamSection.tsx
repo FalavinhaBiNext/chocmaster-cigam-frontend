@@ -78,12 +78,6 @@ export const NotasFiscaisCigamSection = ({
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
-  // Marketplaces com envio automático de NF-e implementado — mapeia marketplace -> prefixo da rota
-  const marketplaceEndpoints: Record<string, string> = {
-    shopee: "shopee",
-    mercado_livre: "mercado-livre",
-  };
-
   const fetchNotas = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -119,28 +113,11 @@ export const NotasFiscaisCigamSection = ({
   }, [toast]);
 
   const handleEnviarXml = async (nota: NotaFiscalCigam) => {
-    if (!nota.marketplace || !nota.numero_pedido_marketplace) {
-      setToast({
-        message: "O XML ainda não pode ser enviado: esta nota não está vinculada a um pedido de marketplace.",
-        type: "error",
-      });
-      return;
-    }
-
-    const endpointBase = marketplaceEndpoints[nota.marketplace];
-    if (!endpointBase) {
-      setToast({
-        message: `O XML ainda não pode ser enviado: envio automático não é suportado para o marketplace "${marketplaceLabels[nota.marketplace] || nota.marketplace}".`,
-        type: "error",
-      });
-      return;
-    }
-
     setSendingId(nota.id);
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/${endpointBase}/orders/${nota.numero_pedido_marketplace}/send-invoice`,
+        `${API_BASE_URL}/notas-fiscais-cigam/${nota.id}/enviar-marketplace`,
         { method: "POST", headers: authHeaders() },
       );
 
