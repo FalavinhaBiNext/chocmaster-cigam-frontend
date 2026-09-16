@@ -733,6 +733,25 @@ export const NotasFiscaisCigamSection = ({
                         >
                           <Download className="h-4 w-4" />
                         </button>
+                        {!nota.enviado_marketplace && (
+                          <button
+                            type="button"
+                            onClick={() => handleEnviarXml(nota)}
+                            disabled={sendingId === nota.id}
+                            className="
+                              rounded-lg p-1.5 text-slate-400
+                              transition-colors hover:bg-blue-50 hover:text-blue-600
+                              disabled:cursor-not-allowed disabled:opacity-50
+                            "
+                            title="Enviar XML ao marketplace"
+                          >
+                            {sendingId === nota.id ? (
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-400 border-t-transparent" />
+                            ) : (
+                              <Send className="h-4 w-4" />
+                            )}
+                          </button>
+                        )}
                         {isAdmin && (
                           <button
                             type="button"
@@ -997,6 +1016,49 @@ export const NotasFiscaisCigamSection = ({
                 >
                   <Trash2 className="h-4 w-4" />
                   {deletingId ? "Excluindo..." : "Excluir"}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {/* Toast de envio de XML - renderizado via portal */}
+      {toast &&
+        createPortal(
+          <div className="fixed right-4 top-4 z-[100] w-full max-w-sm animate-slideIn">
+            <div
+              className={`
+                relative overflow-hidden rounded-2xl border bg-white p-4
+                shadow-[0_20px_60px_-15px_rgba(2,6,23,0.45)]
+                ${toast.type === "success" ? "border-emerald-200" : "border-red-200"}
+              `}
+            >
+              <div className="flex items-start gap-3">
+                <div
+                  className={`
+                    flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border
+                    ${toast.type === "success"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-600"
+                      : "border-red-200 bg-red-50 text-red-600"
+                    }
+                  `}
+                >
+                  {toast.type === "success" ? (
+                    <CheckCircle2 className="h-5 w-5" />
+                  ) : (
+                    <AlertTriangle className="h-5 w-5" />
+                  )}
+                </div>
+                <p className="flex-1 text-sm font-medium text-slate-700">
+                  {toast.message}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setToast(null)}
+                  className="shrink-0 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="h-4 w-4" />
                 </button>
               </div>
             </div>
