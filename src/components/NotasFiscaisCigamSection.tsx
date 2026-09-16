@@ -15,6 +15,7 @@ import {
   Package,
   Trash2,
   AlertTriangle,
+  Send,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -74,6 +75,14 @@ export const NotasFiscaisCigamSection = ({
     useState<NotaFiscalCigam | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [sendingId, setSendingId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+
+  // Marketplaces com envio automático de NF-e implementado — mapeia marketplace -> prefixo da rota
+  const marketplaceEndpoints: Record<string, string> = {
+    shopee: "shopee",
+    mercado_livre: "mercado-livre",
+  };
 
   const fetchNotas = useCallback(async () => {
     setLoading(true);
@@ -102,6 +111,68 @@ export const NotasFiscaisCigamSection = ({
   useEffect(() => {
     fetchNotas();
   }, [fetchNotas]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 5000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  const handleEnviarXml = async (nota: NotaFiscalCigam) => {
+    if (!nota.marketplace || !nota.numero_pedido_marketplace) {
+      setToast({
+        message: "O XML ainda não pode ser enviado: esta nota não está vinculada a um pedido de marketplace.",
+        type: "error",
+      });
+      return;
+    }
+
+    const endpointBase = marketplaceEndpoints[nota.marketplace];
+    if (!endpointBase) {
+      setToast({
+        message: `O XML ainda não pode ser enviado: envio automático não é suportado para o marketplace "${marketplaceLabels[nota.marketplace] || nota.marketplace}".`,
+        type: "error",
+      });
+      return;
+    }
+
+    setSendingId(nota.id);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/${endpointBase}/orders/${nota.numero_pedido_marketplace}/send-invoice`,
+        { method: "POST", headers: authHeaders() },
+      );
+
+      const data = await response.json().catch(() => null);
+
+      if (!data?.success) {
+        throw new Error(
+          data?.message ||
+          data?.error?.message ||
+          "O XML ainda não pode ser enviado ao marketplace. Aguarde o marketplace liberar o envio.",
+        );
+      }
+
+      setNotas((prev) =>
+        prev.map((n) => (n.id === nota.id ? { ...n, enviado_marketplace: true } : n)),
+      );
+      setToast({
+        message: data.message || "NF-e enviada com sucesso ao marketplace!",
+        type: "success",
+      });
+    } catch (err: unknown) {
+      setToast({
+        message:
+          err instanceof Error
+            ? err.message
+            : "O XML ainda não pode ser enviado ao marketplace. Aguarde o marketplace liberar o envio.",
+        type: "error",
+      });
+    } finally {
+      setSendingId(null);
+    }
+  };
 
   const handleDeleteNota = async () => {
     if (!notaParaExcluir) return;
@@ -199,6 +270,17 @@ export const NotasFiscaisCigamSection = ({
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "-";
     return new Date(dateString).toLocaleDateString("pt-BR");
+  };
+
+  // Para campos DATEONLY do banco (ex.: data_faturamento) — vêm como "aaaa-mm-dd",
+  // sem horário. `new Date("aaaa-mm-dd")` interpreta como UTC meia-noite, e ao
+  // converter pro fuso local (BR, UTC-3) isso "volta" pro dia anterior. Por isso
+  // montamos a data como horário local explícito, sem exibir hora.
+  const formatDateOnly = (dateString: string | null) => {
+    if (!dateString) return "-";
+    const date = new Date(`${dateString}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return "-";
+    return date.toLocaleDateString("pt-BR");
   };
 
   const handleCopyXml = async (xml: string) => {
@@ -526,9 +608,6 @@ export const NotasFiscaisCigamSection = ({
                     NF-e
                   </th>
                   <th className="px-4 py-3 text-left text-[0.65rem] font-semibold uppercase tracking-wider text-slate-500">
-                    Unidade
-                  </th>
-                  <th className="px-4 py-3 text-left text-[0.65rem] font-semibold uppercase tracking-wider text-slate-500">
                     Data Faturamento
                   </th>
                   <th className="px-4 py-3 text-left text-[0.65rem] font-semibold uppercase tracking-wider text-slate-500">
@@ -592,12 +671,7 @@ export const NotasFiscaisCigamSection = ({
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
                       <span className="text-sm text-slate-600">
-                        {nota.unidade_negocio || "-"}
-                      </span>
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      <span className="text-sm text-slate-600">
-                        {formatDate(nota.data_faturamento)}
+                        {formatDateOnly(nota.data_faturamento)}
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
