@@ -9,6 +9,7 @@ import {
   DollarSign,
   FileText,
   Package,
+  Printer,
   RefreshCw,
   Search,
   ShoppingBag,
@@ -114,6 +115,8 @@ export const MercadoLivreOrdersSection: FC = () => {
     status: string | null;
     substatus: string | null;
     readyForInvoice: boolean;
+    readyToPrint?: boolean;
+    logisticType?: string | null;
     substatusHistory: Array<{ date: string; substatus: string; status: string }>;
     logisticStatus?: string;
     shippingCarrier?: string;
@@ -121,6 +124,7 @@ export const MercadoLivreOrdersSection: FC = () => {
   }>>({});
   const [checkingShipment, setCheckingShipment] = useState<string | null>(null);
   const [expandedShipment, setExpandedShipment] = useState<string | null>(null);
+  const [printingLabel, setPrintingLabel] = useState<string | null>(null);
 
   const [pendingInvoices, setPendingInvoices] = useState<Record<string, { id: string; numero_nf: string | null }>>({});
   const [sendingInvoice, setSendingInvoice] = useState<string | null>(null);
@@ -308,6 +312,42 @@ export const MercadoLivreOrdersSection: FC = () => {
       });
     } finally {
       setSendingInvoice(null);
+    }
+  }, [authHeaders]);
+
+  const handlePrintLabel = useCallback(async (orderId: string) => {
+    setPrintingLabel(orderId);
+    try {
+      const response = await fetch(`${API_BASE_URL}/mercado-livre/orders/${orderId}/shipping-label`, {
+        headers: authHeaders,
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.message || "Erro ao obter etiqueta.");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `etiqueta-${orderId}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      setToast({
+        message: "Etiqueta baixada com sucesso!",
+        type: "success",
+      });
+    } catch (err: unknown) {
+      setToast({
+        message: err instanceof Error ? err.message : "Erro ao baixar etiqueta.",
+        type: "error",
+      });
+    } finally {
+      setPrintingLabel(null);
     }
   }, [authHeaders]);
 
@@ -942,6 +982,44 @@ export const MercadoLivreOrdersSection: FC = () => {
                                 <p className="text-[0.62rem] text-slate-500">Nenhuma movimentação registrada neste envio.</p>
                               </div>
                             )}
+                          </div>
+                        )}
+
+                        {/* Impressão de etiqueta */}
+                        {shipmentResults[order.numero_loja].shipmentId !== null && (
+                          <div className="mt-2.5">
+                            {(() => {
+                              const result = shipmentResults[order.numero_loja];
+                              const isFulfillment = result.logisticType === 'fulfillment';
+                              const canPrint = !!result.readyToPrint && !isFulfillment;
+                              const disabledReason = isFulfillment
+                                ? "Pedidos Fulfillment são enviados diretamente pelo Mercado Livre — etiqueta não disponível por aqui."
+                                : !result.readyToPrint
+                                ? "Etiqueta ainda não liberada pelo Mercado Livre. Aguarde o status ready_to_print."
+                                : "";
+
+                              return (
+                                <button
+                                  type="button"
+                                  disabled={!canPrint || printingLabel === order.numero_loja}
+                                  onClick={() => handlePrintLabel(order.numero_loja)}
+                                  title={disabledReason}
+                                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                                >
+                                  {printingLabel === order.numero_loja ? (
+                                    <>
+                                      <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-400 border-t-transparent" />
+                                      Baixando etiqueta...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Printer className="h-3.5 w-3.5" />
+                                      Imprimir Etiqueta
+                                    </>
+                                  )}
+                                </button>
+                              );
+                            })()}
                           </div>
                         )}
                       </>
