@@ -1193,12 +1193,15 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                             <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[0.6rem] font-bold
                               ${pedidosMap[String(event.pedido_id)].marketplace === 'mercado_livre'
                                 ? 'bg-yellow-50 text-yellow-700 border border-yellow-200'
+                                : pedidosMap[String(event.pedido_id)].marketplace === 'shopee'
+                                ? 'bg-orange-50 text-orange-700 border border-orange-200'
                                 : pedidosMap[String(event.pedido_id)].marketplace === 'bling'
                                 ? 'bg-blue-50 text-blue-700 border border-blue-200'
                                 : 'bg-slate-50 text-slate-600 border border-slate-200'
                               }
                             `}>
                               {pedidosMap[String(event.pedido_id)].marketplace === 'mercado_livre' ? 'ML' :
+                               pedidosMap[String(event.pedido_id)].marketplace === 'shopee' ? 'Shopee' :
                                pedidosMap[String(event.pedido_id)].marketplace === 'bling' ? 'Bling' :
                                pedidosMap[String(event.pedido_id)].marketplace}
                             </span>
