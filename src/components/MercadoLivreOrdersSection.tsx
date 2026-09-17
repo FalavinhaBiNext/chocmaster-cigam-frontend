@@ -277,6 +277,40 @@ export const MercadoLivreOrdersSection: FC = () => {
     }
   }, [authHeaders]);
 
+  const handleEnviarXmlPedido = useCallback(async (order: PedidoLocal) => {
+    if (!order.numero_pedido_cigam) return;
+
+    setSendingInvoice(order.numero_pedido_cigam);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/notas-fiscais-cigam/por-pedido-cigam/${order.numero_pedido_cigam}/enviar-marketplace`,
+        { method: "POST", headers: authHeaders },
+      );
+      const data = await response.json().catch(() => null);
+
+      if (!data?.success) {
+        throw new Error(
+          data?.message || data?.error?.message || "O XML ainda não pode ser enviado ao marketplace.",
+        );
+      }
+
+      setOrders((prev) =>
+        prev.map((o) => (o.id === order.id ? { ...o, status_nfe: "enviada" } : o)),
+      );
+      setToast({
+        message: data.message || "NF-e enviada com sucesso ao marketplace!",
+        type: "success",
+      });
+    } catch (err: unknown) {
+      setToast({
+        message: err instanceof Error ? err.message : "O XML ainda não pode ser enviado ao marketplace.",
+        type: "error",
+      });
+    } finally {
+      setSendingInvoice(null);
+    }
+  }, [authHeaders]);
+
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
@@ -681,6 +715,38 @@ export const MercadoLivreOrdersSection: FC = () => {
                         }`}>
                           NF-e: {order.status_nfe === 'enviada' ? 'Enviada' : order.status_nfe === 'faturada' ? 'Faturada' : order.status_nfe}
                         </span>
+                      )}
+                      {order.status_nfe !== 'enviada' && (
+                        <button
+                          type="button"
+                          disabled={order.status_nfe !== 'faturada' || sendingInvoice === order.numero_pedido_cigam}
+                          onClick={() => handleEnviarXmlPedido(order)}
+                          title={
+                            order.status_nfe === 'faturada'
+                              ? "Enviar XML ao marketplace"
+                              : "Disponível quando a NF-e estiver faturada pelo CIGAM"
+                          }
+                          className="
+                            inline-flex shrink-0 items-center gap-1.5 rounded-full border
+                            border-blue-300 bg-blue-50 px-2.5 py-1
+                            text-[0.62rem] font-bold text-blue-700
+                            transition-all
+                            hover:bg-blue-100
+                            disabled:cursor-not-allowed disabled:border-slate-200 disabled:bg-slate-50 disabled:text-slate-400
+                          "
+                        >
+                          {sendingInvoice === order.numero_pedido_cigam ? (
+                            <>
+                              <div className="h-3 w-3 animate-spin rounded-full border-2 border-blue-400 border-t-transparent" />
+                              Enviando...
+                            </>
+                          ) : (
+                            <>
+                              <FileText className="h-3 w-3" />
+                              Enviar XML
+                            </>
+                          )}
+                        </button>
                       )}
                       {order.marketplace && (
                         <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[0.62rem] font-bold ${
