@@ -33,6 +33,7 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import logoMercadoLivre from "../assets/MercadoLivre.png";
 import logoShopee from "../assets/Shopee.png";
+import logoTray from "../assets/Tray.svg";
 
 interface UsuarioCigam {
   id: string;
@@ -1995,7 +1996,7 @@ export const ConfiguracoesSection = ({
             <StatCard
               icon={Store}
               label="Marketplaces conectados"
-              value={`${(activeMlToken ? 1 : 0) + (shopeeTokens.some((t) => t.active) ? 1 : 0)}/2`}
+              value={`${(activeMlToken ? 1 : 0) + (shopeeTokens.some((t) => t.active) ? 1 : 0) + (trayTokens.some((t) => t.active) ? 1 : 0)}/3`}
               accentClassName="border border-emerald-200 bg-emerald-50 text-emerald-600"
             />
           </div>
@@ -2045,6 +2046,22 @@ export const ConfiguracoesSection = ({
                     }`}
                   >
                     {shopeeTokens.some((t) => t.active) ? "Conectado" : "Desconectado"}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/60 px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <img src={logoTray} alt="Tray" className="h-7 w-7 object-contain" />
+                    <span className="text-sm font-semibold text-slate-800">Tray</span>
+                  </div>
+                  <span
+                    className={`inline-flex items-center rounded-full px-2.5 py-1 text-[0.65rem] font-bold uppercase tracking-[0.06em] ${
+                      trayTokens.some((t) => t.active)
+                        ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+                        : "border border-slate-200 bg-slate-100 text-slate-500"
+                    }`}
+                  >
+                    {trayTokens.some((t) => t.active) ? "Conectado" : "Desconectado"}
                   </span>
                 </div>
               </div>
@@ -3445,13 +3462,12 @@ export const ConfiguracoesSection = ({
                 flex h-14 w-14 shrink-0
                 items-center justify-center
                 rounded-xl
-                border border-amber-200
-                bg-amber-50
+                border border-sky-200
+                bg-sky-50
                 p-1.5
-                text-[#E66F00]
               "
             >
-              <Store className="h-full w-full" />
+              <img src={logoTray} alt="Tray" className="h-full w-full object-contain" />
             </div>
 
             <div>
