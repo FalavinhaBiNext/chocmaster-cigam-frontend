@@ -16,6 +16,7 @@ import {
   Trash2,
   AlertTriangle,
   Send,
+  RefreshCw,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -31,6 +32,7 @@ interface NotaFiscalCigam {
   chave_acesso: string | null;
   enviado_marketplace: boolean;
   xml_content: string;
+  tray_invoice_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -76,6 +78,7 @@ export const NotasFiscaisCigamSection = ({
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const fetchNotas = useCallback(async () => {
@@ -148,6 +151,42 @@ export const NotasFiscaisCigamSection = ({
       });
     } finally {
       setSendingId(null);
+    }
+  };
+
+  const handleAtualizarTray = async (nota: NotaFiscalCigam) => {
+    setUpdatingId(nota.id);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/notas-fiscais-cigam/${nota.id}/atualizar-tray`,
+        { method: "POST", headers: authHeaders() },
+      );
+
+      const data = await response.json().catch(() => null);
+
+      if (!data?.success) {
+        throw new Error(
+          data?.message ||
+          data?.error?.message ||
+          "Não foi possível atualizar os dados fiscais na Tray.",
+        );
+      }
+
+      setToast({
+        message: data.message || "Dados fiscais atualizados com sucesso na Tray!",
+        type: "success",
+      });
+    } catch (err: unknown) {
+      setToast({
+        message:
+          err instanceof Error
+            ? err.message
+            : "Não foi possível atualizar os dados fiscais na Tray.",
+        type: "error",
+      });
+    } finally {
+      setUpdatingId(null);
     }
   };
 
@@ -729,6 +768,27 @@ export const NotasFiscaisCigamSection = ({
                             )}
                           </button>
                         )}
+                        {nota.enviado_marketplace &&
+                          nota.marketplace !== "mercado_livre" &&
+                          nota.marketplace !== "shopee" && (
+                            <button
+                              type="button"
+                              onClick={() => handleAtualizarTray(nota)}
+                              disabled={updatingId === nota.id}
+                              className="
+                                rounded-lg p-1.5 text-slate-400
+                                transition-colors hover:bg-amber-50 hover:text-amber-600
+                                disabled:cursor-not-allowed disabled:opacity-50
+                              "
+                              title="Atualizar dados fiscais na Tray"
+                            >
+                              {updatingId === nota.id ? (
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-amber-400 border-t-transparent" />
+                              ) : (
+                                <RefreshCw className="h-4 w-4" />
+                              )}
+                            </button>
+                          )}
                         {isAdmin && (
                           <button
                             type="button"
