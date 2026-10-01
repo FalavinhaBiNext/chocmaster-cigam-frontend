@@ -17,6 +17,7 @@ import {
   AlertTriangle,
   Send,
   RefreshCw,
+  Printer,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -52,6 +53,26 @@ const marketplaceLabels: Record<string, string> = {
   via_varejo: "Via Varejo",
 };
 
+// Canais vendidos através da mesma loja Tray (roteados pela mesma API de etiqueta/NF-e da Tray).
+const TRAY_MARKETPLACE_CHANNELS = ["AMAZON", "MAGAZINE LUIZA", "LOJA VIRTUAL", "PARTICULAR"];
+
+/** Monta a URL de etiqueta de envio de acordo com o marketplace da nota, ou null se não suportado. */
+const getShippingLabelUrl = (nota: NotaFiscalCigam, API_BASE_URL: string): string | null => {
+  if (!nota.numero_pedido_marketplace) return null;
+
+  if (nota.marketplace === "mercado_livre") {
+    return `${API_BASE_URL}/mercado-livre/orders/${nota.numero_pedido_marketplace}/shipping-label`;
+  }
+  if (nota.marketplace === "shopee") {
+    return `${API_BASE_URL}/shopee/orders/${nota.numero_pedido_marketplace}/shipping-label`;
+  }
+  if (nota.marketplace && TRAY_MARKETPLACE_CHANNELS.includes(nota.marketplace)) {
+    return `${API_BASE_URL}/tray/orders/${nota.numero_pedido_marketplace}/shipping-label`;
+  }
+
+  return null;
+};
+
 export const NotasFiscaisCigamSection = ({
   API_BASE_URL,
   authHeaders,
@@ -79,6 +100,7 @@ export const NotasFiscaisCigamSection = ({
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [printingLabelId, setPrintingLabelId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const fetchNotas = useCallback(async () => {
@@ -187,6 +209,53 @@ export const NotasFiscaisCigamSection = ({
       });
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const handlePrintLabel = async (nota: NotaFiscalCigam) => {
+    const url = getShippingLabelUrl(nota, API_BASE_URL);
+    if (!url) return;
+
+    setPrintingLabelId(nota.id);
+
+    try {
+      const response = await fetch(url, { headers: authHeaders() });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error(data?.message || "Erro ao obter etiqueta.");
+      }
+
+      const contentType = response.headers.get("content-type") || "";
+
+      if (contentType.includes("text/html")) {
+        // Tray devolve o HTML da etiqueta pra impressão via Ctrl+P do navegador.
+        const html = await response.text();
+        const blob = new Blob([html], { type: "text/html" });
+        window.open(URL.createObjectURL(blob), "_blank");
+        setToast({
+          message: "Etiqueta aberta em uma nova aba. Use Ctrl+P para imprimir.",
+          type: "success",
+        });
+      } else {
+        // Mercado Livre (zip) e Shopee (pdf) devolvem o arquivo pronto pra download.
+        const blob = await response.blob();
+        const extension = contentType.includes("pdf") ? "pdf" : "zip";
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `etiqueta-${nota.numero_pedido_marketplace}.${extension}`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setToast({ message: "Etiqueta baixada com sucesso!", type: "success" });
+      }
+    } catch (err: unknown) {
+      setToast({
+        message: err instanceof Error ? err.message : "Erro ao obter etiqueta.",
+        type: "error",
+      });
+    } finally {
+      setPrintingLabelId(null);
     }
   };
 
@@ -786,6 +855,26 @@ export const NotasFiscaisCigamSection = ({
                                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-amber-400 border-t-transparent" />
                               ) : (
                                 <RefreshCw className="h-4 w-4" />
+                              )}
+                            </button>
+                          )}
+                        {nota.enviado_marketplace &&
+                          getShippingLabelUrl(nota, API_BASE_URL) && (
+                            <button
+                              type="button"
+                              onClick={() => handlePrintLabel(nota)}
+                              disabled={printingLabelId === nota.id}
+                              className="
+                                rounded-lg p-1.5 text-slate-400
+                                transition-colors hover:bg-violet-50 hover:text-violet-600
+                                disabled:cursor-not-allowed disabled:opacity-50
+                              "
+                              title="Imprimir etiqueta de envio"
+                            >
+                              {printingLabelId === nota.id ? (
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-violet-400 border-t-transparent" />
+                              ) : (
+                                <Printer className="h-4 w-4" />
                               )}
                             </button>
                           )}
