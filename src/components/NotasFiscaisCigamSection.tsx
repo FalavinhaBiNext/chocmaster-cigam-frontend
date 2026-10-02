@@ -54,33 +54,6 @@ const marketplaceLabels: Record<string, string> = {
   via_varejo: "Via Varejo",
 };
 
-// Canais vendidos através da mesma loja Tray (roteados pela mesma API de etiqueta/NF-e da Tray).
-const TRAY_MARKETPLACE_CHANNELS = ["AMAZON", "MAGAZINE LUIZA", "LOJA VIRTUAL", "PARTICULAR"];
-
-/**
- * Monta a URL de etiqueta de envio: prioriza o PDF salvo junto com a NF-e (quando o
- * ERP já envia a etiqueta pronta), e só cai pra API do marketplace se não houver.
- */
-const getShippingLabelUrl = (nota: NotaFiscalCigam, API_BASE_URL: string): string | null => {
-  if (nota.tem_etiqueta_pdf) {
-    return `${API_BASE_URL}/notas-fiscais-cigam/${nota.id}/etiqueta`;
-  }
-
-  if (!nota.numero_pedido_marketplace) return null;
-
-  if (nota.marketplace === "mercado_livre") {
-    return `${API_BASE_URL}/mercado-livre/orders/${nota.numero_pedido_marketplace}/shipping-label`;
-  }
-  if (nota.marketplace === "shopee") {
-    return `${API_BASE_URL}/shopee/orders/${nota.numero_pedido_marketplace}/shipping-label`;
-  }
-  if (nota.marketplace && TRAY_MARKETPLACE_CHANNELS.includes(nota.marketplace)) {
-    return `${API_BASE_URL}/tray/orders/${nota.numero_pedido_marketplace}/shipping-label`;
-  }
-
-  return null;
-};
-
 export const NotasFiscaisCigamSection = ({
   API_BASE_URL,
   authHeaders,
@@ -221,42 +194,33 @@ export const NotasFiscaisCigamSection = ({
   };
 
   const handlePrintLabel = async (nota: NotaFiscalCigam) => {
-    const url = getShippingLabelUrl(nota, API_BASE_URL);
-    if (!url) return;
-
     setPrintingLabelId(nota.id);
 
     try {
-      const response = await fetch(url, { headers: authHeaders() });
+      const response = await fetch(
+        `${API_BASE_URL}/notas-fiscais-cigam/${nota.id}/etiqueta`,
+        { headers: authHeaders() },
+      );
 
       if (!response.ok) {
         const data = await response.json().catch(() => null);
         throw new Error(data?.message || "Erro ao obter etiqueta.");
       }
 
-      const contentType = response.headers.get("content-type") || "";
+      // O backend já junta a etiqueta do marketplace com o PDF do ERP (quando
+      // houver os dois) e sempre devolve um PDF único pronto pra impressão.
+      const disposition = response.headers.get("content-disposition");
+      const filenameMatch = disposition?.match(/filename="?([^"]+)"?/);
+      const filename = filenameMatch?.[1] || `etiqueta-${nota.numero_pedido_cigam}.pdf`;
 
-      if (contentType.includes("text/html")) {
-        // Tray devolve o HTML da etiqueta pra impressão via Ctrl+P do navegador.
-        const html = await response.text();
-        const blob = new Blob([html], { type: "text/html" });
-        window.open(URL.createObjectURL(blob), "_blank");
-        setToast({
-          message: "Etiqueta aberta em uma nova aba. Use Ctrl+P para imprimir.",
-          type: "success",
-        });
-      } else {
-        // Mercado Livre (zip) e Shopee (pdf) devolvem o arquivo pronto pra download.
-        const blob = await response.blob();
-        const extension = contentType.includes("pdf") ? "pdf" : "zip";
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = `etiqueta-${nota.numero_pedido_marketplace}.${extension}`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setToast({ message: "Etiqueta baixada com sucesso!", type: "success" });
-      }
+      const blob = await response.blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setToast({ message: "Etiqueta baixada com sucesso!", type: "success" });
     } catch (err: unknown) {
       setToast({
         message: err instanceof Error ? err.message : "Erro ao obter etiqueta.",
@@ -866,26 +830,25 @@ export const NotasFiscaisCigamSection = ({
                               )}
                             </button>
                           )}
-                        {nota.enviado_marketplace &&
-                          getShippingLabelUrl(nota, API_BASE_URL) && (
-                            <button
-                              type="button"
-                              onClick={() => handlePrintLabel(nota)}
-                              disabled={printingLabelId === nota.id}
-                              className="
-                                rounded-lg p-1.5 text-slate-400
-                                transition-colors hover:bg-violet-50 hover:text-violet-600
-                                disabled:cursor-not-allowed disabled:opacity-50
-                              "
-                              title="Imprimir etiqueta de envio"
-                            >
-                              {printingLabelId === nota.id ? (
-                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-violet-400 border-t-transparent" />
-                              ) : (
-                                <Printer className="h-4 w-4" />
-                              )}
-                            </button>
-                          )}
+                        {nota.enviado_marketplace && (
+                          <button
+                            type="button"
+                            onClick={() => handlePrintLabel(nota)}
+                            disabled={printingLabelId === nota.id}
+                            className="
+                              rounded-lg p-1.5 text-slate-400
+                              transition-colors hover:bg-violet-50 hover:text-violet-600
+                              disabled:cursor-not-allowed disabled:opacity-50
+                            "
+                            title="Imprimir etiqueta de envio"
+                          >
+                            {printingLabelId === nota.id ? (
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-violet-400 border-t-transparent" />
+                            ) : (
+                              <Printer className="h-4 w-4" />
+                            )}
+                          </button>
+                        )}
                         {isAdmin && (
                           <button
                             type="button"
