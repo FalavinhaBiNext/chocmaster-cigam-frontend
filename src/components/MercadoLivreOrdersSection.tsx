@@ -330,11 +330,17 @@ export const MercadoLivreOrdersSection: FC = () => {
         throw new Error(data?.message || "Erro ao obter etiqueta.");
       }
 
+      // Usa o nome de arquivo real devolvido pelo backend (reflete o Content-Type
+      // real do ML — pode ser .zip ou .pdf) em vez de assumir sempre .zip.
+      const disposition = response.headers.get("content-disposition");
+      const filenameMatch = disposition?.match(/filename="?([^"]+)"?/);
+      const filename = filenameMatch?.[1] || `etiqueta-${orderId}.zip`;
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `etiqueta-${orderId}.zip`;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       link.remove();
