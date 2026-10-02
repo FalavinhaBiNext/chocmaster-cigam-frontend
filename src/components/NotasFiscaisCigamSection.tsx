@@ -34,6 +34,7 @@ interface NotaFiscalCigam {
   enviado_marketplace: boolean;
   xml_content: string;
   tray_invoice_id: string | null;
+  tem_etiqueta_pdf: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -56,8 +57,15 @@ const marketplaceLabels: Record<string, string> = {
 // Canais vendidos através da mesma loja Tray (roteados pela mesma API de etiqueta/NF-e da Tray).
 const TRAY_MARKETPLACE_CHANNELS = ["AMAZON", "MAGAZINE LUIZA", "LOJA VIRTUAL", "PARTICULAR"];
 
-/** Monta a URL de etiqueta de envio de acordo com o marketplace da nota, ou null se não suportado. */
+/**
+ * Monta a URL de etiqueta de envio: prioriza o PDF salvo junto com a NF-e (quando o
+ * ERP já envia a etiqueta pronta), e só cai pra API do marketplace se não houver.
+ */
 const getShippingLabelUrl = (nota: NotaFiscalCigam, API_BASE_URL: string): string | null => {
+  if (nota.tem_etiqueta_pdf) {
+    return `${API_BASE_URL}/notas-fiscais-cigam/${nota.id}/etiqueta`;
+  }
+
   if (!nota.numero_pedido_marketplace) return null;
 
   if (nota.marketplace === "mercado_livre") {
