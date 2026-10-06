@@ -82,6 +82,8 @@ export const NotasFiscaisCigamSection = ({
   const [sendingId, setSendingId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [printingLabelId, setPrintingLabelId] = useState<string | null>(null);
+  const [notaParaImprimir, setNotaParaImprimir] =
+    useState<NotaFiscalCigam | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const fetchNotas = useCallback(async () => {
@@ -193,12 +195,15 @@ export const NotasFiscaisCigamSection = ({
     }
   };
 
-  const handlePrintLabel = async (nota: NotaFiscalCigam) => {
+  const handlePrintLabel = async (
+    nota: NotaFiscalCigam,
+    modo: "cigam" | "marketplace" | "ambos",
+  ) => {
     setPrintingLabelId(nota.id);
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/notas-fiscais-cigam/${nota.id}/etiqueta`,
+        `${API_BASE_URL}/notas-fiscais-cigam/${nota.id}/etiqueta?modo=${modo}`,
         { headers: authHeaders() },
       );
 
@@ -207,8 +212,8 @@ export const NotasFiscaisCigamSection = ({
         throw new Error(data?.message || "Erro ao obter etiqueta.");
       }
 
-      // O backend já junta a etiqueta do marketplace com o PDF do ERP (quando
-      // houver os dois) e sempre devolve um PDF único pronto pra impressão.
+      // O backend decide o conteúdo conforme o modo: só o PDF do CIGAM, só a
+      // etiqueta do marketplace, ou as duas juntas num único PDF.
       const disposition = response.headers.get("content-disposition");
       const filenameMatch = disposition?.match(/filename="?([^"]+)"?/);
       const filename = filenameMatch?.[1] || `etiqueta-${nota.numero_pedido_cigam}.pdf`;
@@ -228,6 +233,7 @@ export const NotasFiscaisCigamSection = ({
       });
     } finally {
       setPrintingLabelId(null);
+      setNotaParaImprimir(null);
     }
   };
 
@@ -833,7 +839,7 @@ export const NotasFiscaisCigamSection = ({
                         {nota.enviado_marketplace && (
                           <button
                             type="button"
-                            onClick={() => handlePrintLabel(nota)}
+                            onClick={() => setNotaParaImprimir(nota)}
                             disabled={printingLabelId === nota.id}
                             className="
                               rounded-lg p-1.5 text-slate-400
@@ -1027,6 +1033,111 @@ export const NotasFiscaisCigamSection = ({
                   "
                 >
                   Fechar
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {/* Modal de escolha do tipo de etiqueta - renderizado via portal */}
+      {notaParaImprimir &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+            onClick={() => {
+              if (printingLabelId === notaParaImprimir.id) return;
+              setNotaParaImprimir(null);
+            }}
+          >
+            <div
+              className="
+                relative w-full max-w-md rounded-2xl bg-white
+                p-6 shadow-2xl animate-scaleIn
+              "
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-100">
+                  <Printer className="h-5 w-5 text-violet-600" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Imprimir etiqueta
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Pedido{" "}
+                    <span className="font-semibold text-slate-700">
+                      {notaParaImprimir.numero_pedido_cigam}
+                    </span>
+                    . Escolha o que deseja imprimir:
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => handlePrintLabel(notaParaImprimir, "cigam")}
+                  disabled={printingLabelId === notaParaImprimir.id}
+                  className="
+                    flex items-center justify-between rounded-lg
+                    border border-slate-200 px-4 py-3
+                    text-left text-sm font-semibold text-slate-700
+                    transition-colors hover:border-violet-300 hover:bg-violet-50
+                    disabled:cursor-not-allowed disabled:opacity-50
+                  "
+                >
+                  Imprimir etiqueta CIGAM
+                  <FileText className="h-4 w-4 text-slate-400" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handlePrintLabel(notaParaImprimir, "marketplace")}
+                  disabled={printingLabelId === notaParaImprimir.id}
+                  className="
+                    flex items-center justify-between rounded-lg
+                    border border-slate-200 px-4 py-3
+                    text-left text-sm font-semibold text-slate-700
+                    transition-colors hover:border-violet-300 hover:bg-violet-50
+                    disabled:cursor-not-allowed disabled:opacity-50
+                  "
+                >
+                  Imprimir Etiqueta Marketplace
+                  <Package className="h-4 w-4 text-slate-400" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handlePrintLabel(notaParaImprimir, "ambos")}
+                  disabled={printingLabelId === notaParaImprimir.id}
+                  className="
+                    flex items-center justify-between rounded-lg
+                    border border-violet-200 bg-violet-50 px-4 py-3
+                    text-left text-sm font-semibold text-violet-700
+                    transition-colors hover:bg-violet-100
+                    disabled:cursor-not-allowed disabled:opacity-50
+                  "
+                >
+                  {printingLabelId === notaParaImprimir.id
+                    ? "Gerando..."
+                    : "Imprimir as Duas Opções"}
+                  <Printer className="h-4 w-4 text-violet-500" />
+                </button>
+              </div>
+
+              <div className="mt-5 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setNotaParaImprimir(null)}
+                  disabled={printingLabelId === notaParaImprimir.id}
+                  className="
+                    rounded-lg border border-slate-200 bg-white
+                    px-4 py-2 text-sm font-semibold text-slate-600
+                    hover:bg-slate-50
+                    disabled:cursor-not-allowed disabled:opacity-50
+                  "
+                >
+                  Cancelar
                 </button>
               </div>
             </div>
