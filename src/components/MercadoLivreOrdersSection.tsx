@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { API_BASE_URL } from "../config/api";
+import { createLabelError, getFriendlyLabelErrorMessage } from "../utils/labelErrors";
 
 interface PedidoLocal {
   id: string;
@@ -326,8 +327,7 @@ export const MercadoLivreOrdersSection: FC = () => {
       });
 
       if (!response.ok) {
-        const data = await response.json().catch(() => null);
-        throw new Error(data?.message || "Erro ao obter etiqueta.");
+        throw await createLabelError(response);
       }
 
       // Usa o nome de arquivo real devolvido pelo backend (reflete o Content-Type
@@ -351,10 +351,8 @@ export const MercadoLivreOrdersSection: FC = () => {
         type: "success",
       });
     } catch (err: unknown) {
-      setToast({
-        message: err instanceof Error ? err.message : "Erro ao baixar etiqueta.",
-        type: "error",
-      });
+      console.error(err);
+      setToast({ message: getFriendlyLabelErrorMessage(err), type: "error" });
     } finally {
       setPrintingLabel(null);
     }
@@ -368,8 +366,7 @@ export const MercadoLivreOrdersSection: FC = () => {
       });
 
       if (!response.ok) {
-        const data = await response.json().catch(() => null);
-        throw new Error(data?.message || "Erro ao obter etiqueta.");
+        throw await createLabelError(response);
       }
 
       const html = await response.text();
@@ -382,10 +379,8 @@ export const MercadoLivreOrdersSection: FC = () => {
         type: "success",
       });
     } catch (err: unknown) {
-      setToast({
-        message: err instanceof Error ? err.message : "Erro ao obter etiqueta.",
-        type: "error",
-      });
+      console.error(err);
+      setToast({ message: getFriendlyLabelErrorMessage(err), type: "error" });
     } finally {
       setPrintingLabel(null);
     }
@@ -399,8 +394,7 @@ export const MercadoLivreOrdersSection: FC = () => {
       });
 
       if (!response.ok) {
-        const data = await response.json().catch(() => null);
-        throw new Error(data?.message || "Erro ao obter etiqueta.");
+        throw await createLabelError(response);
       }
 
       const blob = await response.blob();
@@ -418,10 +412,8 @@ export const MercadoLivreOrdersSection: FC = () => {
         type: "success",
       });
     } catch (err: unknown) {
-      setToast({
-        message: err instanceof Error ? err.message : "Erro ao baixar etiqueta.",
-        type: "error",
-      });
+      console.error(err);
+      setToast({ message: getFriendlyLabelErrorMessage(err), type: "error" });
     } finally {
       setPrintingLabel(null);
     }

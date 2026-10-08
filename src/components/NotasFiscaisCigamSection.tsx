@@ -20,6 +20,7 @@ import {
   Printer,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { createLabelError, getFriendlyLabelErrorMessage } from "../utils/labelErrors";
 
 interface NotaFiscalCigam {
   id: string;
@@ -208,8 +209,7 @@ export const NotasFiscaisCigamSection = ({
       );
 
       if (!response.ok) {
-        const data = await response.json().catch(() => null);
-        throw new Error(data?.message || "Erro ao obter etiqueta.");
+        throw await createLabelError(response);
       }
 
       // O backend decide o conteúdo conforme o modo: só o PDF do CIGAM, só a
@@ -227,10 +227,8 @@ export const NotasFiscaisCigamSection = ({
       a.remove();
       setToast({ message: "Etiqueta baixada com sucesso!", type: "success" });
     } catch (err: unknown) {
-      setToast({
-        message: err instanceof Error ? err.message : "Erro ao obter etiqueta.",
-        type: "error",
-      });
+      console.error(err);
+      setToast({ message: getFriendlyLabelErrorMessage(err), type: "error" });
     } finally {
       setPrintingLabelId(null);
       setNotaParaImprimir(null);
