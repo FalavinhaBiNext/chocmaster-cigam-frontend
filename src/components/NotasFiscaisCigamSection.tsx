@@ -40,6 +40,24 @@ interface NotaFiscalCigam {
   updated_at: string;
 }
 
+interface VerificacaoEnviosShopee {
+  resumo: {
+    verificados: number;
+    jaOrganizados: number;
+    organizadosAgora: number;
+    falhas: number;
+    ignorados: number;
+    naoEncontrados: number;
+  };
+  itens: Array<{
+    orderSn: string;
+    status?: string;
+    situacao: "ja_organizado" | "organizado_agora" | "falha" | "ignorado" | "nao_encontrado";
+    erro?: string;
+    numeroPedidoCigam: string | null;
+  }>;
+}
+
 interface NotasFiscaisCigamSectionProps {
   API_BASE_URL: string;
   authHeaders: () => Record<string, string>;
@@ -86,6 +104,8 @@ export const NotasFiscaisCigamSection = ({
   const [notaParaImprimir, setNotaParaImprimir] =
     useState<NotaFiscalCigam | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [verificandoShopee, setVerificandoShopee] = useState(false);
+  const [resultadoShopee, setResultadoShopee] = useState<VerificacaoEnviosShopee | null>(null);
 
   const fetchNotas = useCallback(async () => {
     setLoading(true);
@@ -157,6 +177,35 @@ export const NotasFiscaisCigamSection = ({
       });
     } finally {
       setSendingId(null);
+    }
+  };
+
+  // Fallback: verifica na Shopee se o envio das NF-es já enviadas foi
+  // organizado (ship_order) e organiza as que ainda estão pendentes.
+  const handleVerificarEnviosShopee = async () => {
+    setVerificandoShopee(true);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/notas-fiscais-cigam/shopee/verificar-envios?dias=30`,
+        { method: "POST", headers: authHeaders() },
+      );
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok || !data?.success) {
+        throw new Error(data?.message || "Não foi possível verificar os envios na Shopee.");
+      }
+
+      setResultadoShopee(data.data);
+      setToast({ message: data.message, type: data.data.resumo.falhas > 0 ? "error" : "success" });
+    } catch (err: unknown) {
+      console.error(err);
+      setToast({
+        message: "Não foi possível verificar os envios na Shopee agora. Tente novamente em instantes.",
+        type: "error",
+      });
+    } finally {
+      setVerificandoShopee(false);
     }
   };
 
@@ -468,6 +517,64 @@ export const NotasFiscaisCigamSection = ({
             <p className="text-xs text-amber-600">Pendentes</p>
           </div>
         </div>
+      </div>
+
+      {/* Envios Shopee — verifica/organiza o envio (ship_order) das NF-es já enviadas */}
+      <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-slate-900">Envios Shopee</p>
+            <p className="text-xs text-slate-500">
+              Confere se o envio das NF-es Shopee dos últimos 30 dias foi organizado e organiza os pendentes,
+              liberando a etiqueta.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleVerificarEnviosShopee}
+            disabled={verificandoShopee}
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs font-semibold text-orange-800 transition-colors hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Package className={`h-4 w-4 ${verificandoShopee ? "animate-pulse" : ""}`} />
+            {verificandoShopee ? "Verificando na Shopee..." : "Verificar envios Shopee"}
+          </button>
+        </div>
+
+        {resultadoShopee && (
+          <div className="mt-4 border-t border-slate-100 pt-3">
+            <ul className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-600">
+              <li><span className="font-semibold text-slate-900">{resultadoShopee.resumo.verificados}</span> verificados</li>
+              <li><span className="font-semibold text-emerald-700">{resultadoShopee.resumo.organizadosAgora}</span> organizados agora</li>
+              <li><span className="font-semibold text-slate-900">{resultadoShopee.resumo.jaOrganizados}</span> já estavam organizados</li>
+              <li><span className="font-semibold text-red-700">{resultadoShopee.resumo.falhas}</span> com falha</li>
+              {resultadoShopee.resumo.ignorados > 0 && (
+                <li><span className="font-semibold text-slate-900">{resultadoShopee.resumo.ignorados}</span> ignorados (cancelados ou fora de status)</li>
+              )}
+              {resultadoShopee.resumo.naoEncontrados > 0 && (
+                <li><span className="font-semibold text-slate-900">{resultadoShopee.resumo.naoEncontrados}</span> não encontrados na Shopee</li>
+              )}
+            </ul>
+
+            {resultadoShopee.itens.some((i) => i.situacao === "falha") && (
+              <ul className="mt-3 space-y-1.5">
+                {resultadoShopee.itens
+                  .filter((i) => i.situacao === "falha")
+                  .map((item) => (
+                    <li key={item.orderSn} className="flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-800">
+                      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                      <span>
+                        <span className="font-semibold">
+                          Pedido {item.orderSn}
+                          {item.numeroPedidoCigam && ` (CIGAM #${item.numeroPedidoCigam})`}:
+                        </span>{" "}
+                        {item.erro || "falha ao organizar o envio"}
+                      </span>
+                    </li>
+                  ))}
+              </ul>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Filtros e busca */}
