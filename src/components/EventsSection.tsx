@@ -31,6 +31,10 @@ import { API_BASE_URL } from "../config/api";
 
 type SyncStatus = "pendente" | "sincronizado" | "falha";
 
+// Máximo de eventos pendentes que podem ser selecionados para exclusão em lote
+// (o backend aplica o mesmo limite em POST /events/pendentes/excluir-lote).
+const MAX_SELECAO_EXCLUSAO_LOTE = 50;
+
 interface EventItem {
   id: string;
   event: string;
@@ -222,14 +226,28 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
     [visiblePendingIds, selectedPendingIds],
   );
 
-  const allVisiblePendingSelected =
+  // Seleção "cheia": todos os pendentes visíveis, ou o limite do lote.
+  const selectionFull =
     visiblePendingIds.length > 0 &&
-    selectedVisiblePendingIds.length === visiblePendingIds.length;
+    selectedVisiblePendingIds.length ===
+      Math.min(visiblePendingIds.length, MAX_SELECAO_EXCLUSAO_LOTE);
 
   const togglePendingSelection = (id: string) => {
+    const isSelected = selectedPendingIds.has(id);
+    if (
+      !isSelected &&
+      selectedVisiblePendingIds.length >= MAX_SELECAO_EXCLUSAO_LOTE
+    ) {
+      setToast({
+        message: `É possível selecionar no máximo ${MAX_SELECAO_EXCLUSAO_LOTE} eventos por vez.`,
+        type: "error",
+      });
+      return;
+    }
+
     setSelectedPendingIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
+      if (isSelected) {
         next.delete(id);
       } else {
         next.add(id);
@@ -238,9 +256,13 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
     });
   };
 
+  // Com algo já selecionado, limpa a seleção; senão seleciona os primeiros
+  // pendentes visíveis (mais recentes), até o limite do lote.
   const toggleSelectAllVisiblePending = () => {
     setSelectedPendingIds(
-      allVisiblePendingSelected ? new Set() : new Set(visiblePendingIds),
+      selectedVisiblePendingIds.length > 0
+        ? new Set()
+        : new Set(visiblePendingIds.slice(0, MAX_SELECAO_EXCLUSAO_LOTE)),
     );
   };
 
@@ -1161,7 +1183,7 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                     onClick={toggleSelectAllVisiblePending}
                     className="inline-flex items-center gap-2 rounded-lg px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100"
                   >
-                    {allVisiblePendingSelected ? (
+                    {selectionFull ? (
                       <SquareCheck className="h-4 w-4 text-[#008FC7]" />
                     ) : selectedVisiblePendingIds.length > 0 ? (
                       <SquareMinus className="h-4 w-4 text-[#008FC7]" />
@@ -1169,8 +1191,10 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                       <Square className="h-4 w-4 text-slate-400" />
                     )}
                     {selectedVisiblePendingIds.length > 0
-                      ? `${selectedVisiblePendingIds.length} selecionado(s)`
-                      : "Selecionar todos"}
+                      ? `${selectedVisiblePendingIds.length} de ${MAX_SELECAO_EXCLUSAO_LOTE} selecionado(s)`
+                      : visiblePendingIds.length > MAX_SELECAO_EXCLUSAO_LOTE
+                        ? `Selecionar ${MAX_SELECAO_EXCLUSAO_LOTE} mais recentes`
+                        : "Selecionar todos"}
                   </button>
 
                   <button
