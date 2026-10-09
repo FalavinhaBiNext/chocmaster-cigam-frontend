@@ -12,7 +12,6 @@ import { DeParaPage } from "./pages/DeParaPage";
 import { MapeadosPage } from "./pages/MapeadosPage";
 import { EventosPage } from "./pages/EventosPage";
 import { NfePage } from "./pages/NfePage";
-import { PedidosPage } from "./pages/PedidosPage";
 import { ConfiguracoesPage } from "./pages/ConfiguracoesPage";
 
 export default function App() {
@@ -46,7 +45,9 @@ export default function App() {
         <Route path="mapeados" element={<MapeadosPage />} />
         <Route path="eventos" element={<EventosPage />} />
         <Route path="nfe" element={<NfePage />} />
-        <Route path="pedidos" element={<PedidosPage />} />
+        {/* Tela de Pedidos oculta: perdeu a funcionalidade. O código em
+            pages/PedidosPage.tsx foi mantido; links antigos vão pro dashboard. */}
+        <Route path="pedidos" element={<Navigate to="/dashboard" replace />} />
         <Route
           path="configuracoes"
           element={

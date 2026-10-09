@@ -5,7 +5,6 @@ import {
   Link2,
   Activity,
   FileText,
-  ShoppingCart,
   Settings,
   LogOut,
   Menu,
@@ -25,7 +24,6 @@ const navItems = [
   { to: "/mapeados", label: "Mapeados", icon: Link2 },
   { to: "/eventos", label: "Eventos", icon: Activity },
   { to: "/nfe", label: "NF-e CIGAM", icon: FileText },
-  { to: "/pedidos", label: "Pedidos", icon: ShoppingCart },
   { to: "/configuracoes", label: "Configurações", icon: Settings, adminOnly: true },
 ];
 
