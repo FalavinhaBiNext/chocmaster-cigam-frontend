@@ -17,6 +17,9 @@ import {
   Search,
   ShieldAlert,
   ShoppingBag,
+  Square,
+  SquareCheck,
+  SquareMinus,
   Trash2,
   Truck,
   User,
@@ -161,6 +164,13 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
     type: "success" | "error";
   } | null>(null);
 
+  // Exclusão em lote de eventos pendentes
+  const [selectedPendingIds, setSelectedPendingIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [confirmBatchDeleteOpen, setConfirmBatchDeleteOpen] = useState(false);
+  const [deletingBatch, setDeletingBatch] = useState(false);
+
   const [searchPedido, setSearchPedido] = useState("");
 
   const [filtroSincronizacao, setFiltroSincronizacao] = useState<
@@ -196,6 +206,43 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
 
     return result;
   }, [events, pedidosMap, unidadeNegocioFilter, searchPedido, filtroSincronizacao]);
+
+  // Eventos pendentes visíveis com os filtros atuais — só eles podem ser
+  // selecionados, então a seleção efetiva ignora o que saiu da tela.
+  const visiblePendingIds = useMemo(
+    () =>
+      filteredEvents
+        .filter((event) => !event.cigam_sincronizado)
+        .map((event) => event.id),
+    [filteredEvents],
+  );
+
+  const selectedVisiblePendingIds = useMemo(
+    () => visiblePendingIds.filter((id) => selectedPendingIds.has(id)),
+    [visiblePendingIds, selectedPendingIds],
+  );
+
+  const allVisiblePendingSelected =
+    visiblePendingIds.length > 0 &&
+    selectedVisiblePendingIds.length === visiblePendingIds.length;
+
+  const togglePendingSelection = (id: string) => {
+    setSelectedPendingIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAllVisiblePending = () => {
+    setSelectedPendingIds(
+      allVisiblePendingSelected ? new Set() : new Set(visiblePendingIds),
+    );
+  };
 
   const filteredSynchronizedEvents = useMemo(
     () =>
@@ -529,6 +576,66 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
     }
   };
 
+  const handleDeletePendingBatch = async () => {
+    const ids = selectedVisiblePendingIds;
+    if (ids.length === 0) return;
+
+    setDeletingBatch(true);
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/events/pendentes/excluir-lote`,
+        {
+          method: "POST",
+          headers: authHeaders,
+          body: JSON.stringify({ ids }),
+        },
+      );
+
+      const result = await parseApiResponse<{
+        deleted: number;
+        skipped: Array<{ id: string; reason: string }>;
+      }>(response);
+
+      const skippedIds = new Set(
+        (result.data?.skipped ?? []).map((item) => item.id),
+      );
+      const deletedIds = new Set(ids.filter((id) => !skippedIds.has(id)));
+
+      setEvents((prev) => prev.filter((e) => !deletedIds.has(e.id)));
+      setSelectedPendingIds(new Set());
+
+      if (selectedEvent && deletedIds.has(selectedEvent.id)) {
+        setSelectedEvent(null);
+        setOrderDetails(null);
+        setOrderProducts([]);
+      }
+
+      const deleted = result.data?.deleted ?? deletedIds.size;
+      setToast({
+        message:
+          skippedIds.size > 0
+            ? `${deleted} evento(s) excluído(s). ${skippedIds.size} não foram excluídos porque já tinham sido sincronizados ou não existem mais.`
+            : `${deleted} evento(s) pendente(s) excluído(s) com sucesso.`,
+        type: "success",
+      });
+
+      // Se algum evento foi ignorado, a lista local pode estar desatualizada.
+      if (skippedIds.size > 0) {
+        fetchEventsAndProducts();
+      }
+    } catch (error: unknown) {
+      console.error(error);
+      setToast({
+        message: "Não foi possível excluir os eventos selecionados. Tente novamente.",
+        type: "error",
+      });
+    } finally {
+      setDeletingBatch(false);
+      setConfirmBatchDeleteOpen(false);
+    }
+  };
+
   const panelClassName = `
     relative
     overflow-hidden
@@ -569,6 +676,64 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
             >
               <XCircle className="h-4 w-4" />
             </button>
+          </div>
+        ),
+        document.body
+      )}
+
+      {/* Confirmação da exclusão em lote - renderizada via portal */}
+      {createPortal(
+        confirmBatchDeleteOpen && (
+          <div
+            className="fixed inset-0 z-[9998] flex items-center justify-center bg-slate-900/40 p-4"
+            onClick={() => !deletingBatch && setConfirmBatchDeleteOpen(false)}
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="confirm-batch-delete-title"
+              className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
+                  <Trash2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3
+                    id="confirm-batch-delete-title"
+                    className="text-base font-bold text-slate-900"
+                  >
+                    Excluir {selectedVisiblePendingIds.length} evento(s) pendente(s)?
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Os eventos selecionados serão removidos permanentemente e
+                    não poderão mais ser sincronizados com o CIGAM. Essa ação
+                    não pode ser desfeita.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end gap-2">
+                <button
+                  type="button"
+                  disabled={deletingBatch}
+                  onClick={() => setConfirmBatchDeleteOpen(false)}
+                  className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={deletingBatch}
+                  onClick={handleDeletePendingBatch}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-red-600 bg-red-600 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Trash2 className={`h-3.5 w-3.5 ${deletingBatch ? "animate-spin" : ""}`} />
+                  {deletingBatch ? "Excluindo..." : "Excluir eventos"}
+                </button>
+              </div>
+            </div>
           </div>
         ),
         document.body
@@ -988,6 +1153,40 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                 </button>
               </div>
 
+              {/* Seleção em lote de eventos pendentes */}
+              {filtroSincronizacao === "pendentes" && visiblePendingIds.length > 0 && (
+                <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-2.5">
+                  <button
+                    type="button"
+                    onClick={toggleSelectAllVisiblePending}
+                    className="inline-flex items-center gap-2 rounded-lg px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                  >
+                    {allVisiblePendingSelected ? (
+                      <SquareCheck className="h-4 w-4 text-[#008FC7]" />
+                    ) : selectedVisiblePendingIds.length > 0 ? (
+                      <SquareMinus className="h-4 w-4 text-[#008FC7]" />
+                    ) : (
+                      <Square className="h-4 w-4 text-slate-400" />
+                    )}
+                    {selectedVisiblePendingIds.length > 0
+                      ? `${selectedVisiblePendingIds.length} selecionado(s)`
+                      : "Selecionar todos"}
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={selectedVisiblePendingIds.length === 0 || deletingBatch}
+                    onClick={() => setConfirmBatchDeleteOpen(true)}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-[0.65rem] font-semibold text-red-600 transition-all duration-200 hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    Excluir selecionados
+                    {selectedVisiblePendingIds.length > 0 &&
+                      ` (${selectedVisiblePendingIds.length})`}
+                  </button>
+                </div>
+              )}
+
               <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-4 sm:p-5">
                 {filteredEvents.map((event) => {
                   const isSelected =
@@ -1026,6 +1225,34 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                          {filtroSincronizacao === "pendentes" &&
+                            !event.cigam_sincronizado && (
+                              <span
+                                role="checkbox"
+                                tabIndex={0}
+                                aria-checked={selectedPendingIds.has(event.id)}
+                                aria-label={`Selecionar pedido #${event.numero_pedido} para exclusão`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  togglePendingSelection(event.id);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === " " || e.key === "Enter") {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    togglePendingSelection(event.id);
+                                  }
+                                }}
+                                className="inline-flex cursor-pointer rounded p-0.5 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-[#00B0F1]/30"
+                              >
+                                {selectedPendingIds.has(event.id) ? (
+                                  <SquareCheck className="h-4 w-4 text-[#008FC7]" />
+                                ) : (
+                                  <Square className="h-4 w-4 text-slate-400" />
+                                )}
+                              </span>
+                            )}
+
                           <span
                             className="
                               inline-flex
