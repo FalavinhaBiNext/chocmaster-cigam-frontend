@@ -6,6 +6,7 @@ import {
   type FC,
 } from "react";
 import { createPortal } from "react-dom";
+import { useSearchParams } from "react-router-dom";
 
 import {
   Activity,
@@ -177,9 +178,16 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
 
   const [searchPedido, setSearchPedido] = useState("");
 
+  // Filtro inicial pode vir da URL (?filtro=falhas), usado pelos atalhos do Dashboard.
+  const [searchParams] = useSearchParams();
   const [filtroSincronizacao, setFiltroSincronizacao] = useState<
     "pendentes" | "sincronizados" | "falhas" | "todos"
-  >("pendentes");
+  >(() => {
+    const filtro = searchParams.get("filtro");
+    return filtro === "falhas" || filtro === "sincronizados" || filtro === "todos"
+      ? filtro
+      : "pendentes";
+  });
 
   const filteredEvents = useMemo(() => {
     let result = events;

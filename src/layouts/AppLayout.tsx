@@ -1,4 +1,4 @@
-import { Outlet } from "react-router-dom";
+import { Link, Outlet, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Sidebar } from "../components/Sidebar";
 import { useApp } from "../contexts/AppContext";
@@ -8,6 +8,7 @@ const SIDEBAR_COLLAPSED_STORAGE_KEY = "chocmaster:sidebar-collapsed";
 
 export function AppLayout() {
   const { syncing, syncLogs, showLogs, setShowLogs, syncProgress, pendingNfeCount, error, setError } = useApp();
+  const { pathname } = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     () => localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === "true"
   );
@@ -166,19 +167,21 @@ export function AppLayout() {
         </aside>
       )}
 
-      {/* NF-e pending toast */}
-      {pendingNfeCount > 0 && (
-        <div className="fixed bottom-4 right-4 z-[9998] flex items-center gap-3 rounded-2xl border-2 border-red-300 bg-gradient-to-r from-red-50 to-orange-50 px-4 py-3.5 shadow-[0_14px_35px_-15px_rgba(220,38,38,0.50)] backdrop-blur-sm">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-red-200 bg-red-100">
-            <AlertCircle className="h-5 w-5 animate-pulse text-red-600" />
+      {/* Aviso de NF-e pendente — leva à tela de NF-e. No Dashboard e na própria
+          tela de NF-e ele é redundante (e cobria cards), então não aparece. */}
+      {pendingNfeCount > 0 && pathname !== "/dashboard" && pathname !== "/nfe" && (
+        <Link
+          to="/nfe"
+          className="fixed bottom-4 right-4 z-[9998] flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 shadow-[0_14px_35px_-15px_rgba(220,38,38,0.50)] transition-colors hover:bg-red-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
+        >
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-red-200 bg-red-100">
+            <AlertCircle className="h-5 w-5 text-red-600" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-bold text-red-900">
-              {pendingNfeCount} {pendingNfeCount === 1 ? "NF-e aguardando envio" : "NF-e aguardando envio"}
-            </p>
-            <p className="text-xs text-red-700">Clique para enviar ao marketplace</p>
+            <p className="text-sm font-bold text-red-900">{pendingNfeCount} NF-e aguardando envio</p>
+            <p className="text-xs text-red-700">Clique para abrir e enviar ao marketplace</p>
           </div>
-        </div>
+        </Link>
       )}
 
       {/* Footer */}

@@ -1,291 +1,319 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { AlertCircle, AlertTriangle, Clock, FileText, Link2Off, RefreshCw, Unlink } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
 import { useAuth } from "../contexts/AuthContext";
-import { CheckCircle2, Users, ShoppingBag, CreditCard, Truck, FileText, Activity, PackageCheck, Send, AlertTriangle, Inbox, Clock, AlertCircle } from "lucide-react";
-import { IntegrationHealthSection } from "../components/IntegrationHealthSection";
-import { API_BASE_URL } from "../config/api";
+import { useDashboardData } from "../components/dashboard/useDashboardData";
+import { DailyOrdersChart } from "../components/dashboard/DailyOrdersChart";
+import {
+  AttentionPanel,
+  ChannelBreakdown,
+  IntegrationsList,
+  MappingSummary,
+  PipelineFunnel,
+  RecentOrders,
+  type AttentionItem,
+  type MappingRow,
+} from "../components/dashboard/panels";
+import { Card, CardHeader, StatTile } from "../components/dashboard/ui";
+import {
+  channelBreakdown,
+  dailySeries,
+  deltaPercent,
+  deriveIntegrationStatus,
+  eventsInDays,
+  formatBRLCompact,
+  formatInt,
+  funnel,
+  periodDays,
+  stalePendingEvents,
+  sumValue,
+} from "../components/dashboard/metrics";
+import type { DashboardPedido, PeriodDays } from "../components/dashboard/types";
 
-interface SyncPipelineSummary {
-  recebidos: number;
-  sincronizadosCigam: number;
-  sincronizacaoPendente: number;
-  sincronizacaoComFalha: number;
-  nfeFaturada: number;
-  nfeEnviadaMarketplace: number;
-}
+const PERIODS: Array<{ days: PeriodDays; label: string }> = [
+  { days: 7, label: "7 dias" },
+  { days: 30, label: "30 dias" },
+  { days: 90, label: "90 dias" },
+];
+
+const INTEGRATION_NAMES = { bling: "Bling", mercado_livre: "Mercado Livre", shopee: "Shopee", tray: "Tray" } as const;
 
 export function DashboardPage() {
-  const { mappings, blingClientes, blingProdutos, blingFormasPagamento, blingTransportadoras, pendingNfeCount, loading } = useApp();
-  const { token } = useAuth();
+  const app = useApp();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+  const { events, pedidos, integrations, loading, refreshing, error, updatedAt, refresh } = useDashboardData();
+  const [period, setPeriod] = useState<PeriodDays>(30);
 
-  const authHeaders = useMemo<HeadersInit>(
-    () => ({
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    }),
-    [token],
+  const pedidosById = useMemo(
+    () => new Map<string, DashboardPedido>(pedidos.map((p) => [String(p.id_bling), p])),
+    [pedidos],
   );
 
-  const [syncSummary, setSyncSummary] = useState<SyncPipelineSummary | null>(null);
-  const [syncSummaryLoading, setSyncSummaryLoading] = useState(true);
-  const [syncSummaryError, setSyncSummaryError] = useState<string | null>(null);
+  const view = useMemo(() => {
+    const days = periodDays(period);
+    const previousDays = periodDays(period, 1);
+    const current = eventsInDays(events, days);
+    const previous = eventsInDays(events, previousDays);
+    const sincronizados = current.filter((e) => e.sync_status === "sincronizado").length;
+    const stages = funnel(current, pedidosById);
 
-  const fetchSyncSummary = useCallback(async () => {
-    setSyncSummaryLoading(true);
-    setSyncSummaryError(null);
-    try {
-      const response = await fetch(`${API_BASE_URL}/sync-pipeline-summary`, { headers: authHeaders });
-      const result = await response.json();
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || "Falha ao carregar o resumo do funil operacional.");
-      }
-      setSyncSummary(result.data);
-    } catch (err: unknown) {
-      setSyncSummaryError(err instanceof Error ? err.message : "Falha ao carregar o resumo do funil operacional.");
-    } finally {
-      setSyncSummaryLoading(false);
+    return {
+      current,
+      daily: dailySeries(current, days),
+      channels: channelBreakdown(current, pedidosById),
+      stages,
+      pedidos: current.length,
+      pedidosDelta: deltaPercent(current.length, previous.length),
+      valor: sumValue(current),
+      valorDelta: deltaPercent(sumValue(current), sumValue(previous)),
+      syncRate: current.length > 0 ? (sincronizados / current.length) * 100 : null,
+      sincronizados,
+      faturadas: stages[2].count,
+      enviadas: stages[3].count,
+    };
+  }, [events, pedidosById, period]);
+
+  const recent = useMemo(
+    () => [...events].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 6),
+    [events],
+  );
+
+  // Itens de atenção: estado atual (independe do período escolhido).
+  const attention = useMemo<AttentionItem[]>(() => {
+    const items: AttentionItem[] = [];
+
+    const falhas = events.filter((e) => e.sync_status === "falha").length;
+    if (falhas > 0) {
+      items.push({
+        key: "falhas",
+        level: "critical",
+        icon: AlertTriangle,
+        title: `${formatInt(falhas)} ${falhas === 1 ? "pedido com falha" : "pedidos com falha"} no CIGAM`,
+        detail: "Revise o erro e tente novamente",
+        to: "/eventos?filtro=falhas",
+      });
     }
-  }, [authHeaders]);
 
-  useEffect(() => {
-    fetchSyncSummary();
-  }, [fetchSyncSummary]);
+    const parados = stalePendingEvents(events).length;
+    if (parados > 0) {
+      items.push({
+        key: "pendentes",
+        level: "warning",
+        icon: Clock,
+        title: `${formatInt(parados)} ${parados === 1 ? "pedido parado" : "pedidos parados"} há mais de 30 min`,
+        detail: "Ainda não sincronizados com o CIGAM",
+        to: "/eventos?filtro=pendentes",
+      });
+    }
 
-  const totalMappings =
-    mappings.clientes.length +
-    mappings.produtos.length +
-    mappings.formas_pagamento.length +
-    mappings.transportadoras.length;
+    if (app.pendingNfeCount > 0) {
+      items.push({
+        key: "nfe",
+        level: "warning",
+        icon: FileText,
+        title: `${formatInt(app.pendingNfeCount)} NF-e aguardando envio`,
+        detail: "Envie ao marketplace para liberar a etiqueta",
+        to: "/nfe",
+      });
+    }
 
-  const cardBase = `
-    group relative overflow-hidden rounded-2xl
-    border border-white/70 bg-white/[0.94] p-5
-    shadow-[0_18px_45px_-26px_rgba(2,6,23,0.75),inset_0_1px_1px_rgba(255,255,255,0.95),inset_0_-2px_5px_rgba(15,23,42,0.06)]
-    backdrop-blur-xl transition-all duration-200
-    hover:-translate-y-1 hover:shadow-[0_24px_50px_-25px_rgba(2,6,23,0.85),inset_0_1px_1px_rgba(255,255,255,0.95)]
-  `;
+    for (const key of Object.keys(INTEGRATION_NAMES) as Array<keyof typeof INTEGRATION_NAMES>) {
+      const status = deriveIntegrationStatus(integrations.find((i) => i.integration === key));
+      if (status.level !== "good" && integrations.length > 0) {
+        items.push({
+          key: `int-${key}`,
+          level: status.level === "critical" ? "critical" : "warning",
+          icon: Link2Off,
+          title: `${INTEGRATION_NAMES[key]}: ${status.label.toLowerCase()}`,
+          detail: status.detail,
+          to: isAdmin ? "/configuracoes" : undefined,
+        });
+      }
+    }
 
-  const iconBox = (color: string) =>
-    `flex h-11 w-11 items-center justify-center rounded-2xl border shadow-[inset_0_1px_1px_rgba(255,255,255,0.75)] ${color}`;
+    // Forma de pagamento sem De-Para faz o envio ao CIGAM falhar (cigamPedidoService).
+    // Transportadoras e clientes não entram: o vínculo é criado automaticamente.
+    // Produtos também bloqueiam, mas a maioria dos não mapeados nunca é vendida —
+    // um pedido afetado já aparece como falha acima.
+    const pagamentosSemVinculo = app.blingFormasPagamento.length - app.mappings.formas_pagamento.length;
+    if (!app.loading && pagamentosSemVinculo > 0) {
+      items.push({
+        key: "map-pagamento",
+        level: "critical",
+        icon: Unlink,
+        title: `${pagamentosSemVinculo} ${pagamentosSemVinculo === 1 ? "forma de pagamento" : "formas de pagamento"} sem De-Para`,
+        detail: "Pedidos com essa forma de pagamento falham no CIGAM",
+        to: isAdmin ? "/de-para" : undefined,
+      });
+    }
 
-  const calcPercent = (mapped: number, total: number) =>
-    total > 0 ? Math.min((mapped / total) * 100, 100) : 0;
+    return items;
+  }, [events, integrations, app, isAdmin]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#00B0F1] border-t-transparent" />
-      </div>
-    );
-  }
+  const mappingRows: MappingRow[] = [
+    {
+      label: "Formas de pagamento",
+      mapped: app.mappings.formas_pagamento.length,
+      total: app.blingFormasPagamento.length,
+      blocking: true,
+    },
+    {
+      label: "Produtos",
+      mapped: app.mappings.produtos.length,
+      total: app.blingProdutos.length,
+      blocking: false,
+      hint: "Pedido com produto sem vínculo falha no CIGAM.",
+    },
+    {
+      label: "Transportadoras",
+      mapped: app.mappings.transportadoras.length,
+      total: app.blingTransportadoras.length,
+      blocking: false,
+      hint: "Vinculadas automaticamente ao integrar o pedido.",
+    },
+    {
+      label: "Clientes",
+      mapped: app.mappings.clientes.length,
+      total: app.blingClientes.length,
+      blocking: false,
+      hint: "Vinculados automaticamente ao integrar o pedido.",
+    },
+  ];
+
+  const periodLabel = PERIODS.find((p) => p.days === period)?.label ?? "";
 
   return (
-    <div>
-      <h2 className="mb-6 text-lg font-bold text-slate-900">Dashboard</h2>
+    <div className="space-y-5">
+      {/* Cabeçalho + filtro de período (escopo: tudo abaixo) */}
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight text-slate-900">Dashboard</h2>
+          <p className="mt-0.5 text-sm text-slate-500">
+            Pedidos do Bling integrados ao CIGAM e aos marketplaces
+            {updatedAt && (
+              <span className="text-slate-400">
+                {" · "}atualizado às {updatedAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
+          </p>
+        </div>
 
-      <section aria-label="Indicadores gerais" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {/* Total */}
-        <article className={cardBase}>
-          <div aria-hidden="true" className="absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent" />
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Total geral</p>
-              <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{totalMappings}</p>
-            </div>
-            <div className={iconBox("border-[#00B0F1]/15 bg-[#00B0F1]/10 text-[#008FC7]")}>
-              <CheckCircle2 className="h-5 w-5" />
-            </div>
-          </div>
-          <p className="mt-3 text-xs text-slate-500">Mapeamentos concluídos</p>
-          <div className="mt-4 h-1 overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full w-full rounded-full bg-gradient-to-r from-[#00B0F1] to-[#008FC7]" />
-          </div>
-        </article>
-
-        {/* Clientes */}
-        <article className={cardBase}>
-          <div aria-hidden="true" className="absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent" />
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Clientes</p>
-              <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{mappings.clientes.length}</p>
-            </div>
-            <div className={iconBox("border-blue-200 bg-blue-50 text-blue-600")}>
-              <Users className="h-5 w-5" />
-            </div>
-          </div>
-          <p className="mt-3 text-xs text-slate-500">Mapeados de {blingClientes.length} no Bling</p>
-          <div className="mt-4 h-1 overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="h-full rounded-full bg-blue-500 transition-all duration-500"
-              style={{ width: `${calcPercent(mappings.clientes.length, blingClientes.length)}%` }}
-            />
-          </div>
-        </article>
-
-        {/* Produtos */}
-        <article className={cardBase}>
-          <div aria-hidden="true" className="absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent" />
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Produtos</p>
-              <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{mappings.produtos.length}</p>
-            </div>
-            <div className={iconBox("border-purple-200 bg-purple-50 text-purple-600")}>
-              <ShoppingBag className="h-5 w-5" />
-            </div>
-          </div>
-          <p className="mt-3 text-xs text-slate-500">Mapeados de {blingProdutos.length} no Bling</p>
-          <div className="mt-4 h-1 overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="h-full rounded-full bg-purple-500 transition-all duration-500"
-              style={{ width: `${calcPercent(mappings.produtos.length, blingProdutos.length)}%` }}
-            />
-          </div>
-        </article>
-
-        {/* Transportadoras */}
-        <article className={cardBase}>
-          <div aria-hidden="true" className="absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent" />
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Transportadoras</p>
-              <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{mappings.transportadoras.length}</p>
-            </div>
-            <div className={iconBox("border-emerald-200 bg-emerald-50 text-emerald-600")}>
-              <Truck className="h-5 w-5" />
-            </div>
-          </div>
-          <p className="mt-3 text-xs text-slate-500">Mapeados de {blingTransportadoras.length} no Bling</p>
-          <div className="mt-4 h-1 overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-              style={{ width: `${calcPercent(mappings.transportadoras.length, blingTransportadoras.length)}%` }}
-            />
-          </div>
-        </article>
-      </section>
-
-      {/* Second row: extra insights */}
-      <section aria-label="Insights" className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {/* Formas de Pagamento */}
-        <article className={cardBase}>
-          <div aria-hidden="true" className="absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent" />
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Formas de Pagamento</p>
-              <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{mappings.formas_pagamento.length}</p>
-            </div>
-            <div className={iconBox("border-amber-200 bg-amber-50 text-amber-600")}>
-              <CreditCard className="h-5 w-5" />
-            </div>
-          </div>
-          <p className="mt-3 text-xs text-slate-500">Mapeados de {blingFormasPagamento.length} no Bling</p>
-          <div className="mt-4 h-1 overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="h-full rounded-full bg-amber-500 transition-all duration-500"
-              style={{ width: `${calcPercent(mappings.formas_pagamento.length, blingFormasPagamento.length)}%` }}
-            />
-          </div>
-        </article>
-
-        {/* NF-e Pendentes */}
-        <article className={cardBase}>
-          <div aria-hidden="true" className="absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent" />
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">NF-e Pendentes</p>
-              <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{pendingNfeCount}</p>
-            </div>
-            <div className={iconBox("border-red-200 bg-red-50 text-red-600")}>
-              <FileText className="h-5 w-5" />
-            </div>
-          </div>
-          <p className="mt-3 text-xs text-slate-500">Aguardando envio ao marketplace</p>
-          <div className="mt-4 h-1 overflow-hidden rounded-full bg-slate-100">
-            <div
-              className={`h-full rounded-full transition-all duration-500 ${pendingNfeCount > 0 ? "bg-red-500" : "bg-emerald-500"}`}
-              style={{ width: pendingNfeCount > 0 ? "100%" : "0%" }}
-            />
-          </div>
-        </article>
-
-        {/* Taxa de mapeamento geral */}
-        <article className={cardBase}>
-          <div aria-hidden="true" className="absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent" />
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Taxa de Mapeamento</p>
-              <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
-                {(() => {
-                  const totalBling = blingClientes.length + blingProdutos.length + blingFormasPagamento.length + blingTransportadoras.length;
-                  return totalBling > 0 ? `${Math.round((totalMappings / totalBling) * 100)}%` : "—";
-                })()}
-              </p>
-            </div>
-            <div className={iconBox("border-[#00B0F1]/15 bg-[#00B0F1]/10 text-[#008FC7]")}>
-              <Activity className="h-5 w-5" />
-            </div>
-          </div>
-          <p className="mt-3 text-xs text-slate-500">Itens Bling mapeados vs total</p>
-          <div className="mt-4 h-1 overflow-hidden rounded-full bg-slate-100">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-[#00B0F1] to-[#008FC7] transition-all duration-500"
-              style={{
-                width: (() => {
-                  const totalBling = blingClientes.length + blingProdutos.length + blingFormasPagamento.length + blingTransportadoras.length;
-                  return totalBling > 0 ? `${Math.min((totalMappings / totalBling) * 100, 100)}%` : "0%";
-                })(),
-              }}
-            />
-          </div>
-        </article>
-      </section>
-
-      {/* Saúde das integrações */}
-      <IntegrationHealthSection />
-
-      {/* Funil operacional */}
-      <section aria-label="Funil operacional" className="mt-4">
-        <h3 className="mb-3 text-sm font-bold text-slate-900">Funil operacional</h3>
-
-        {syncSummaryError ? (
-          <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50/95 p-4 text-red-800">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
-            <p className="text-sm">{syncSummaryError}</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            {[
-              { label: "Pedidos recebidos", value: syncSummary?.recebidos, icon: Inbox, color: "border-slate-200 bg-slate-50 text-slate-600" },
-              { label: "Sincronizados no CIGAM", value: syncSummary?.sincronizadosCigam, icon: CheckCircle2, color: "border-emerald-200 bg-emerald-50 text-emerald-600" },
-              { label: "Sincronização pendente", value: syncSummary?.sincronizacaoPendente, icon: Clock, color: "border-amber-200 bg-amber-50 text-amber-600" },
-              { label: "Falhas de sincronização", value: syncSummary?.sincronizacaoComFalha, icon: AlertTriangle, color: "border-red-200 bg-red-50 text-red-600" },
-              { label: "NF-e faturada", value: syncSummary?.nfeFaturada, icon: PackageCheck, color: "border-blue-200 bg-blue-50 text-blue-600" },
-              { label: "NF-e enviada ao marketplace", value: syncSummary?.nfeEnviadaMarketplace, icon: Send, color: "border-[#00B0F1]/20 bg-[#00B0F1]/10 text-[#008FC7]" },
-            ].map((stage) => (
-              <article key={stage.label} className={cardBase}>
-                <div aria-hidden="true" className="absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white to-transparent" />
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">{stage.label}</p>
-                    <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
-                      {syncSummaryLoading ? (
-                        <span className="inline-block h-8 w-14 animate-pulse rounded bg-slate-100 align-middle" />
-                      ) : (
-                        stage.value ?? 0
-                      )}
-                    </p>
-                  </div>
-                  <div className={iconBox(stage.color)}>
-                    <stage.icon className="h-5 w-5" />
-                  </div>
-                </div>
-              </article>
+        <div className="flex items-center gap-2">
+          <div role="radiogroup" aria-label="Período" className="inline-flex rounded-xl border border-slate-200 bg-white p-1">
+            {PERIODS.map((p) => (
+              <button
+                key={p.days}
+                type="button"
+                role="radio"
+                aria-checked={period === p.days}
+                onClick={() => setPeriod(p.days)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  period === p.days ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                {p.label}
+              </button>
             ))}
           </div>
-        )}
-      </section>
+          <button
+            type="button"
+            onClick={refresh}
+            disabled={refreshing}
+            aria-label="Atualizar dados"
+            title="Atualizar dados"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-100 disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+          </button>
+        </div>
+      </header>
+
+      {error && (
+        <div role="alert" className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-800">
+          <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <p className="flex-1 text-sm">{error}</p>
+          <button type="button" onClick={refresh} className="text-sm font-semibold underline">
+            Tentar novamente
+          </button>
+        </div>
+      )}
+
+      {loading ? (
+        <DashboardSkeleton />
+      ) : (
+        // Na recarga, mantém o conteúdo anterior esmaecido — sem pular layout.
+        <div className={`space-y-5 transition-opacity ${refreshing ? "opacity-60" : ""}`}>
+          <AttentionPanel items={attention} />
+
+          <section aria-label="Indicadores do período" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <StatTile
+              label="Pedidos recebidos"
+              value={formatInt(view.pedidos)}
+              delta={view.pedidosDelta}
+              deltaLabel={`vs ${periodLabel} anteriores`}
+            />
+            <StatTile
+              label="Valor movimentado"
+              value={formatBRLCompact(view.valor)}
+              delta={view.valorDelta}
+              deltaLabel={`vs ${periodLabel} anteriores`}
+            />
+            <StatTile
+              label="Sincronizados no CIGAM"
+              value={view.syncRate === null ? "—" : `${Math.round(view.syncRate)}%`}
+              hint={`${formatInt(view.sincronizados)} de ${formatInt(view.pedidos)} pedidos`}
+            />
+            <StatTile
+              label="NF-e enviadas ao marketplace"
+              value={formatInt(view.enviadas)}
+              hint={`de ${formatInt(view.faturadas)} faturadas no período`}
+            />
+          </section>
+
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+            <Card className="xl:col-span-2">
+              <CardHeader
+                title="Pedidos recebidos por dia"
+                subtitle={`Últimos ${periodLabel} · ${formatInt(view.pedidos)} pedidos`}
+              />
+              <DailyOrdersChart data={view.daily} />
+            </Card>
+            <ChannelBreakdown rows={view.channels} />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+            <div className="xl:col-span-2">
+              <PipelineFunnel stages={view.stages} />
+            </div>
+            <IntegrationsList integrations={integrations} />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+            <div className="xl:col-span-2">
+              <RecentOrders events={recent} pedidosById={pedidosById} />
+            </div>
+            <MappingSummary rows={mappingRows} loading={app.loading} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-5" aria-busy="true" aria-label="Carregando dashboard">
+      <div className="h-14 animate-pulse rounded-2xl bg-white/70" />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="h-28 animate-pulse rounded-2xl bg-white/70" />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <div className="h-80 animate-pulse rounded-2xl bg-white/70 xl:col-span-2" />
+        <div className="h-80 animate-pulse rounded-2xl bg-white/70" />
+      </div>
     </div>
   );
 }
