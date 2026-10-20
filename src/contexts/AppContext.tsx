@@ -227,6 +227,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           (resBlingTrans.data || []).map((t: any) => ({
             id: t.id_bling,
             name: t.nome || t.fantasia,
+            extra: t.documento || undefined,
           })),
         );
 
@@ -273,6 +274,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           (resCigamTrans.data || []).map((t: any) => ({
             id: (t.codigo_cigam || t.id_cigam || t.id || "").toString().trim(),
             name: t.nome || t.fantasia,
+            extra: t.documento || undefined,
           })),
         );
 

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { API_BASE_URL } from '../config/api';
 import { calculateSimilarity, calculateCodeSimilarity } from '../utils/similarity';
+import { documentoContem, formatarDocumento } from '../utils/documento';
 import { CheckCircle, AlertCircle, ArrowRight, Search, Link2, Sparkles, ChevronDown, RefreshCw, SlidersHorizontal, Download } from 'lucide-react';
 
 import logoBling from '../assets/LogoBlingBlack.png'
@@ -93,6 +94,8 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
   const [isExporting, setIsExporting] = useState(false);
   const [exportingPaymentSource, setExportingPaymentSource] = useState<'bling' | 'cigam' | null>(null);
   const [isSyncingCigam, setIsSyncingCigam] = useState(false);
+  // Código CIGAM da transportadora sendo buscada no Bling (botão "Buscar no Bling")
+  const [importingBlingId, setImportingBlingId] = useState<string | null>(null);
 
   // Modal state for product details
   const [modalItem, setModalItem] = useState<BlingItem | CigamItem | null>(null);
@@ -196,7 +199,8 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
     blingData.forEach(item => {
       const matchesSearch = item.name.toLowerCase().includes(searchBling.toLowerCase()) ||
         item.id.includes(searchBling) ||
-        (item.codigo && item.codigo.toLowerCase().includes(searchBling.toLowerCase()));
+        (item.codigo && item.codigo.toLowerCase().includes(searchBling.toLowerCase())) ||
+        documentoContem(item.extra, searchBling);
       const isUnmapped = !mappedBlingIds.has(item.id);
 
       if (matchesSearch) {
@@ -228,7 +232,8 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
 
       const matchesSearch = item.name.toLowerCase().includes(searchBling.toLowerCase()) ||
         item.id.includes(searchBling) ||
-        (item.codigo && item.codigo.toLowerCase().includes(searchBling.toLowerCase()));
+        (item.codigo && item.codigo.toLowerCase().includes(searchBling.toLowerCase())) ||
+        documentoContem(item.extra, searchBling);
       const isUnmapped = !mappedBlingIds.has(item.id);
 
       if (!matchesSearch) return false;
@@ -284,7 +289,8 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
     cigamData.forEach((item) => {
       const matchesSearch = item.name.toLowerCase().includes(searchCigam.toLowerCase()) ||
         item.id.toLowerCase().includes(searchCigam.toLowerCase()) ||
-        (item.codigo && String(item.codigo).toLowerCase().includes(searchCigam.toLowerCase()));
+        (item.codigo && String(item.codigo).toLowerCase().includes(searchCigam.toLowerCase())) ||
+        documentoContem(item.extra, searchCigam);
 
       if (matchesSearch) {
         const associatedBlingItems = cigamToBlingMap.get(item.id);
@@ -306,7 +312,8 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
     return cigamData.filter((item) => {
       const matchesSearch = item.name.toLowerCase().includes(searchCigam.toLowerCase()) ||
         item.id.toLowerCase().includes(searchCigam.toLowerCase()) ||
-        (item.codigo && String(item.codigo).toLowerCase().includes(searchCigam.toLowerCase()));
+        (item.codigo && String(item.codigo).toLowerCase().includes(searchCigam.toLowerCase())) ||
+        documentoContem(item.extra, searchCigam);
 
       if (!matchesSearch) return false;
 
@@ -513,6 +520,45 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
       showAlert('Erro de exportação', error.message || 'Não foi possível exportar as formas de pagamento.', 'error');
     } finally {
       setExportingPaymentSource(null);
+    }
+  };
+
+  // Transportadora do CIGAM → busca no Bling o contato com o mesmo CNPJ e
+  // grava/atualiza na tabela de transportadoras do Bling.
+  const handleImportarTransportadoraBling = async (item: CigamItem) => {
+    if (!item.extra) return;
+    setImportingBlingId(item.id);
+    try {
+      const response = await fetch(`${API_BASE_URL}/transportadoras/importar-bling`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ documento: item.extra }),
+      });
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok || !data?.success) {
+        throw new Error(
+          response.status === 404
+            ? `Nenhum contato com o documento ${formatarDocumento(item.extra)} foi encontrado no Bling. Cadastre a transportadora no Bling e tente novamente.`
+            : data?.message || 'Não foi possível buscar a transportadora no Bling.',
+        );
+      }
+
+      showAlert('Transportadora do Bling', data.message, 'success');
+      if (onRefresh) {
+        await onRefresh();
+      }
+    } catch (error: unknown) {
+      showAlert(
+        'Transportadora do Bling',
+        error instanceof Error ? error.message : 'Não foi possível buscar a transportadora no Bling.',
+        'error',
+      );
+    } finally {
+      setImportingBlingId(null);
     }
   };
 
@@ -1769,6 +1815,8 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                             ID: {item.id}
                             {item.codigo &&
                               ` • Cód: ${item.codigo}`}
+                            {item.extra &&
+                              ` • Documento: ${formatarDocumento(item.extra)}`}
                             {item.ncm && ` • NCM: ${item.ncm}`}
                             {item.temVariacoes &&
                               " • Possui variações"}
@@ -2158,9 +2206,48 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                           <p className="mt-1 truncate text-xs text-slate-500">
                             Código CIGAM: {item.id}
                             {item.extra &&
-                              ` • Documento: ${item.extra}`}
+                              ` • Documento: ${formatarDocumento(item.extra)}`}
                           </p>
                         </div>
+
+                        {entity === "transportadoras" && item.extra && (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleImportarTransportadoraBling(item);
+                            }}
+                            disabled={importingBlingId !== null}
+                            title={`Buscar no Bling o contato com o CNPJ ${formatarDocumento(item.extra)} e salvar nas transportadoras do Bling`}
+                            aria-label={`Buscar ${item.name} no Bling pelo CNPJ`}
+                            className="
+                              inline-flex h-8 shrink-0
+                              items-center justify-center gap-1
+                              rounded-lg
+                              border border-slate-200
+                              bg-white
+                              px-2
+                              text-[0.65rem] font-semibold
+                              text-slate-500
+                              shadow-sm
+                              transition
+                              hover:border-[#00B0F1]/30
+                              hover:bg-[#00B0F1]/10
+                              hover:text-[#008FC7]
+                              disabled:cursor-not-allowed
+                              disabled:opacity-50
+                            "
+                          >
+                            {importingBlingId === item.id ? (
+                              <RefreshCw className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                            ) : (
+                              <Download className="h-3.5 w-3.5" aria-hidden="true" />
+                            )}
+                            <span className="hidden sm:inline">
+                              {importingBlingId === item.id ? "Buscando..." : "Buscar no Bling"}
+                            </span>
+                          </button>
+                        )}
 
                         <button
                           type="button"
@@ -2795,7 +2882,7 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
                     </span>
 
                     <p className="mt-1 break-all font-mono text-sm text-slate-800">
-                      {itemDetails.extra}
+                      {formatarDocumento(itemDetails.extra)}
                     </p>
                   </div>
                 )}

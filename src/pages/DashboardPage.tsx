@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { AlertCircle, AlertTriangle, Clock, FileText, Link2Off, RefreshCw, Unlink } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -20,21 +20,18 @@ import {
   dailySeries,
   deltaPercent,
   deriveIntegrationStatus,
-  eventsInDays,
+  eventsInRange,
   formatBRLCompact,
   formatInt,
   funnel,
-  periodDays,
+  rangeDays,
   stalePendingEvents,
   sumValue,
 } from "../components/dashboard/metrics";
-import type { DashboardPedido, PeriodDays } from "../components/dashboard/types";
-
-const PERIODS: Array<{ days: PeriodDays; label: string }> = [
-  { days: 7, label: "7 dias" },
-  { days: 30, label: "30 dias" },
-  { days: 90, label: "90 dias" },
-];
+import type { DashboardPedido } from "../components/dashboard/types";
+import { DateRangeFilter } from "../components/DateRangeFilter";
+import { useDateRangeParam } from "../utils/useDateRangeParam";
+import { formatRangeDates, presetLabel, previousRange } from "../utils/dateRange";
 
 const INTEGRATION_NAMES = { bling: "Bling", mercado_livre: "Mercado Livre", shopee: "Shopee", tray: "Tray" } as const;
 
@@ -43,7 +40,9 @@ export function DashboardPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
   const { events, pedidos, integrations, loading, refreshing, error, updatedAt, refresh } = useDashboardData();
-  const [period, setPeriod] = useState<PeriodDays>(30);
+  // Período (?periodo=) pela data de recebimento no sistema — mesmo seletor e
+  // mesma regra da tela de Eventos. Padrão: últimos 30 dias.
+  const [periodo, setPeriodo] = useDateRangeParam("ultimos-30");
 
   const pedidosById = useMemo(
     () => new Map<string, DashboardPedido>(pedidos.map((p) => [String(p.id_bling), p])),
@@ -51,10 +50,12 @@ export function DashboardPage() {
   );
 
   const view = useMemo(() => {
-    const days = periodDays(period);
-    const previousDays = periodDays(period, 1);
-    const current = eventsInDays(events, days);
-    const previous = eventsInDays(events, previousDays);
+    const days = rangeDays(periodo, events);
+    const current = eventsInRange(events, periodo);
+    // Comparação com os N dias imediatamente anteriores; "Todo o período" não
+    // tem período anterior, então a variação fica oculta (delta = null).
+    const previous =
+      periodo.start && periodo.end ? eventsInRange(events, previousRange(periodo.start, periodo.end)) : null;
     const sincronizados = current.filter((e) => e.sync_status === "sincronizado").length;
     const stages = funnel(current, pedidosById);
 
@@ -64,15 +65,15 @@ export function DashboardPage() {
       channels: channelBreakdown(current, pedidosById),
       stages,
       pedidos: current.length,
-      pedidosDelta: deltaPercent(current.length, previous.length),
+      pedidosDelta: previous ? deltaPercent(current.length, previous.length) : null,
       valor: sumValue(current),
-      valorDelta: deltaPercent(sumValue(current), sumValue(previous)),
+      valorDelta: previous ? deltaPercent(sumValue(current), sumValue(previous)) : null,
       syncRate: current.length > 0 ? (sincronizados / current.length) * 100 : null,
       sincronizados,
       faturadas: stages[2].count,
       enviadas: stages[3].count,
     };
-  }, [events, pedidosById, period]);
+  }, [events, pedidosById, periodo]);
 
   const recent = useMemo(
     () => [...events].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 6),
@@ -181,7 +182,8 @@ export function DashboardPage() {
     },
   ];
 
-  const periodLabel = PERIODS.find((p) => p.days === period)?.label ?? "";
+  const periodDates = formatRangeDates(periodo);
+  const periodTitle = presetLabel(periodo.preset);
 
   return (
     <div className="space-y-5">
@@ -200,22 +202,7 @@ export function DashboardPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <div role="radiogroup" aria-label="Período" className="inline-flex rounded-xl border border-slate-200 bg-white p-1">
-            {PERIODS.map((p) => (
-              <button
-                key={p.days}
-                type="button"
-                role="radio"
-                aria-checked={period === p.days}
-                onClick={() => setPeriod(p.days)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  period === p.days ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
+          <DateRangeFilter value={periodo} onChange={setPeriodo} />
           <button
             type="button"
             onClick={refresh}
@@ -251,13 +238,13 @@ export function DashboardPage() {
               label="Pedidos recebidos"
               value={formatInt(view.pedidos)}
               delta={view.pedidosDelta}
-              deltaLabel={`vs ${periodLabel} anteriores`}
+              deltaLabel="vs período anterior"
             />
             <StatTile
               label="Valor movimentado"
               value={formatBRLCompact(view.valor)}
               delta={view.valorDelta}
-              deltaLabel={`vs ${periodLabel} anteriores`}
+              deltaLabel="vs período anterior"
             />
             <StatTile
               label="Sincronizados no CIGAM"
@@ -275,7 +262,9 @@ export function DashboardPage() {
             <Card className="xl:col-span-2">
               <CardHeader
                 title="Pedidos recebidos por dia"
-                subtitle={`Últimos ${periodLabel} · ${formatInt(view.pedidos)} pedidos`}
+                subtitle={`${periodo.preset === "personalizado" ? periodDates : periodTitle}${
+                  periodo.preset !== "personalizado" && periodDates ? ` · ${periodDates}` : ""
+                } · ${formatInt(view.pedidos)} pedidos`}
               />
               <DailyOrdersChart data={view.daily} />
             </Card>

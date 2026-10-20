@@ -1,4 +1,9 @@
-import type { DashboardEvent, DashboardPedido, IntegrationHealth, PeriodDays } from "./types";
+import type { DashboardEvent, DashboardPedido, IntegrationHealth } from "./types";
+import { dayKey, daysInRange, eventDay, isDayInRange, type DateRangeValue } from "../../utils/dateRange";
+
+// Data de referência (dia em que o pedido foi recebido pelo sistema) vem do
+// modelo de período compartilhado com a tela de Eventos.
+export { dayKey, eventDay };
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -9,39 +14,28 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  */
 export const CHART_COLOR = "#008FC7";
 
-/** Chave de dia local (YYYY-MM-DD) — evita o deslocamento de fuso do toISOString. */
-export function dayKey(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+/**
+ * Dias concretos do período, do mais antigo ao mais recente (eixo do gráfico).
+ * "Todo o período" começa no dia do evento mais antigo e termina hoje.
+ */
+export function rangeDays(
+  range: Pick<DateRangeValue, "start" | "end">,
+  events: DashboardEvent[],
+  today = new Date(),
+): string[] {
+  const end = range.end ?? dayKey(today);
+  const start = range.start ?? events.reduce((min, e) => {
+    const day = eventDay(e);
+    return day < min ? day : min;
+  }, end);
+  return daysInRange(start, end);
 }
 
-/** Dia do pedido: data_pedido (data do Bling) ou, na falta dela, o recebimento. */
-export function eventDay(event: DashboardEvent): string {
-  if (event.data_pedido) return event.data_pedido.slice(0, 10);
-  return dayKey(new Date(event.created_at));
-}
-
-/** Dias do período, do mais antigo ao mais recente, terminando hoje. */
-export function periodDays(days: PeriodDays, offsetPeriods = 0, today = new Date()): string[] {
-  const end = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  end.setDate(end.getDate() - days * offsetPeriods);
-  return Array.from({ length: days }, (_, i) => {
-    const d = new Date(end);
-    d.setDate(end.getDate() - (days - 1 - i));
-    return dayKey(d);
-  });
-}
-
-export function eventsInDays(events: DashboardEvent[], days: string[]): DashboardEvent[] {
-  if (days.length === 0) return [];
-  const first = days[0];
-  const last = days[days.length - 1];
-  return events.filter((event) => {
-    const day = eventDay(event);
-    return day >= first && day <= last;
-  });
+export function eventsInRange(
+  events: DashboardEvent[],
+  range: Pick<DateRangeValue, "start" | "end">,
+): DashboardEvent[] {
+  return events.filter((event) => isDayInRange(eventDay(event), range));
 }
 
 export interface DailyPoint {

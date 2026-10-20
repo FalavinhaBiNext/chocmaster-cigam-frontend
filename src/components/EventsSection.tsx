@@ -7,9 +7,16 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
+import { DateRangeFilter } from "./DateRangeFilter";
+import { EventListRow } from "./events/EventListRow";
+import AnimatedList from "./ui/AnimatedList";
+import { useDateRangeParam } from "../utils/useDateRangeParam";
+import { eventDay, formatRangeLabel, isDayInRange } from "../utils/dateRange";
 
 import {
   Activity,
+  LayoutGrid,
+  List,
   AlertCircle,
   CheckCircle2,
   FileText,
@@ -31,6 +38,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { API_BASE_URL } from "../config/api";
 
 type SyncStatus = "pendente" | "sincronizado" | "falha";
+
+const VISUALIZACAO_STORAGE_KEY = "chocmaster:eventos-visualizacao";
 
 // Máximo de eventos pendentes que podem ser selecionados para exclusão em lote
 // (o backend aplica o mesmo limite em POST /events/pendentes/excluir-lote).
@@ -189,8 +198,38 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
       : "pendentes";
   });
 
+  // Visualização do histórico: cards (padrão) ou lista compacta. Preferência
+  // por navegador; se o armazenamento falhar, segue em "cards" sem erro.
+  const [visualizacao, setVisualizacao] = useState<"cards" | "lista">(() => {
+    try {
+      return localStorage.getItem(VISUALIZACAO_STORAGE_KEY) === "lista" ? "lista" : "cards";
+    } catch {
+      return "cards";
+    }
+  });
+
+  const alterarVisualizacao = (modo: "cards" | "lista") => {
+    setVisualizacao(modo);
+    try {
+      localStorage.setItem(VISUALIZACAO_STORAGE_KEY, modo);
+    } catch {
+      // Armazenamento indisponível: a escolha vale só nesta sessão.
+    }
+  };
+
+  // Período (?periodo=) pela data de recebimento no sistema (created_at).
+  // Padrão "Todo o período": a tela abre como antes do filtro existir.
+  const [periodo, setPeriodo] = useDateRangeParam("tudo");
+
+  // Base de tudo o que a tela calcula: lista, indicadores, contadores e
+  // seleção em lote consideram só os eventos do período.
+  const eventsInPeriod = useMemo(
+    () => events.filter((event) => isDayInRange(eventDay(event), periodo)),
+    [events, periodo],
+  );
+
   const filteredEvents = useMemo(() => {
-    let result = events;
+    let result = eventsInPeriod;
 
     // Filtro por sincronização
     if (filtroSincronizacao === "pendentes") {
@@ -217,7 +256,14 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
     }
 
     return result;
-  }, [events, pedidosMap, unidadeNegocioFilter, searchPedido, filtroSincronizacao]);
+  }, [eventsInPeriod, pedidosMap, unidadeNegocioFilter, searchPedido, filtroSincronizacao]);
+
+  // Itens da AnimatedList (modo Lista). Memorizados: a lista reinicia as
+  // animações sempre que recebe um array novo.
+  const listItems = useMemo(
+    () => filteredEvents.map((event) => ({ id: event.id, title: `Pedido #${event.numero_pedido}` })),
+    [filteredEvents],
+  );
 
   // Eventos pendentes visíveis com os filtros atuais — só eles podem ser
   // selecionados, então a seleção efetiva ignora o que saiu da tela.
@@ -1050,7 +1096,7 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
 
             <div className="relative z-10 flex min-h-0 flex-1 flex-col">
               <div className="border-b border-slate-200/80 px-5 py-5">
-                <div className="flex items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
                     <h3 className="text-base font-bold text-slate-900">
                       Histórico de eventos
@@ -1062,7 +1108,9 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <DateRangeFilter value={periodo} onChange={setPeriodo} />
+
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
                       <input
@@ -1087,6 +1135,27 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                           focus:ring-[#00B0F1]/20
                         "
                       />
+                    </div>
+
+                    <div role="group" aria-label="Visualização" className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5">
+                      {([
+                        { modo: "cards", label: "Cards", Icon: LayoutGrid },
+                        { modo: "lista", label: "Lista", Icon: List },
+                      ] as const).map(({ modo, label, Icon }) => (
+                        <button
+                          key={modo}
+                          type="button"
+                          aria-pressed={visualizacao === modo}
+                          title={label}
+                          onClick={() => alterarVisualizacao(modo)}
+                          className={`inline-flex h-7 items-center gap-1 rounded-md px-2 text-[0.7rem] font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00B0F1]/40 ${
+                            visualizacao === modo ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+                          }`}
+                        >
+                          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                          {label}
+                        </button>
+                      ))}
                     </div>
 
                     <span
@@ -1122,7 +1191,7 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                   <XCircle className="h-3 w-3" />
                   Pendentes
                   <span className="ml-0.5 rounded-full bg-amber-200 px-1.5 py-0.5 text-[0.6rem] font-bold text-amber-800">
-                    {events.filter((e) => !e.cigam_sincronizado).length}
+                    {eventsInPeriod.filter((e) => !e.cigam_sincronizado).length}
                   </span>
                 </button>
 
@@ -1141,7 +1210,7 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                   <CheckCircle2 className="h-3 w-3" />
                   Sincronizados
                   <span className="ml-0.5 rounded-full bg-emerald-200 px-1.5 py-0.5 text-[0.6rem] font-bold text-emerald-800">
-                    {events.filter((e) => e.cigam_sincronizado).length}
+                    {eventsInPeriod.filter((e) => e.cigam_sincronizado).length}
                   </span>
                 </button>
 
@@ -1160,7 +1229,7 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                   <ShieldAlert className="h-3 w-3" />
                   Falhas
                   <span className="ml-0.5 rounded-full bg-red-200 px-1.5 py-0.5 text-[0.6rem] font-bold text-red-800">
-                    {events.filter((e) => e.sync_status === "falha").length}
+                    {eventsInPeriod.filter((e) => e.sync_status === "falha").length}
                   </span>
                 </button>
 
@@ -1178,7 +1247,7 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                 >
                   Todos
                   <span className="ml-0.5 rounded-full bg-slate-200 px-1.5 py-0.5 text-[0.6rem] font-bold text-slate-700">
-                    {events.length}
+                    {eventsInPeriod.length}
                   </span>
                 </button>
               </div>
@@ -1219,10 +1288,56 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                 </div>
               )}
 
-              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-4 sm:p-5">
-                {filteredEvents.map((event) => {
+              <div
+                className={
+                  visualizacao === "lista" && filteredEvents.length > 0
+                    ? "min-h-0 flex-1 px-2 pt-2 sm:px-3"
+                    : "min-h-0 flex-1 space-y-2 overflow-y-auto p-4 sm:p-5"
+                }
+              >
+                {visualizacao === "lista" && filteredEvents.length > 0 ? (
+                  // Modo Lista: AnimatedList (React Bits) com o conteúdo da linha
+                  // via renderItem. Ela controla clique, Enter e setas ↑/↓.
+                  <AnimatedList
+                    items={listItems}
+                    initialSelectedIndex={filteredEvents.findIndex((e) => e.id === selectedEvent?.id)}
+                    onItemSelect={(_, index) => {
+                      const event = filteredEvents[index];
+                      if (event) handleSelectEvent(event);
+                    }}
+                    renderItem={(_, index) => {
+                      const event = filteredEvents[index];
+                      if (!event) return null;
+                      return (
+                        <EventListRow
+                          event={event}
+                          marketplace={pedidosMap[String(event.pedido_id)]?.marketplace}
+                          isOpen={selectedEvent?.id === event.id}
+                          showCheckbox={filtroSincronizacao === "pendentes" && !event.cigam_sincronizado}
+                          isChecked={selectedPendingIds.has(event.id)}
+                          retrying={retryingEventId === event.id}
+                          deleting={deletingEventId === event.id}
+                          onToggleCheck={() => togglePendingSelection(event.id)}
+                          onRetry={() => handleRetryCigam(event)}
+                          onDelete={() => handleDeleteEvent(event)}
+                        />
+                      );
+                    }}
+                    theme="light"
+                    frame={false}
+                    accentColor="#008FC7"
+                    animation="pop"
+                    radius={12}
+                    gap={6}
+                    fadeSize={40}
+                    width="100%"
+                    maxHeight="100%"
+                    style={{ height: "100%" }}
+                  />
+                ) : filteredEvents.map((event) => {
                   const isSelected =
                     selectedEvent?.id === event.id;
+
 
                   return (
                     <button
@@ -1526,6 +1641,24 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                     </button>
                   );
                 })}
+
+                {events.length > 0 && filteredEvents.length === 0 && (
+                  <div className="flex min-h-64 flex-col items-center justify-center text-center">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-400">
+                      <Activity className="h-6 w-6" />
+                    </div>
+                    <p className="mt-4 text-sm font-semibold text-slate-700">
+                      {eventsInPeriod.length === 0
+                        ? `Nenhum evento em ${formatRangeLabel(periodo)}`
+                        : "Nenhum evento com os filtros atuais"}
+                    </p>
+                    <p className="mt-1 max-w-xs text-xs leading-5 text-slate-500">
+                      {eventsInPeriod.length === 0
+                        ? "Escolha outro período para ver os pedidos recebidos."
+                        : "Ajuste o filtro de sincronização ou a busca."}
+                    </p>
+                  </div>
+                )}
 
                 {events.length === 0 && (
                   <div className="flex min-h-64 flex-col items-center justify-center text-center">

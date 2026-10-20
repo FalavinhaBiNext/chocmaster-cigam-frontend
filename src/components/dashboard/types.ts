@@ -31,5 +31,3 @@ export interface IntegrationHealth {
   refreshTokenExpiresAt: string | null;
   label: string | null;
 }
-
-export type PeriodDays = 7 | 30 | 90;
