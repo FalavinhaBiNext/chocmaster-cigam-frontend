@@ -10,7 +10,11 @@ interface TourContextType {
   active: boolean;
   steps: TourStep[];
   index: number;
-  start: () => void;
+  /** Rota do tour da página em andamento; null no tour completo. */
+  scope: string | null;
+  /** Sem rota: tour completo. Com rota: só os passos daquela tela. */
+  start: (route?: string) => void;
+  hasPageTour: (route: string) => boolean;
   next: () => void;
   prev: () => void;
   finish: () => void;
@@ -38,27 +42,42 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [active, setActive] = useState(false);
   const [index, setIndex] = useState(0);
+  const [scope, setScope] = useState<string | null>(null);
 
   const isAdmin = user?.role === "admin";
-  const steps = useMemo(() => TOUR_STEPS.filter((step) => !step.adminOnly || isAdmin), [isAdmin]);
+  const allowedSteps = useMemo(() => TOUR_STEPS.filter((step) => !step.adminOnly || isAdmin), [isAdmin]);
 
-  // Primeiro acesso: abre o tour assim que o usuário é carregado.
+  // Tour completo: visão geral (sem os passos detalhados). Tour da página:
+  // todos os passos daquela rota, incluindo os detalhados.
+  const steps = useMemo(
+    () => (scope ? allowedSteps.filter((step) => step.route === scope) : allowedSteps.filter((step) => !step.pageOnly)),
+    [allowedSteps, scope],
+  );
+
+  // Primeiro acesso: abre o tour completo assim que o usuário é carregado.
   useEffect(() => {
     if (user?.id && !readDone(user.id)) {
+      setScope(null);
       setIndex(0);
       setActive(true);
     }
   }, [user?.id]);
 
-  const start = useCallback(() => {
+  const start = useCallback((route?: string) => {
+    setScope(route ?? null);
     setIndex(0);
     setActive(true);
   }, []);
 
+  const hasPageTour = useCallback(
+    (route: string) => allowedSteps.some((step) => step.route === route),
+    [allowedSteps],
+  );
+
   const finish = useCallback(() => {
     setActive(false);
-    if (user?.id) writeDone(user.id);
-  }, [user?.id]);
+    if (!scope && user?.id) writeDone(user.id);
+  }, [scope, user?.id]);
 
   const next = useCallback(() => {
     if (index >= steps.length - 1) {
@@ -71,7 +90,7 @@ export function TourProvider({ children }: { children: ReactNode }) {
   const prev = useCallback(() => setIndex((i) => Math.max(0, i - 1)), []);
 
   return (
-    <TourContext.Provider value={{ active, steps, index, start, next, prev, finish }}>
+    <TourContext.Provider value={{ active, steps, index, scope, start, hasPageTour, next, prev, finish }}>
       {children}
     </TourContext.Provider>
   );

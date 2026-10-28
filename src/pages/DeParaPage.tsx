@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Users, ShoppingBag, CreditCard, Truck, Store } from "lucide-react";
 import { DeParaSection } from "../components/DeParaSection";
 import { CanaisVendaSection } from "../components/CanaisVendaSection";
 import { useApp } from "../contexts/AppContext";
 import type { EntityType } from "../contexts/AppContext";
 import { API_BASE_URL } from "../config/api";
+import { PageHelpButton } from "../components/tour/PageHelpButton";
 
 type DeParaTab = EntityType | "lojas";
 
@@ -17,7 +19,13 @@ const tabs: { key: DeParaTab; label: string; icon: typeof Users }[] = [
 ];
 
 export function DeParaPage() {
-  const [activeTab, setActiveTab] = useState<DeParaTab>("clientes");
+  // ?aba= e ?busca= vêm dos atalhos de erro (Eventos) e do Dashboard.
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<DeParaTab>(() => {
+    const aba = searchParams.get("aba");
+    return tabs.some((t) => t.key === aba) ? (aba as DeParaTab) : "clientes";
+  });
+  const initialSearch = searchParams.get("busca") ?? undefined;
   const {
     blingClientes, cigamClientes, mappings,
     blingProdutos, cigamProdutos,
@@ -31,7 +39,10 @@ export function DeParaPage() {
 
   return (
     <div>
-      <h2 className="mb-4 text-lg font-bold text-slate-900">De Para</h2>
+      <div className="mb-4 flex items-center gap-2">
+        <h2 className="text-lg font-bold text-slate-900">De Para</h2>
+        <PageHelpButton />
+      </div>
 
       {/* Sub-tabs */}
       <nav
@@ -75,6 +86,7 @@ export function DeParaPage() {
               onSaveMapping={(idBling, idCigam, name) => handleSaveMapping("clientes", idBling, idCigam, name)}
               loading={loading}
               onRefresh={() => fetchData({ silent: true })}
+              initialSearchBling={initialSearch}
             />
           )}
           {activeTab === "produtos" && (
@@ -90,6 +102,7 @@ export function DeParaPage() {
               syncing={syncing}
               logs={syncLogs}
               onRefresh={() => fetchData({ silent: true })}
+              initialSearchBling={initialSearch}
             />
           )}
           {activeTab === "formas_pagamento" && (
@@ -105,6 +118,7 @@ export function DeParaPage() {
               syncing={syncing}
               logs={syncLogs}
               onRefresh={() => fetchData({ silent: true })}
+              initialSearchBling={initialSearch}
             />
           )}
           {activeTab === "transportadoras" && (
@@ -120,6 +134,7 @@ export function DeParaPage() {
               syncing={syncing}
               logs={syncLogs}
               onRefresh={() => fetchData({ silent: true })}
+              initialSearchBling={initialSearch}
             />
           )}
           {activeTab === "lojas" && (

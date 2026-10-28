@@ -1,5 +1,7 @@
 // Conteúdo do tour guiado. Cada passo pode apontar para um elemento marcado com
 // data-tour="<target>" e, se precisar, para a rota onde esse elemento existe.
+// O tour completo mostra a visão geral (passos sem pageOnly); o botão "Como
+// usar" de cada tela mostra todos os passos daquela rota, na ordem abaixo.
 // Passos sem target (ou cujo elemento não está visível, ex.: menu no celular)
 // aparecem como um card centralizado.
 
@@ -19,6 +21,8 @@ export interface TourStep {
   route?: string;
   target?: string;
   adminOnly?: boolean;
+  /** Passo detalhado: só aparece no tour da página (botão "Como usar"). */
+  pageOnly?: boolean;
 }
 
 export const TOUR_STEPS: TourStep[] = [
@@ -112,6 +116,48 @@ export const TOUR_STEPS: TourStep[] = [
     tip: "Se o funil \"afunila\" muito em uma etapa, é ali que está o gargalo.",
   },
   {
+    id: "dashboard-funil",
+    section: "Dashboard",
+    title: "Funil operacional",
+    route: "/dashboard",
+    target: "dashboard-funnel",
+    pageOnly: true,
+    objective: "Mostra quantos pedidos do período passaram por cada etapa, do recebimento até a NF-e no marketplace.",
+    howItWorks: [
+      "Pedidos recebidos → Sincronizados no CIGAM → NF-e faturada → NF-e enviada ao marketplace.",
+      "A diferença entre duas etapas é o que ainda está parado entre elas.",
+    ],
+    tip: "Muitos recebidos e poucos sincronizados? Veja as falhas em Eventos. Muitas faturadas e poucas enviadas? Veja a tela de NF-e.",
+  },
+  {
+    id: "dashboard-integracoes",
+    section: "Dashboard",
+    title: "Status das integrações",
+    route: "/dashboard",
+    target: "dashboard-integrations",
+    pageOnly: true,
+    objective: "Indica se Bling, Mercado Livre, Shopee e Tray estão conectados e com a autorização válida.",
+    steps: [
+      "Verde: conectado e funcionando.",
+      "Amarelo/vermelho: a autorização expirou ou a conta não está conectada.",
+      "Para corrigir, um administrador deve reconectar a conta em Configurações → Conexões Marketplace.",
+    ],
+  },
+  {
+    id: "dashboard-mapeamentos",
+    section: "Dashboard",
+    title: "Resumo do De Para",
+    route: "/dashboard",
+    target: "dashboard-mapping",
+    pageOnly: true,
+    objective: "Mostra quantos cadastros do Bling já estão vinculados ao CIGAM em cada tipo.",
+    howItWorks: [
+      "Formas de pagamento precisam estar 100% vinculadas: sem isso, os pedidos falham.",
+      "Produtos só precisam de vínculo quando são vendidos.",
+      "Clientes e transportadoras são vinculados automaticamente.",
+    ],
+  },
+  {
     id: "depara",
     section: "De Para",
     title: "De Para: Bling ↔ CIGAM",
@@ -135,6 +181,43 @@ export const TOUR_STEPS: TourStep[] = [
     tip: "Use o filtro \"Não associados\" para ver só o que falta vincular.",
   },
   {
+    id: "depara-acoes",
+    section: "De Para",
+    title: "Sincronizar e sugestões",
+    route: "/de-para",
+    target: "depara-acoes",
+    adminOnly: true,
+    pageOnly: true,
+    objective: "Botões para atualizar os cadastros e acelerar os vínculos.",
+    howItWorks: [
+      "Sincronizar Bling / Sincronizar CIGAM: busca os cadastros mais recentes de cada sistema. O progresso aparece em um painel na parte de baixo da tela.",
+      "Sugestões inteligentes: compara nomes e códigos e propõe pares Bling ↔ CIGAM parecidos (acima de 45% de semelhança).",
+    ],
+    steps: [
+      "Sincronize antes de vincular, para trabalhar com a lista atualizada.",
+      "Abra as Sugestões inteligentes, revise os pares e marque os corretos.",
+      "Confirme para associar todos os marcados de uma vez.",
+    ],
+    tip: "Sempre confira as sugestões antes de aceitar: nomes parecidos nem sempre são o mesmo item.",
+  },
+  {
+    id: "depara-tabelas",
+    section: "De Para",
+    title: "Associação manual",
+    route: "/de-para",
+    target: "depara-tabelas",
+    adminOnly: true,
+    pageOnly: true,
+    objective: "À esquerda ficam os cadastros do Bling e à direita os do CIGAM. Vincule um ao outro.",
+    steps: [
+      "Busque o item na tabela do Bling (por nome, ID ou código) e clique para selecioná-lo.",
+      "Busque o equivalente na tabela do CIGAM e selecione.",
+      "Clique em associar para salvar o vínculo.",
+      "Use os filtros (Todos / Associados / Não associados) para acompanhar o que falta.",
+    ],
+    tip: "Na tela de Eventos, o botão de correção de um pedido com falha já abre esta tela filtrada no item certo.",
+  },
+  {
     id: "mapeados",
     section: "Mapeados",
     title: "Vínculos já criados",
@@ -147,6 +230,20 @@ export const TOUR_STEPS: TourStep[] = [
       "Para corrigir um vínculo errado, exclua a associação (ícone de lixeira) e refaça no De Para.",
     ],
     tip: "Se a lista estiver vazia, os vínculos ainda não foram criados na tela De Para.",
+  },
+  {
+    id: "mapeados-busca",
+    section: "Mapeados",
+    title: "Buscar um vínculo",
+    route: "/mapeados",
+    target: "mapeados-busca",
+    pageOnly: true,
+    objective: "Encontre rapidamente para qual código do CIGAM um item do Bling está apontando.",
+    steps: [
+      "Digite o nome, o ID do Bling ou o código do CIGAM.",
+      "Confira a coluna ID CIGAM.",
+      "Se estiver errado, exclua a associação e refaça no De Para.",
+    ],
   },
   {
     id: "eventos",
@@ -171,6 +268,39 @@ export const TOUR_STEPS: TourStep[] = [
     tip: "Excluir um evento é definitivo: ele não poderá mais ser sincronizado com o CIGAM.",
   },
   {
+    id: "eventos-busca",
+    section: "Eventos",
+    title: "Período, busca e visualização",
+    route: "/eventos",
+    target: "eventos-busca",
+    pageOnly: true,
+    objective: "Encontre um pedido específico ou restrinja a lista a um período.",
+    steps: [
+      "Escolha o período pela data de recebimento do pedido.",
+      "Digite o número do pedido Bling na busca.",
+      "Alterne entre Cards (mais detalhes) e Lista (mais compacta).",
+    ],
+  },
+  {
+    id: "eventos-falhas",
+    section: "Eventos",
+    title: "Resolvendo um pedido com falha",
+    route: "/eventos",
+    pageOnly: true,
+    objective: "Ao abrir um pedido com falha, o sistema explica o motivo em linguagem simples e mostra como resolver.",
+    howItWorks: [
+      "O título resume o problema (ex.: \"Produto sem De Para\", \"CIGAM indisponível\").",
+      "\"Como resolver\" traz o passo a passo da correção.",
+      "Quando possível, um botão leva direto à tela da correção, já filtrada no item certo.",
+      "\"Detalhes técnicos\" guarda a mensagem original para enviar ao suporte.",
+    ],
+    steps: [
+      "Filtre por Falhas e clique no pedido.",
+      "Siga o passo a passo ou use o botão de correção.",
+      "Volte e clique em \"Tentar novamente\".",
+    ],
+  },
+  {
     id: "nfe",
     section: "NF-e CIGAM",
     title: "Notas fiscais e etiquetas",
@@ -190,6 +320,34 @@ export const TOUR_STEPS: TourStep[] = [
       "Também é possível visualizar ou baixar o XML e copiar a chave de acesso.",
     ],
     tip: "Se o marketplace ainda não liberou o envio, aguarde alguns minutos e tente de novo.",
+  },
+  {
+    id: "nfe-shopee",
+    section: "NF-e CIGAM",
+    title: "Envios Shopee",
+    route: "/nfe",
+    target: "nfe-shopee",
+    pageOnly: true,
+    objective: "Na Shopee, além de enviar a NF-e, o envio precisa ser organizado para liberar a etiqueta.",
+    steps: [
+      "Clique em \"Verificar envios Shopee\".",
+      "O sistema confere as NF-e Shopee dos últimos 30 dias e organiza as pendentes.",
+      "Leia o resumo: organizados agora, já organizados, com falha e não encontrados.",
+    ],
+  },
+  {
+    id: "nfe-filtros",
+    section: "NF-e CIGAM",
+    title: "Filtros e ações por nota",
+    route: "/nfe",
+    target: "nfe-filtros",
+    pageOnly: true,
+    objective: "Encontre as notas pelo status, marketplace, data ou número, e aja sobre cada uma.",
+    steps: [
+      "Use \"Pendentes\" para ver só o que falta enviar.",
+      "Filtre por marketplace ou período, ou busque por pedido, número da NF ou chave.",
+      "Na linha da nota: visualizar/baixar XML, enviar ao marketplace, imprimir etiqueta ou excluir.",
+    ],
   },
   {
     id: "configuracoes",

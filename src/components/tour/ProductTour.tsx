@@ -72,7 +72,7 @@ function placeCard(rect: Rect | null, cardHeight: number) {
 }
 
 export function ProductTour() {
-  const { active, steps, index, next, prev, finish } = useTour();
+  const { active, steps, index, scope, next, prev, finish } = useTour();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const step = active ? steps[index] : undefined;
@@ -268,7 +268,7 @@ export function ProductTour() {
               onClick={finish}
               className="text-xs font-semibold text-slate-400 hover:text-slate-700"
             >
-              Pular tour
+              {scope ? "Fechar" : "Pular tour"}
             </button>
           )}
           <div className="flex items-center gap-2">
@@ -287,7 +287,7 @@ export function ProductTour() {
               onClick={next}
               className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-b from-[#00B0F1] to-[#008FC7] px-4 py-2 text-xs font-semibold text-white shadow-[0_8px_20px_-10px_rgba(0,176,241,0.85)] hover:brightness-105"
             >
-              {isFirst ? "Começar" : isLast ? "Concluir" : "Próximo"}
+              {isFirst && !scope ? "Começar" : isLast ? "Concluir" : "Próximo"}
               {isLast ? <Check className="h-3.5 w-3.5" /> : <ArrowRight className="h-3.5 w-3.5" />}
             </button>
           </div>

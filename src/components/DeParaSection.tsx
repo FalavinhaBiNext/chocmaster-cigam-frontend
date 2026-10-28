@@ -63,6 +63,7 @@ interface DeParaSectionProps {
   logs?: string[];
   onRefresh?: () => Promise<void>;
   unidadeNegocioFilter?: string;
+  initialSearchBling?: string;
 }
 
 export const DeParaSection: React.FC<DeParaSectionProps> = ({
@@ -78,9 +79,10 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
   logs,
   onRefresh,
   unidadeNegocioFilter,
+  initialSearchBling,
 }) => {
   const { token } = useAuth();
-  const [searchBling, setSearchBling] = useState('');
+  const [searchBling, setSearchBling] = useState(initialSearchBling ?? '');
   const [searchCigam, setSearchCigam] = useState('');
   const [selectedBlingId, setSelectedBlingId] = useState<string | null>(null);
   const [selectedCigamId, setSelectedCigamId] = useState<string | null>(null);
@@ -866,7 +868,7 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div data-tour="depara-acoes" className="flex flex-wrap items-center gap-2">
             {onSync && (
               <button
                 type="button"
@@ -1423,7 +1425,7 @@ export const DeParaSection: React.FC<DeParaSectionProps> = ({
         )}
 
       {/* Painéis Bling e CIGAM */}
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+      <div data-tour="depara-tabelas" className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         {/* Bling */}
         <section className={`${panelClassName} flex h-[620px] flex-col`}>
           <div

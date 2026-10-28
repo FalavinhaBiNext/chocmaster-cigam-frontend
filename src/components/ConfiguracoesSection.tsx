@@ -6,6 +6,7 @@ import {
   type FormEvent,
 } from "react";
 import { createPortal } from "react-dom";
+import { useSearchParams } from "react-router-dom";
 
 import {
   AlertCircle,
@@ -170,7 +171,12 @@ export const ConfiguracoesSection = ({
     [token],
   );
 
-  const [activeTab, setActiveTab] = useState<ConfiguracoesTab>("resumo");
+  // ?aba= vem dos atalhos de erro da tela de Eventos.
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<ConfiguracoesTab>(() => {
+    const aba = searchParams.get("aba");
+    return CONFIGURACOES_TABS.some((t) => t.id === aba) ? (aba as ConfiguracoesTab) : "resumo";
+  });
 
   const [usuarios, setUsuarios] = useState<UsuarioCigam[]>([]);
   const [loading, setLoading] = useState(true);

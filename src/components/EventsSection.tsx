@@ -9,6 +9,7 @@ import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import { DateRangeFilter } from "./DateRangeFilter";
 import { EventListRow } from "./events/EventListRow";
+import { EventErrorHelp } from "./events/EventErrorHelp";
 import AnimatedList from "./ui/AnimatedList";
 import { useDateRangeParam } from "../utils/useDateRangeParam";
 import { eventDay, formatRangeLabel, isDayInRange } from "../utils/dateRange";
@@ -35,6 +36,7 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "../contexts/AuthContext";
+import { getEventErrorGuide } from "../utils/eventErrors";
 import { API_BASE_URL } from "../config/api";
 
 type SyncStatus = "pendente" | "sincronizado" | "falha";
@@ -1108,7 +1110,7 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-3">
+                  <div data-tour="eventos-busca" className="flex flex-wrap items-center gap-3">
                     <DateRangeFilter value={periodo} onChange={setPeriodo} />
 
                     <div className="relative">
@@ -1604,7 +1606,7 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
 
                         {event.sync_status === "falha" && event.error_message && (
                           <p className="mt-1 truncate text-xs font-medium text-red-600" title={event.error_message}>
-                            Erro: {event.error_message}
+                            {getEventErrorGuide(event.error_message).title} · abra para ver como resolver
                           </p>
                         )}
 
@@ -1849,9 +1851,12 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
                         </div>
 
                         {selectedEvent.sync_status === "falha" && selectedEvent.error_message && (
-                          <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
-                            Erro na última tentativa: {selectedEvent.error_message}
-                          </p>
+                          <EventErrorHelp
+                            errorMessage={selectedEvent.error_message}
+                            retryCount={selectedEvent.retry_count}
+                            onRetry={() => handleRetryCigam(selectedEvent)}
+                            retrying={retryingEventId === selectedEvent.id}
+                          />
                         )}
 
                         <h3 className="mt-3 flex flex-wrap items-center gap-2 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">

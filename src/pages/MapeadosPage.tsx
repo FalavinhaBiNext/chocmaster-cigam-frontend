@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Users, ShoppingBag, CreditCard, Truck, Store } from "lucide-react";
 import { MapeadosSection } from "../components/MapeadosSection";
 import { useApp } from "../contexts/AppContext";
 import type { EntityType } from "../contexts/AppContext";
+import { PageHelpButton } from "../components/tour/PageHelpButton";
 
 type MapeadosTab = "clientes" | "produtos" | "formas_pagamento" | "transportadoras" | "lojas";
 
@@ -15,7 +17,12 @@ const tabs: { key: MapeadosTab; label: string; icon: typeof Users }[] = [
 ];
 
 export function MapeadosPage() {
-  const [activeTab, setActiveTab] = useState<MapeadosTab>("clientes");
+  // ?aba= e ?busca= vêm dos atalhos de erro da tela de Eventos.
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<MapeadosTab>(() => {
+    const aba = searchParams.get("aba");
+    return tabs.some((t) => t.key === aba) ? (aba as MapeadosTab) : "clientes";
+  });
   const { mappings, canaisVenda, loading, handleDeleteMapping } = useApp();
 
   const getMappingsForTab = () => {
@@ -36,7 +43,10 @@ export function MapeadosPage() {
 
   return (
     <div>
-      <h2 className="mb-4 text-lg font-bold text-slate-900">Mapeados</h2>
+      <div className="mb-4 flex items-center gap-2">
+        <h2 className="text-lg font-bold text-slate-900">Mapeados</h2>
+        <PageHelpButton />
+      </div>
 
       {/* Sub-tabs */}
       <nav
@@ -74,6 +84,7 @@ export function MapeadosPage() {
             title={getTitleForTab()}
             mappings={getMappingsForTab()}
             loading={loading}
+            initialSearch={searchParams.get("busca") ?? undefined}
             onDeleteMapping={
               activeTab === "lojas"
                 ? undefined

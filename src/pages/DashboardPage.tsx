@@ -30,6 +30,7 @@ import {
 } from "../components/dashboard/metrics";
 import type { DashboardPedido } from "../components/dashboard/types";
 import { DateRangeFilter } from "../components/DateRangeFilter";
+import { PageHelpButton } from "../components/tour/PageHelpButton";
 import { useDateRangeParam } from "../utils/useDateRangeParam";
 import { formatRangeDates, presetLabel, previousRange } from "../utils/dateRange";
 
@@ -145,7 +146,7 @@ export function DashboardPage() {
         icon: Unlink,
         title: `${pagamentosSemVinculo} ${pagamentosSemVinculo === 1 ? "forma de pagamento" : "formas de pagamento"} sem De-Para`,
         detail: "Pedidos com essa forma de pagamento falham no CIGAM",
-        to: isAdmin ? "/de-para" : undefined,
+        to: isAdmin ? "/de-para?aba=formas_pagamento" : undefined,
       });
     }
 
@@ -190,7 +191,10 @@ export function DashboardPage() {
       {/* Cabeçalho + filtro de período (escopo: tudo abaixo) */}
       <header data-tour="dashboard-header" className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-slate-900">Dashboard</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-bold tracking-tight text-slate-900">Dashboard</h2>
+            <PageHelpButton />
+          </div>
           <p className="mt-0.5 text-sm text-slate-500">
             Pedidos do Bling integrados ao CIGAM e aos marketplaces
             {updatedAt && (
@@ -274,17 +278,21 @@ export function DashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-            <div className="xl:col-span-2">
+            <div data-tour="dashboard-funnel" className="xl:col-span-2">
               <PipelineFunnel stages={view.stages} />
             </div>
-            <IntegrationsList integrations={integrations} />
+            <div data-tour="dashboard-integrations">
+              <IntegrationsList integrations={integrations} />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
             <div className="xl:col-span-2">
               <RecentOrders events={recent} pedidosById={pedidosById} />
             </div>
-            <MappingSummary rows={mappingRows} loading={app.loading} />
+            <div data-tour="dashboard-mapping">
+              <MappingSummary rows={mappingRows} loading={app.loading} />
+            </div>
           </div>
         </div>
       )}

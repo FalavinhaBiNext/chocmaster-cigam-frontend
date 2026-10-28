@@ -1,5 +1,6 @@
 import type { FC, MouseEvent } from "react";
 import { CheckCircle2, RotateCcw, ShieldAlert, Square, SquareCheck, Trash2, XCircle } from "lucide-react";
+import { getEventErrorGuide } from "../../utils/eventErrors";
 
 export interface EventListRowEvent {
   id: string;
@@ -116,7 +117,7 @@ export const EventListRow: FC<EventListRowProps> = ({
       ) : event.sync_status === "falha" ? (
         <span
           tabIndex={0}
-          title={event.error_message ? `Erro: ${event.error_message}` : undefined}
+          title={event.error_message ? `${getEventErrorGuide(event.error_message).title}. Clique no pedido para ver como resolver.` : undefined}
           aria-label={`Falha${event.retry_count > 0 ? ` após ${event.retry_count} tentativa(s)` : ""}${event.error_message ? `: ${event.error_message}` : ""}`}
           className="inline-flex shrink-0 items-center gap-1 rounded text-[0.68rem] font-semibold text-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
           onClick={(e) => e.stopPropagation()}

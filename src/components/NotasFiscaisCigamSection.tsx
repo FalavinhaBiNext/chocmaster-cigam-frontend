@@ -520,7 +520,7 @@ export const NotasFiscaisCigamSection = ({
       </div>
 
       {/* Envios Shopee — verifica/organiza o envio (ship_order) das NF-es já enviadas */}
-      <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm">
+      <div data-tour="nfe-shopee" className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-slate-900">Envios Shopee</p>
@@ -579,6 +579,7 @@ export const NotasFiscaisCigamSection = ({
 
       {/* Filtros e busca */}
       <div
+        data-tour="nfe-filtros"
         className="
           rounded-xl border border-slate-200/80
           bg-white p-4

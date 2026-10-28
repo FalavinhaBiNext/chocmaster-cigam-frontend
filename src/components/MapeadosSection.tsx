@@ -13,10 +13,11 @@ interface MapeadosSectionProps {
   mappings: Mapping[];
   loading: boolean;
   onDeleteMapping?: (idBling: string) => Promise<void>;
+  initialSearch?: string;
 }
 
-export function MapeadosSection({ title, mappings, loading, onDeleteMapping }: MapeadosSectionProps) {
-  const [search, setSearch] = useState("");
+export function MapeadosSection({ title, mappings, loading, onDeleteMapping, initialSearch }: MapeadosSectionProps) {
+  const [search, setSearch] = useState(initialSearch ?? "");
   const [page, setPage] = useState(1);
   const perPage = 20;
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -110,7 +111,7 @@ export function MapeadosSection({ title, mappings, loading, onDeleteMapping }: M
           </span>
         </div>
 
-        <div className="relative">
+        <div data-tour="mapeados-busca" className="relative">
           <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
