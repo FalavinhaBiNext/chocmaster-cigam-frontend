@@ -6,6 +6,7 @@ import { RegisterPage } from "./pages/RegisterPage";
 import { MercadoLivreCallbackPage } from "./pages/MercadoLivreCallbackPage";
 import { ShopeeCallbackPage } from "./pages/ShopeeCallbackPage";
 import { AppProvider } from "./contexts/AppContext";
+import { TourProvider } from "./contexts/TourContext";
 import { AppLayout } from "./layouts/AppLayout";
 import { DashboardPage } from "./pages/DashboardPage";
 import { DeParaPage } from "./pages/DeParaPage";
@@ -27,7 +28,9 @@ export default function App() {
         element={
           <ProtectedRoute>
             <AppProvider>
-              <AppLayout />
+              <TourProvider>
+                <AppLayout />
+              </TourProvider>
             </AppProvider>
           </ProtectedRoute>
         }

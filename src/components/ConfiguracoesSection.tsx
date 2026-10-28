@@ -1945,6 +1945,7 @@ export const ConfiguracoesSection = ({
 
       {/* Navegação por abas */}
       <nav
+        data-tour="config-tabs"
         className="
           flex flex-wrap gap-2
           rounded-2xl

@@ -1175,7 +1175,7 @@ export const EventsSection: FC<{ unidadeNegocioFilter?: string }> = ({ unidadeNe
               </div>
 
               {/* Filtros de sincronização */}
-              <div className="flex items-center gap-2 border-b border-slate-100 px-5 py-3">
+              <div data-tour="eventos-section" className="flex items-center gap-2 border-b border-slate-100 px-5 py-3">
                 <button
                   type="button"
                   onClick={() => setFiltroSincronizacao("pendentes")}

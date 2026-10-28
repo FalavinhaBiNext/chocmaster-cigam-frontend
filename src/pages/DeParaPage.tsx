@@ -35,6 +35,7 @@ export function DeParaPage() {
 
       {/* Sub-tabs */}
       <nav
+        data-tour="depara-tabs"
         aria-label="Entidades do De Para"
         className="mb-4 overflow-visible rounded-2xl border border-white/70 bg-white/[0.94] p-2 shadow-[0_18px_45px_-28px_rgba(2,6,23,0.75),inset_0_1px_1px_rgba(255,255,255,0.95)] backdrop-blur-xl"
       >

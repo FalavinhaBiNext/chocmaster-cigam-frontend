@@ -188,7 +188,7 @@ export function DashboardPage() {
   return (
     <div className="space-y-5">
       {/* Cabeçalho + filtro de período (escopo: tudo abaixo) */}
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <header data-tour="dashboard-header" className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-slate-900">Dashboard</h2>
           <p className="mt-0.5 text-sm text-slate-500">
@@ -231,9 +231,11 @@ export function DashboardPage() {
       ) : (
         // Na recarga, mantém o conteúdo anterior esmaecido — sem pular layout.
         <div className={`space-y-5 transition-opacity ${refreshing ? "opacity-60" : ""}`}>
-          <AttentionPanel items={attention} />
+          <div data-tour="dashboard-attention">
+            <AttentionPanel items={attention} />
+          </div>
 
-          <section aria-label="Indicadores do período" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <section data-tour="dashboard-stats" aria-label="Indicadores do período" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <StatTile
               label="Pedidos recebidos"
               value={formatInt(view.pedidos)}

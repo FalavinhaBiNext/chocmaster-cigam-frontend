@@ -1,6 +1,7 @@
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Sidebar } from "../components/Sidebar";
+import { ProductTour } from "../components/tour/ProductTour";
 import { useApp } from "../contexts/AppContext";
 import { Terminal, X, AlertCircle } from "lucide-react";
 
@@ -183,6 +184,8 @@ export function AppLayout() {
           </div>
         </Link>
       )}
+
+      <ProductTour />
 
       {/* Footer */}
       <footer

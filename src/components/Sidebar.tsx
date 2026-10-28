@@ -11,10 +11,12 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Compass,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useApp } from "../contexts/AppContext";
+import { useTour } from "../contexts/TourContext";
 
 import Logo from "../assets/LogoSFundoBlack.png";
 
@@ -35,6 +37,7 @@ interface SidebarProps {
 export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
   const { user, logout } = useAuth();
   const { activeEnv, handleSelectEnvironment } = useApp();
+  const { start: startTour } = useTour();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isAdmin = user?.role === "admin";
@@ -101,6 +104,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
 
         {/* Environment selector */}
         <div
+          data-tour="env-selector"
           className={`mx-4 mt-4 flex items-center rounded-xl border border-slate-200 bg-slate-100/80 p-1 shadow-[inset_0_1px_2px_rgba(15,23,42,0.08)] ${
             collapsed ? "lg:hidden" : ""
           }`}
@@ -132,7 +136,7 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="mt-4 flex-1 space-y-1 px-3">
+        <nav data-tour="sidebar-nav" className="mt-4 flex-1 space-y-1 px-3">
           {visibleNavItems.map((item) => (
             <NavLink
               key={item.to}
@@ -154,6 +158,25 @@ export function Sidebar({ collapsed, onToggleCollapsed }: SidebarProps) {
             </NavLink>
           ))}
         </nav>
+
+        {/* Tour guiado */}
+        <div className="px-3 pb-3">
+          <button
+            type="button"
+            data-tour="tour-button"
+            onClick={() => {
+              setMobileOpen(false);
+              startTour();
+            }}
+            title={collapsed ? "Tour do sistema" : undefined}
+            className={`flex w-full items-center gap-2.5 rounded-xl border border-[#00B0F1]/20 bg-[#00B0F1]/5 px-3 py-2 text-sm font-medium text-[#008FC7] transition-all duration-200 hover:bg-[#00B0F1]/10 ${
+              collapsed ? "lg:justify-center lg:px-0" : ""
+            }`}
+          >
+            <Compass className="h-4 w-4 shrink-0" />
+            <span className={collapsed ? "lg:hidden" : ""}>Tour do sistema</span>
+          </button>
+        </div>
 
         {/* User + Logout */}
         <div className="border-t border-slate-100 p-4">

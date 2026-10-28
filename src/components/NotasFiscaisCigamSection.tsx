@@ -451,7 +451,7 @@ export const NotasFiscaisCigamSection = ({
   return (
     <div className="space-y-6">
       {/* Header com estatísticas */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div data-tour="nfe-section" className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div
           className="
             flex items-center gap-3
